@@ -438,58 +438,94 @@ function scannerRowData(row){
   return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, newsHours, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
 }
 
-const CATALYST_OPTIONS_HTML = '<option value="">News? (pick a catalyst)</option>' +
+const CATALYST_OPTIONS_HTML = '<option value="">None yet</option>' +
   Object.entries(CATALYST_TYPES).map(([val, info]) => `<option value="${val}">${info.good ? '' : '⚠ '}${info.label}</option>`).join('');
 
+// Which tickers currently have their detail row expanded — module-level so
+// it survives the 60s auto-refresh re-render (a trader mid-review of a
+// ticker shouldn't have the panel yanked shut from under them).
+const scannerExpandedTickers = new Set();
+
+// Two-row-per-ticker layout: a dense, scannable summary row (the numbers a
+// trader glances across many tickers) plus a collapsed detail row (the
+// "why" — pillar breakdown, news history, manual overrides, catalyst) that
+// opens on click. Keeps the default view uncluttered while keeping every
+// control reachable and clearly labeled once expanded.
 function scannerRowHtml(data, rank){
   const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, shortFloatPct, shortRatio, watched } = data;
+  const expanded = scannerExpandedTickers.has(ticker);
   const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
-  const newsCellHtml = newsEntry ? scannerNewsBadgeHtml(newsEntry) : '<span class="pill" style="opacity:.6;">not checked</span>';
+  const freshnessIconHtml = newsEntry && newsEntry.hoursOld != null
+    ? `<span title="${(newsEntry.headline||'').replace(/"/g,'&quot;')}">${scannerFreshnessBucket(newsEntry.hoursOld).icon}</span>`
+    : '';
   const catalystBadge = scannerCatalystBadgeHtml(catalystType);
   const pillarBreakdownHtml = pillarBreakdown.map(p =>
-    `<li style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;font-size:11px;">
+    `<li style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:12px;">
       <span>${p.ok ? '&#9989;' : '&#10060;'} ${p.label}</span>
       <span style="color:var(--muted);white-space:nowrap;">${escapeHtml(p.detail)}</span>
     </li>`).join('');
   const rankBadge = rank === 1 ? '&#127942;' : (rank <= 3 ? '&#129352;' : '');
-  const rowTint = rank <= 3 ? 'background:var(--good-soft);' : (rank <= 10 ? 'background:var(--accent-soft);' : '');
-  return `<tr data-ticker="${ticker}" style="${rowTint}">
-    <td class="mono num" style="font-weight:700;">${rankBadge} ${rank}</td>
-    <td class="num ${pct>=0?'good':'bad'}" style="font-weight:700;">${pct>=0?'+':''}${pct.toFixed(2)}%</td>
-    <td>
-      <div class="mono" style="font-weight:700;">${ticker}${watched ? ' <span class="pill neutral">watching</span>' : ''}</div>
-      <details class="sc-news-details" style="margin-top:4px;">
-        <summary style="cursor:pointer;">${newsCellHtml}</summary>
-        ${scannerNewsPanelHtml(ticker, newsEntry)}
-      </details>
-      <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-        ${catalystBadge}
-        <button type="button" class="btn sc-check-news" data-ticker="${ticker}" style="padding:2px 6px;font-size:10px;">Check news</button>
+  const cardTint = rank <= 3 ? 'background:var(--good-soft);' : (rank <= 10 ? 'background:var(--accent-soft);' : '');
+
+  return `<div class="sc-stock-card" data-ticker="${ticker}" style="${cardTint}">
+    <div class="sc-card-clickzone" aria-expanded="${expanded}">
+      <div class="sc-card-top">
+        <span class="sc-card-rank mono">${rankBadge} #${rank}</span>
+        <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
       </div>
-      <select class="sc-catalyst-select" data-ticker="${ticker}" style="margin-top:4px;font-size:11px;padding:3px 4px;border-radius:6px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);max-width:190px;">
-        ${CATALYST_OPTIONS_HTML.replace(`value="${catalystType}"`, `value="${catalystType}" selected`)}
-      </select>
-    </td>
-    <td class="num">$${price.toFixed(2)}</td>
-    <td class="num">${vol.toLocaleString()}</td>
-    <td>
-      <input type="number" step="any" class="sc-avgvol-input" data-ticker="${ticker}" value="${avgVolM!=null?avgVolM:''}" placeholder="avg vol (M)" style="width:80px;min-height:32px;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);">
-      <div class="num" style="font-size:11px;margin-top:2px;${relVol!=null && relVol>=5 ? 'color:var(--good);font-weight:700;' : ''}">${relVol!=null ? relVol.toFixed(1)+'x' : '—'}</div>
-    </td>
-    <td><input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8" style="width:70px;min-height:32px;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);"></td>
-    <td class="num">${floatRotation!=null ? floatRotation.toFixed(1)+'x' : '—'}</td>
-    <td class="num" title="${shortTitle}">${shortFloatPct!=null ? shortFloatPct.toFixed(1)+'%' : '—'}</td>
-    <td>
-      <details class="sc-pillars-details">
-        <summary style="cursor:pointer;list-style:none;"><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></summary>
-        <ul style="margin:6px 0 0;padding:0;list-style:none;min-width:170px;">${pillarBreakdownHtml}</ul>
-      </details>
-    </td>
-    <td style="display:flex;flex-direction:column;gap:4px;">
-      <button type="button" class="btn sc-watch-toggle" data-ticker="${ticker}" style="padding:4px 8px;font-size:11px;">${watched ? '★ Watching' : '☆ Watch'}</button>
-      <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__logScannerTrade('${ticker}', ${price}, ${pct})">Log trade</button>
-    </td>
-  </tr>`;
+      <div class="sc-card-main">
+        <div class="sc-card-ticker mono">
+          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${catalystBadge}
+        </div>
+        <div class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
+      </div>
+      <div class="sc-card-stats">
+        <div class="sc-stat"><span class="k">Price</span><span class="v num">$${price.toFixed(2)}</span></div>
+        <div class="sc-stat"><span class="k">Volume</span><span class="v num">${vol.toLocaleString()}</span></div>
+        <div class="sc-stat"><span class="k">Rel Vol</span><span class="v num" style="${relVol!=null && relVol>=5 ? 'color:var(--good);font-weight:700;' : ''}">${relVol!=null ? relVol.toFixed(1)+'x' : '—'}</span></div>
+        <div class="sc-stat"><span class="k">Float</span><span class="v num">${floatM!=null ? floatM.toFixed(1)+'M' : '—'}</span></div>
+        <div class="sc-stat"><span class="k">Pillars</span><span class="v"><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></span></div>
+      </div>
+    </div>
+    <button type="button" class="btn sc-watch-toggle" data-ticker="${ticker}" title="${watched?'Remove from':'Add to'} watchlist">${watched ? '★' : '☆'}</button>
+    <div class="sc-card-detail" ${expanded ? '' : 'hidden'}>
+      <div class="sc-detail-grid">
+        <div class="sc-detail-col">
+          <h4>Why ${pillarCount}/5 pillars</h4>
+          <ul style="margin:0;padding:0;list-style:none;">${pillarBreakdownHtml}</ul>
+        </div>
+        <div class="sc-detail-col">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <h4>News (last 3)</h4>
+            <button type="button" class="btn sc-check-news" data-ticker="${ticker}" style="padding:3px 8px;font-size:10px;">Check news now</button>
+          </div>
+          ${scannerNewsPanelHtml(ticker, newsEntry)}
+        </div>
+        <div class="sc-detail-col">
+          <h4>Manual data &amp; catalyst</h4>
+          <p class="sc-detail-hint">Override Finviz's automatic float/avg-volume for this ticker, or tag a catalyst manually if the news check missed it.</p>
+          <label class="sc-detail-field">Catalyst / news type
+            <select class="sc-catalyst-select" data-ticker="${ticker}">
+              ${CATALYST_OPTIONS_HTML.replace(`value="${catalystType}"`, `value="${catalystType}" selected`)}
+            </select>
+          </label>
+          <label class="sc-detail-field">Avg. daily volume (M shares)
+            <input type="number" step="any" class="sc-avgvol-input" data-ticker="${ticker}" value="${avgVolM!=null?avgVolM:''}" placeholder="e.g. 1.5">
+          </label>
+          <label class="sc-detail-field">Float override (M shares)
+            <input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8">
+          </label>
+          <div class="sc-detail-stats">
+            <span>Float rotation: <strong>${floatRotation!=null ? floatRotation.toFixed(1)+'x' : '—'}</strong></span>
+            <span title="${shortTitle}">Short float: <strong>${shortFloatPct!=null ? shortFloatPct.toFixed(1)+'%' : '—'}</strong></span>
+          </div>
+        </div>
+        <div class="sc-detail-col" style="justify-content:flex-end;">
+          <button class="btn primary" style="padding:8px 14px;font-size:12px;" onclick="__logScannerTrade('${ticker}', ${price}, ${pct})">Log this trade &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 function renderScannerTables(){
   const cache = lsGet(SCANNER_CACHE_KEY, null);
@@ -534,6 +570,16 @@ function renderScannerTables(){
     if(checkBtn){ checkScannerNews(checkBtn.dataset.ticker); return; }
     const watchBtn = e.target.closest('.sc-watch-toggle');
     if(watchBtn){ toggleScannerWatch(watchBtn.dataset.ticker); renderScannerTables(); return; }
+    // Clicking anywhere on the card's summary area (excluding the watch
+    // star, already handled above, and anything inside the detail panel
+    // itself) toggles that one card's expanded detail.
+    const zone = e.target.closest('.sc-card-clickzone');
+    if(zone){
+      const ticker = zone.closest('.sc-stock-card').dataset.ticker;
+      if(scannerExpandedTickers.has(ticker)) scannerExpandedTickers.delete(ticker);
+      else scannerExpandedTickers.add(ticker);
+      renderScannerTables();
+    }
   });
 });
 window.__logScannerTrade = function(ticker, price, pctGain){

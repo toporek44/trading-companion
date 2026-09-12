@@ -378,92 +378,36 @@
       </section>
 
       <section id="page-scanner" class="page" hidden>
-        <p class="lede">A momentum scanner built Ross Cameron's way: scans for stocks up &ge;4% on the day, sorted by <strong>Change % descending</strong>, highlighting the <strong>top 5&ndash;10 rows</strong> &mdash; "page one," never page two.</p>
-        <ul class="lede-list">
-          <li><strong>5 Pillars scoring</strong> &mdash; relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $2&ndash;$20 ($5&ndash;$10 sweet spot), float under 20M (10M preferred). Editable in the Filters card below (Min/Max price) &mdash; it's synced everywhere, including the Telegram alert check. This is what scores the Pillars badge below.</li>
-          <li><strong>Live data, auto-refreshing every 60 seconds</strong> &mdash; relative volume and float are computed for real from Finviz Elite, no manual entry or API key needed here. A manual override per ticker is still available if you have better data for a specific symbol.</li>
-          <li><strong>News freshness, checked automatically for the top rows</strong> &mdash; the top gainers are auto-checked for fresh news right after each refresh, no click needed; everything else still has a manual "Check news" button. Pulls the latest real headline's publish time from Finnhub, shown as an age icon: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Click the badge to expand the last 3 articles with exact date/time and a link to the source &mdash; the evidence trail behind the icon. Sortable via the "News" sub-header (freshest first). Cached per ticker per day; a manual catalyst-type field is the fallback until checked.</li>
-          <li><strong>Catalyst quality</strong> &mdash; earnings, FDA approvals, clinical results, and new contracts count toward the News pillar. A merger/buyout/acquisition catalyst is flagged and deliberately excluded &mdash; once a buyout price is set, the stock tends to go flat.</li>
-          <li><strong>"Why did this score X/5?"</strong> &mdash; click the Pillars badge on any row to expand a pass/fail breakdown with the exact number behind each of the 5 checks (price, gain %, relative volume, news, float) instead of just the bare count.</li>
-          <li><strong>Short %</strong> &mdash; short float and short ratio (days to cover). High short interest on a low-float mover is exactly the setup that produces a short squeeze — this is the one data point Ross Cameron says a real paid scanner shows that a free one usually can't.</li>
-          <li><strong>Ranking</strong> &mdash; rows are numbered by rank; the top 3 get a leader highlight, the top 10 a subtle tint, mirroring "page one of a search."</li>
-        </ul>
-        <p class="lede">Data still isn't tick-by-tick real-time &mdash; treat this as a watchlist builder, not a live execution feed. It also can't show real Level 2 (order book depth) or Time and Sales &mdash; that's live data only your actual broker platform can provide, so check it there before every entry (see the Level 2 &amp; Time and Sales lesson).</p>
-
-        <div class="card" style="margin-bottom:18px;">
-          <h3>What makes a catalyst worth trading</h3>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 12px;">This system's real trading window is roughly <strong>7:00&ndash;11:00am EST</strong>, most active in the first 1&ndash;2 hours after the market opens &mdash; that's when a fresh catalyst turns into a real move. A stock with no catalyst at all can still run on a pure technical breakout or short squeeze &mdash; trade those with extra caution.</p>
-          <div class="form-grid">
-            <div class="field">
-              <label><span class="pill good">Good catalysts</span></label>
-              <p style="margin:8px 0 0;font-size:.86rem;line-height:1.6;">Earnings surprises<br>FDA approvals<br>Positive clinical trial results<br>Major new contracts or partnerships</p>
-            </div>
-            <div class="field">
-              <label><span class="pill bad">Weak / avoid</span></label>
-              <p style="margin:8px 0 0;font-size:.86rem;line-height:1.6;">Mergers, acquisitions, buyouts &mdash; once a buyout price is set, the stock's value is fixed and it tends to go flat, losing the volatility that makes it tradeable.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" id="scanner-setup" style="margin-bottom:18px;">
-          <h3>Data source</h3>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 12px;">Powered by Finviz Elite + Finnhub, configured server-side &mdash; loads automatically on open and refreshes every 60 seconds. Use the button below only if you want to force an immediate refresh between cycles.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="sc-topbar">
+          <p class="lede" style="margin:0;flex:1 1 320px;">Momentum scanner, Ross Cameron's way &mdash; up &ge;4% on the day, sorted by <strong>Change % descending</strong>. Click any row to expand its full Pillars/news/override detail.</p>
+          <div class="sc-topbar-actions">
             <button class="btn primary" id="scanner-refresh">Refresh now</button>
+            <button type="button" class="btn" id="scanner-alerts-toggle">Enable alerts</button>
           </div>
-          <p id="scanner-status" class="mono" style="margin:10px 0 0;font-size:.78rem;color:var(--muted);"></p>
         </div>
-
-        <div class="card" id="scanner-alerts-card" style="margin-bottom:18px;">
-          <h3>Alerts</h3>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 12px;">Get a browser notification the moment a ticker hits a full 5/5 Pillars score, or a tracked ticker's news freshness newly turns &#128293;&nbsp;(&lt;2h). Each ticker alerts once per day per condition &mdash; no repeat spam on every 60s refresh.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="btn primary" id="scanner-alerts-toggle" type="button">Enable alerts</button>
-            <span id="scanner-alerts-state" class="mono" style="font-size:.8rem;color:var(--muted);"></span>
-          </div>
-          <p style="color:var(--muted);font-size:.78rem;margin:12px 0 0;"><strong>Limitation:</strong> these are browser notifications &mdash; they only fire while this tab is open in a browser (it can be backgrounded/minimized and still work in most browsers), not when the browser or device is fully closed. There's no push-notification server behind this, so nothing arrives if you're not running this tab.</p>
-        </div>
+        <p id="scanner-status" class="mono" style="margin:6px 0 4px;font-size:.78rem;color:var(--muted);"></p>
+        <p style="margin:0 0 16px;font-size:.78rem;"><span id="scanner-alerts-state" class="mono" style="color:var(--muted);"></span></p>
 
         <div class="card" style="margin-bottom:18px;">
-          <h3>Filters</h3>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0;">Defaults roughly match the 5 pillars already; tighten min/max price to $5&ndash;$10 for the worksheet's "sweet spot" if you want a shorter list.</p>
-          <div class="form-grid" style="margin-top:10px;">
-            <div class="field"><label for="sc-minprice">Min price</label><input type="number" step="any" id="sc-minprice" value="2"></div>
-            <div class="field"><label for="sc-maxprice">Max price</label><input type="number" step="any" id="sc-maxprice" value="20"></div>
-            <div class="field"><label for="sc-minpct">Min % change</label><input type="number" step="any" id="sc-minpct" value="4"></div>
-            <div class="field"><label for="sc-minvol">Min volume (liquidity proxy)</label><input type="number" step="any" id="sc-minvol" value="500000"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3>Top gainers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(filtered)</span></h3>
+            <div class="segmented" id="sc-watch-filter" data-value="all" style="max-width:280px;">
+              <button type="button" class="seg-btn active" data-value="all">Show: All</button>
+              <button type="button" class="seg-btn" data-value="watch">Watchlist only</button>
+            </div>
           </div>
-        </div>
-
-        <div class="card" style="margin-bottom:18px;">
-          <h3>Watchlist</h3>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 10px;">Star a ticker in either table to save it here. Toggle below to show only your saved tickers across both tables.</p>
-          <div class="segmented" id="sc-watch-filter" data-value="all" style="max-width:280px;">
-            <button type="button" class="seg-btn active" data-value="all">Show: All</button>
-            <button type="button" class="seg-btn" data-value="watch">Watchlist only</button>
+          <div class="sc-sort-row sc-sort-bar" data-scope="gainers">
+            <span class="sc-sort-caption">Sort:</span>
+            <button type="button" data-sort="pct">Change %<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="ticker">Symbol<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="news">News<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="price">Price<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="vol">Volume<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="relvol">Rel Vol<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="float">Float<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="pillars">Pillars<span class="sc-sort-ind"></span></button>
           </div>
-        </div>
-
-        <div class="card" style="margin-bottom:18px;">
-          <h3>Top gainers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(filtered)</span></h3>
-          <div class="tbl-scroll" style="margin-top:10px;">
-            <table>
-              <thead><tr class="sc-sort-row" data-scope="gainers">
-                <th>#</th>
-                <th data-sort="pct" style="cursor:pointer;">Change %<span class="sc-sort-ind"></span></th>
-                <th style="cursor:pointer;white-space:nowrap;"><span data-sort="ticker">Symbol<span class="sc-sort-ind"></span></span> / <span data-sort="news">News<span class="sc-sort-ind"></span></span></th>
-                <th data-sort="price" style="cursor:pointer;">Price<span class="sc-sort-ind"></span></th>
-                <th data-sort="vol" style="cursor:pointer;">Volume<span class="sc-sort-ind"></span></th>
-                <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
-                <th data-sort="float" style="cursor:pointer;">Float (M)<span class="sc-sort-ind"></span></th>
-                <th data-sort="floatrot" style="cursor:pointer;">Float rotation<span class="sc-sort-ind"></span></th>
-                <th data-sort="shortpct" style="cursor:pointer;">Short %<span class="sc-sort-ind"></span></th>
-                <th data-sort="pillars" style="cursor:pointer;">Pillars<span class="sc-sort-ind"></span></th>
-                <th></th>
-              </tr></thead>
-              <tbody id="scan-gainers-tbody"></tbody>
-            </table>
-          </div>
+          <div class="sc-card-grid" id="scan-gainers-tbody"></div>
           <div class="empty-state" id="scan-gainers-empty" hidden>
             <div>No results yet &mdash; add your API key and refresh.</div>
           </div>
@@ -471,28 +415,54 @@
 
         <div class="card" style="margin-bottom:18px;">
           <h3>Most active <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(filtered)</span></h3>
-          <div class="tbl-scroll" style="margin-top:10px;">
-            <table>
-              <thead><tr class="sc-sort-row" data-scope="active">
-                <th>#</th>
-                <th data-sort="pct" style="cursor:pointer;">Change %<span class="sc-sort-ind"></span></th>
-                <th style="cursor:pointer;white-space:nowrap;"><span data-sort="ticker">Symbol<span class="sc-sort-ind"></span></span> / <span data-sort="news">News<span class="sc-sort-ind"></span></span></th>
-                <th data-sort="price" style="cursor:pointer;">Price<span class="sc-sort-ind"></span></th>
-                <th data-sort="vol" style="cursor:pointer;">Volume<span class="sc-sort-ind"></span></th>
-                <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
-                <th data-sort="float" style="cursor:pointer;">Float (M)<span class="sc-sort-ind"></span></th>
-                <th data-sort="floatrot" style="cursor:pointer;">Float rotation<span class="sc-sort-ind"></span></th>
-                <th data-sort="shortpct" style="cursor:pointer;">Short %<span class="sc-sort-ind"></span></th>
-                <th data-sort="pillars" style="cursor:pointer;">Pillars<span class="sc-sort-ind"></span></th>
-                <th></th>
-              </tr></thead>
-              <tbody id="scan-active-tbody"></tbody>
-            </table>
+          <div class="sc-sort-row sc-sort-bar" data-scope="active">
+            <span class="sc-sort-caption">Sort:</span>
+            <button type="button" data-sort="pct">Change %<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="ticker">Symbol<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="news">News<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="price">Price<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="vol">Volume<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="relvol">Rel Vol<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="float">Float<span class="sc-sort-ind"></span></button>
+            <button type="button" data-sort="pillars">Pillars<span class="sc-sort-ind"></span></button>
           </div>
+          <div class="sc-card-grid" id="scan-active-tbody"></div>
           <div class="empty-state" id="scan-active-empty" hidden>
             <div>No results yet &mdash; add your API key and refresh.</div>
           </div>
         </div>
+
+        <details class="card sc-collapsible" style="margin-bottom:18px;">
+          <summary><h3 style="display:inline;">Filters</h3></summary>
+          <p style="color:var(--muted);font-size:.86rem;margin:10px 0 0;">Defaults roughly match the 5 pillars already; tighten min/max price to $5&ndash;$10 for the worksheet's "sweet spot" if you want a shorter list.</p>
+          <div class="form-grid" style="margin-top:10px;">
+            <div class="field"><label for="sc-minprice">Min price</label><input type="number" step="any" id="sc-minprice" value="2"></div>
+            <div class="field"><label for="sc-maxprice">Max price</label><input type="number" step="any" id="sc-maxprice" value="20"></div>
+            <div class="field"><label for="sc-minpct">Min % change</label><input type="number" step="any" id="sc-minpct" value="4"></div>
+            <div class="field"><label for="sc-minvol">Min volume (liquidity proxy)</label><input type="number" step="any" id="sc-minvol" value="500000"></div>
+          </div>
+        </details>
+
+        <details class="card sc-collapsible" style="margin-bottom:18px;">
+          <summary><h3 style="display:inline;">Alerts &mdash; how they work</h3></summary>
+          <p style="color:var(--muted);font-size:.86rem;margin:10px 0 0;">The "Enable alerts" button above turns on <strong>browser notifications</strong> the moment a ticker hits a full 5/5 Pillars score, or a tracked ticker's news freshness newly turns &#128293;&nbsp;(&lt;2h). Each ticker alerts once per day per condition &mdash; no repeat spam on every 60s refresh.</p>
+          <p style="color:var(--muted);font-size:.78rem;margin:10px 0 0;"><strong>Limitation:</strong> these only fire while this tab is open in a browser (it can be backgrounded/minimized and still work in most browsers), not when the browser or device is fully closed. Phone alerts that work with everything closed go through Telegram instead &mdash; server-side, no tab needed (see docs/telegram-alerts-plan.md).</p>
+        </details>
+
+        <details class="card sc-collapsible" style="margin-bottom:18px;">
+          <summary><h3 style="display:inline;">How this scanner works &mdash; 5 Pillars, news, catalysts</h3></summary>
+          <ul class="lede-list" style="margin-top:12px;">
+            <li><strong>Click any row to expand it</strong> &mdash; each ticker is a compact summary line (rank, change %, symbol, price, volume, rel vol, float, Pillars score). Click the row (or the &#9654; arrow) to open its detail panel: the full Pillars breakdown, last-3-news history, and manual override fields for float/avg-volume/catalyst.</li>
+            <li><strong>5 Pillars scoring</strong> &mdash; relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $2&ndash;$20 ($5&ndash;$10 sweet spot), float under 20M (10M preferred). Editable in Filters above &mdash; it's synced everywhere, including the Telegram alert check.</li>
+            <li><strong>Live data, auto-refreshing every 60 seconds</strong> &mdash; relative volume and float are computed for real from Finviz Elite, no manual entry or API key needed here. A manual override per ticker is still available (in the row's detail panel) if you have better data for a specific symbol.</li>
+            <li><strong>News freshness, checked automatically for the top rows</strong> &mdash; the top gainers are auto-checked for fresh news right after each refresh, no click needed; everything else has a "Check news now" button in the detail panel. Pulls the latest real headline's publish time from Finnhub, shown as an age icon next to the symbol: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Expand the row for the last 3 articles with exact date/time and a link to each source. Sortable via the "News" sub-header (freshest first). Cached per ticker per day.</li>
+            <li><strong>Catalyst quality</strong> &mdash; earnings, FDA approvals, clinical results, and new contracts count toward the News pillar. A merger/buyout/acquisition catalyst is flagged and deliberately excluded &mdash; once a buyout price is set, the stock tends to go flat.</li>
+            <li><strong>Short %</strong> &mdash; short float and short ratio (days to cover), shown in each row's detail panel. High short interest on a low-float mover is exactly the setup that produces a short squeeze.</li>
+            <li><strong>Ranking</strong> &mdash; rows are numbered by rank; the top 3 get a leader highlight, the top 10 a subtle tint, mirroring "page one of a search."</li>
+            <li><strong>Trading window</strong> &mdash; this system's real trading window is roughly 7:00&ndash;11:00am EST, most active in the first 1&ndash;2 hours after the market opens.</li>
+          </ul>
+          <p class="lede" style="margin:14px 0 0;">Data still isn't tick-by-tick real-time &mdash; treat this as a watchlist builder, not a live execution feed. It also can't show real Level 2 (order book depth) or Time and Sales &mdash; check that on your actual broker platform before every entry (see the Level 2 &amp; Time and Sales lesson).</p>
+        </details>
       </section>
 
       <section id="page-lessons" class="page" hidden>
