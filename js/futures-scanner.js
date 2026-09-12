@@ -7,7 +7,7 @@
 // macro-news feed in each card's detail (futures move on Fed/CPI/jobs/OPEC
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, csvEscape } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv } from './scanner.js';
 
 const FUTURES_AUTO_REFRESH_MS = 60000;
 const FUTURES_CACHE_KEY = 'tc-futures-cache';
@@ -91,7 +91,12 @@ document.getElementById('futures-list').addEventListener('click', (e) => {
   }
 });
 
+// See scanner.js's scannerRefreshInFlight for why this guard exists — same
+// overlapping-request risk applies here.
+let futuresRefreshInFlight = false;
 async function refreshFutures(){
+  if(futuresRefreshInFlight) return;
+  futuresRefreshInFlight = true;
   futuresStatus('Fetching live futures data…');
   try{
     const res = await fetch('/api/scanner-futures');
@@ -107,6 +112,8 @@ async function refreshFutures(){
     futuresStatus(`Updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${FUTURES_AUTO_REFRESH_MS/1000}s.${newsNote}`);
   }catch(err){
     futuresStatus('Could not reach the futures endpoint. Showing last cached data if available.');
+  }finally{
+    futuresRefreshInFlight = false;
   }
 }
 document.getElementById('futures-refresh').addEventListener('click', refreshFutures);
@@ -120,16 +127,7 @@ function exportFuturesCsv(){
     i+1, c.symbol.replace('=F',''), c.label, c.group, c.price,
     c.pct != null ? c.pct.toFixed(2) : '', c.volume ?? '', c.contractName, c.exchange,
   ]);
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `futures-scanner-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  downloadCsv('futures-scanner', header, rows);
 }
 document.getElementById('futures-export-csv').addEventListener('click', exportFuturesCsv);
 

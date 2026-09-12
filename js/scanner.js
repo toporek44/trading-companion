@@ -106,7 +106,14 @@ document.getElementById('sc-preset-delete').addEventListener('click', () => {
 
 function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
 
+// In-flight guard: without this, a slow response (network hiccup, a
+// Finviz request taking >60s) could let the next 60s interval tick start a
+// second overlapping request. If the older, slower one resolves after the
+// newer one, it would silently overwrite fresh data with stale data.
+let scannerRefreshInFlight = false;
 async function refreshScanner(){
+  if(scannerRefreshInFlight) return;
+  scannerRefreshInFlight = true;
   scannerStatus('Fetching top gainers / most active…');
   try{
     const res = await fetch('/api/scanner-gainers');
@@ -123,6 +130,8 @@ async function refreshScanner(){
     autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker)); // fire-and-forget, updates the fire-icon badges as results come in
   }catch(err){
     scannerStatus('Could not reach the scanner endpoint. Showing last cached scan if available.');
+  }finally{
+    scannerRefreshInFlight = false;
   }
 }
 document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
@@ -772,6 +781,21 @@ function scannerRowToCsvFields(d, list, rank){
     d.pillarCount, d.setupGrade.grade, d.newsEntry?.headline || '',
   ];
 }
+// Shared by all three scanner tabs' CSV exports (js/scanner.js,
+// crypto-scanner.js, futures-scanner.js each had this exact "Blob → <a
+// download> → click → remove → revokeObjectURL" sequence copy-pasted).
+export function downloadCsv(filenamePrefix, header, rows){
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filenamePrefix}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 function exportScannerCsv(){
   const { gainers, active } = scannerVisibleRows();
   if(gainers.length === 0 && active.length === 0){ scannerStatus('Nothing to export yet — refresh the scanner first.'); return; }
@@ -780,16 +804,7 @@ function exportScannerCsv(){
     ...gainers.map((d,i) => scannerRowToCsvFields(d, 'Top Gainers', i+1)),
     ...active.map((d,i) => scannerRowToCsvFields(d, 'Most Active', i+1)),
   ];
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `scanner-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  downloadCsv('scanner', header, rows);
 }
 document.getElementById('scanner-export-csv').addEventListener('click', exportScannerCsv);
 // Catalyst select / Float input / Avg-vol input / Check news / Watch buttons

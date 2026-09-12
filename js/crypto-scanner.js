@@ -7,7 +7,7 @@
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
 import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, csvEscape } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv } from './scanner.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
@@ -164,7 +164,12 @@ function renderCryptoLists(){
   });
 });
 
+// See scanner.js's scannerRefreshInFlight for why this guard exists — same
+// overlapping-request risk applies here.
+let cryptoRefreshInFlight = false;
 async function refreshCrypto(){
+  if(cryptoRefreshInFlight) return;
+  cryptoRefreshInFlight = true;
   cryptoStatus('Fetching live crypto market data…');
   try{
     const res = await fetch('/api/scanner-crypto');
@@ -176,6 +181,8 @@ async function refreshCrypto(){
     autoCheckTopCryptoNews(data.top_gainers || []);
   }catch(err){
     cryptoStatus('Could not reach the crypto endpoint. Showing last cached data if available.');
+  }finally{
+    cryptoRefreshInFlight = false;
   }
 }
 document.getElementById('crypto-refresh').addEventListener('click', refreshCrypto);
@@ -191,16 +198,7 @@ function exportCryptoCsv(){
     ...gainers.map((c,i) => toRow(c, 'Top Movers', i+1)),
     ...active.map((c,i) => toRow(c, 'Most Active', i+1)),
   ];
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `crypto-scanner-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  downloadCsv('crypto-scanner', header, rows);
 }
 document.getElementById('crypto-export-csv').addEventListener('click', exportCryptoCsv);
 
