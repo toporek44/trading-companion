@@ -223,16 +223,20 @@ function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
 // price-target model behind it — it's just a compressed read of "how many
 // of Ross Cameron's own criteria does this fully clear, and by how much."
 // Explicitly labeled "setup" (not "buy") to avoid implying investment advice.
-function scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType){
+function scannerSetupScore(pillarCount, relVol, newsEntry, catalystType){
   let score = pillarCount * 20;
   if(relVol != null) score += Math.min(relVol, 20);
   if(newsEntry && newsEntry.hoursOld != null && newsEntry.hoursOld < 2) score += 10;
   if(catalystType === 'merger') score -= 30; // dead catalyst — never a real setup regardless of score
-  if(score >= 115) return { grade: 'A+', label: 'Prime setup', cls: 'good' };
-  if(score >= 95) return { grade: 'A', label: 'Strong setup', cls: 'good' };
-  if(score >= 70) return { grade: 'B', label: 'Developing setup', cls: 'neutral' };
-  if(score >= 40) return { grade: 'C', label: 'Weak setup', cls: 'neutral' };
-  return { grade: 'D', label: 'Not a setup', cls: 'bad' };
+  return score;
+}
+function scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType){
+  const score = scannerSetupScore(pillarCount, relVol, newsEntry, catalystType);
+  if(score >= 115) return { grade: 'A+', label: 'Prime setup', cls: 'good', score };
+  if(score >= 95) return { grade: 'A', label: 'Strong setup', cls: 'good', score };
+  if(score >= 70) return { grade: 'B', label: 'Developing setup', cls: 'neutral', score };
+  if(score >= 40) return { grade: 'C', label: 'Weak setup', cls: 'neutral', score };
+  return { grade: 'D', label: 'Not a setup', cls: 'bad', score };
 }
 
 // ---------- Scanner: real news freshness (Finnhub, cached per ticker per day) ----------
@@ -669,18 +673,53 @@ function scannerVisibleRows(){
   if(watchOnly){ gainers = gainers.filter(d => d.watched); active = active.filter(d => d.watched); }
   return { gainers: scannerSortRows(gainers, 'gainers'), active: scannerSortRows(active, 'active') };
 }
+// "Today's Top Picks" — a Holly-style daily shortlist (Trade Ideas' AI scan
+// ranks and surfaces its own top candidates rather than making you scroll a
+// sorted list). Ranked by the same setup-grade score already computed per
+// row, deliberately independent of whatever the user's Filters/watchlist-
+// only toggle currently show — this is "best of everything fetched," not
+// "best of what you're currently browsing."
+function scannerTopPicks(n){
+  const cache = lsGet(SCANNER_CACHE_KEY, null);
+  if(!cache) return [];
+  const seen = new Set();
+  return [...(cache.top_gainers||[]), ...(cache.most_actively_traded||[])]
+    .filter(r => { if(seen.has(r.ticker)) return false; seen.add(r.ticker); return true; })
+    .map(scannerRowData)
+    .sort((a,b) => b.setupGrade.score - a.setupGrade.score)
+    .slice(0, n);
+}
+function renderScannerTopPicks(){
+  const container = document.getElementById('scanner-top-picks-list');
+  if(!container) return;
+  const picks = scannerTopPicks(3);
+  if(picks.length === 0){
+    container.innerHTML = '<p style="color:var(--muted);font-size:.85rem;margin:0;">No data yet — refresh the scanner.</p>';
+    return;
+  }
+  container.innerHTML = picks.map((d,i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;${i<picks.length-1?'border-bottom:1px solid var(--line);':''}">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="mono" style="font-weight:700;font-size:15px;">${d.ticker}</span>
+        <span class="pill ${d.setupGrade.cls}">${d.setupGrade.grade} &middot; ${d.setupGrade.label}</span>
+      </div>
+      <div class="num ${d.pct>=0?'good':'bad'}" style="font-weight:700;white-space:nowrap;">${d.pct>=0?'+':''}${d.pct.toFixed(2)}% @ $${d.price.toFixed(2)}</div>
+    </div>
+  `).join('');
+}
 function renderScannerTables(){
   const gainersBody = document.getElementById('scan-gainers-tbody');
   const activeBody = document.getElementById('scan-active-tbody');
   const gainersEmpty = document.getElementById('scan-gainers-empty');
   const activeEmpty = document.getElementById('scan-active-empty');
-  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); return; }
+  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); renderScannerTopPicks(); return; }
   const { gainers, active } = scannerVisibleRows();
   gainersBody.innerHTML = gainers.map((d,i) => scannerRowHtml(d, i+1)).join('');
   activeBody.innerHTML = active.map((d,i) => scannerRowHtml(d, i+1)).join('');
   gainersEmpty.hidden = gainers.length > 0;
   activeEmpty.hidden = active.length > 0;
   scannerUpdateSortIndicators();
+  renderScannerTopPicks();
 }
 
 // ---------- Scanner: CSV export (what you see is what you export) ----------
