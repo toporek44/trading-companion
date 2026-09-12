@@ -453,6 +453,17 @@
             <div class="field"><label for="sc-minpct">Min % change</label><input type="number" step="any" id="sc-minpct" value="10"></div>
             <div class="field"><label for="sc-minvol">Min volume (liquidity proxy)</label><input type="number" step="any" id="sc-minvol" value="500000"></div>
           </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+            <label style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">Saved presets</label>
+            <p style="color:var(--muted);font-size:.8rem;margin:6px 0 10px;">Save the four fields above as a named preset (e.g. "Sweet spot $5-$10", "Loose net") and switch between them instantly &mdash; synced across your devices like everything else here.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <select id="sc-preset-select" style="min-width:180px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface-2);color:var(--ink);">
+                <option value="">Load a preset&hellip;</option>
+              </select>
+              <button type="button" class="btn" id="sc-preset-save">Save current as preset</button>
+              <button type="button" class="btn danger" id="sc-preset-delete">Delete selected</button>
+            </div>
+          </div>
         </details>
 
         <details class="card sc-collapsible" style="margin-bottom:18px;">

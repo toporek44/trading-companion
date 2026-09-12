@@ -41,6 +41,69 @@ loadPriceRangeSetting();
 document.getElementById('sc-minprice').addEventListener('change', savePriceRangeSetting);
 document.getElementById('sc-maxprice').addEventListener('change', savePriceRangeSetting);
 
+// ---------- Scanner: saved filter presets ----------
+// Every pro scanner tool (TC2000's EasyScan, TradingView, Trade Ideas) lets
+// you save a named filter combo and switch instantly instead of re-typing
+// four fields. Synced via the same Supabase 'progress' table/pattern as the
+// price-range setting above — one array of {name,min,max,minpct,minvol}.
+const PRESETS_KEY = 'scanner-presets';
+const PRESET_FIELD_IDS = { min: 'sc-minprice', max: 'sc-maxprice', minpct: 'sc-minpct', minvol: 'sc-minvol' };
+let scannerPresets = [];
+
+function renderPresetOptions(){
+  const select = document.getElementById('sc-preset-select');
+  const current = select.value;
+  select.innerHTML = '<option value="">Load a preset&hellip;</option>' +
+    scannerPresets.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+  if(scannerPresets.some(p => p.name === current)) select.value = current;
+}
+async function loadScannerPresets(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.${PRESETS_KEY}&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const s = Array.isArray(rows) && rows[0] && rows[0].state;
+    scannerPresets = Array.isArray(s) ? s : [];
+  }catch(e){ scannerPresets = []; }
+  renderPresetOptions();
+}
+loadScannerPresets();
+
+document.getElementById('sc-preset-select').addEventListener('change', (e) => {
+  const preset = scannerPresets.find(p => p.name === e.target.value);
+  if(!preset) return;
+  Object.entries(PRESET_FIELD_IDS).forEach(([field, id]) => {
+    if(preset[field] != null) document.getElementById(id).value = preset[field];
+  });
+  savePriceRangeSetting();
+  renderScannerTables();
+  scannerStatus(`Loaded preset "${preset.name}".`);
+});
+document.getElementById('sc-preset-save').addEventListener('click', () => {
+  const name = (prompt('Name this preset (e.g. "Sweet spot $5-$10"):') || '').trim();
+  if(!name) return;
+  const values = {};
+  Object.entries(PRESET_FIELD_IDS).forEach(([field, id]) => {
+    const v = parseFloat(document.getElementById(id).value);
+    values[field] = isNaN(v) ? null : v;
+  });
+  scannerPresets = [...scannerPresets.filter(p => p.name !== name), { name, ...values }];
+  persistProgress(PRESETS_KEY, scannerPresets);
+  renderPresetOptions();
+  document.getElementById('sc-preset-select').value = name;
+  scannerStatus(`Saved preset "${name}".`);
+});
+document.getElementById('sc-preset-delete').addEventListener('click', () => {
+  const select = document.getElementById('sc-preset-select');
+  const name = select.value;
+  if(!name) return;
+  scannerPresets = scannerPresets.filter(p => p.name !== name);
+  persistProgress(PRESETS_KEY, scannerPresets);
+  renderPresetOptions();
+  scannerStatus(`Deleted preset "${name}".`);
+});
+
 function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
 
 async function refreshScanner(){
