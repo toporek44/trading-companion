@@ -44,5 +44,5 @@ function slug(name){
 }
 
 export function getCandleCards(){
-  return CANDLE_PATTERNS.map(p => ({ id: 'candle:' + slug(p.name), deck: 'candle', name: p.name, candles: p.candles }));
+  return CANDLE_PATTERNS.map(p => ({ id: 'candle:' + slug(p.name), deck: 'candle', name: p.name, cls: p.cls, type: p.type, candles: p.candles }));
 }

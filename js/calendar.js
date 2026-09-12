@@ -67,11 +67,11 @@ export const WEEKS = [
     ["Weekly review — is research actually improving your results?", "Compare weeks with vs. without a written pre-market thesis"],
   ]},
   { theme: "Candlestick mastery", days: [
-    ["Bullish single-candle patterns — hammer, inverted hammer, dragonfly doji (docs/reference/candlestick-pattern-reference.pdf)", "5 rounds of the Candlestick Drill (Lessons tab)"],
-    ["Bearish single-candle patterns — hanging man, shooting star, gravestone doji", "5 more rounds of the Candlestick Drill"],
+    ["Bullish single-candle patterns — hammer, inverted hammer, dragonfly doji (docs/reference/candlestick-pattern-reference.pdf)", "5 rounds of candle drilling in the Practice tab"],
+    ["Bearish single-candle patterns — hanging man, shooting star, gravestone doji", "5 more rounds in the Practice tab"],
     ["Double/triple patterns — engulfing, tweezer tops/bottoms, morning/evening star, three soldiers/crows", "5 more rounds; aim for under 5 seconds per correct call"],
-    ["Spaced repetition — why retesting in 4, then 11, then 30 days beats cramming", "Run the drill again today even on patterns you already know cold"],
-    ["Weekly review — Candlestick Drill stats and this week's trades together", "Check your Candlestick Drill streak; full trade review"],
+    ["Spaced repetition — why retesting in 4, then 11, then 30 days beats cramming", "Run the Practice tab's queue again today even on patterns you already know cold"],
+    ["Weekly review — Practice tab stats and this week's trades together", "Check your Practice tab streak and deck mastery; full trade review"],
   ]},
   { theme: "Alpha readiness", days: [
     ["The Alpha → Beta → Live progression (Lessons) — Alpha is high-volume sim reps with no money on the line", "Pull your last 20+ trades; compute win rate and average R"],

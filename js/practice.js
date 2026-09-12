@@ -33,7 +33,7 @@ function buildPromptView(card){
       promptHtml: `<div style="text-align:center;margin-bottom:10px;">${renderCandleSVG(card.candles)}</div>`,
       options: shuffleArr([card.name, ...distractorNames]),
       correctText: card.name,
-      explainHtml: `${card.name} — this pattern is added to your Candles deck as you review it.`,
+      explainHtml: `${card.name} — ${card.cls}, ${card.type}-candle pattern.`,
     };
   }
   if(card.deck === 'glossary'){
@@ -59,9 +59,27 @@ let sessionIndex = 0;
 let sessionAnswered = null; // chosen option index, or null
 let sessionView = null;
 
+function newCardBudget(){
+  const today = todayStr();
+  const introducedToday = state.srsState.newCardsIntroducedDate === today ? (state.srsState.newCardsIntroducedToday || 0) : 0;
+  return { today, introducedToday, budget: Math.max(0, 10 - introducedToday) };
+}
+
 function ensureSession(){
   if(sessionQueue) return;
-  sessionQueue = buildQueue(allCards(), state.srsState.cards, todayStr(), 10);
+  const { today, introducedToday, budget } = newCardBudget();
+  const cards = allCards();
+  const alreadySeenIds = new Set(Object.keys(state.srsState.cards));
+  sessionQueue = buildQueue(cards, state.srsState.cards, today, budget);
+  const newlyIntroduced = sessionQueue.filter(c => !alreadySeenIds.has(c.id)).length;
+  if(newlyIntroduced > 0){
+    state.srsState = {
+      ...state.srsState,
+      newCardsIntroducedToday: introducedToday + newlyIntroduced,
+      newCardsIntroducedDate: today,
+    };
+    persistProgress('srs', state.srsState);
+  }
   sessionIndex = 0;
   sessionAnswered = null;
   sessionView = null;
@@ -71,8 +89,17 @@ function renderDeckBars(){
   const decks = ['candle', 'glossary', 'strategy'];
   return decks.map(deck => {
     const cards = allCards().filter(c => c.deck === deck);
-    const mastered = cards.filter(c => (state.srsState.cards[c.id] || {}).box === 6).length;
-    return `<div style="margin-top:4px;font-size:.78rem;color:var(--muted);">${deckLabel(deck)}: ${mastered}/${cards.length} mastered</div>`;
+    const boxCounts = [0, 0, 0, 0, 0, 0, 0]; // index 0 = unseen, 1-6 = box
+    cards.forEach(c => { const rec = state.srsState.cards[c.id]; boxCounts[rec ? rec.box : 0]++; });
+    const total = cards.length || 1;
+    const segments = [1, 2, 3, 4, 5, 6].map(box => {
+      const opacity = 0.3 + (box / 6) * 0.7;
+      return `<div title="Box ${box}: ${boxCounts[box]}" style="flex:${boxCounts[box]};min-width:${boxCounts[box] ? '2px' : '0'};background:var(--good);opacity:${opacity};"></div>`;
+    }).join('');
+    return `<div style="margin-top:8px;">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:3px;">${deckLabel(deck)}: ${boxCounts[6]}/${cards.length} mastered</div>
+      <div style="display:flex;height:8px;border-radius:100px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line);">${segments}</div>
+    </div>`;
   }).join('');
 }
 
@@ -84,7 +111,8 @@ export function renderPractice(){
 
   const today = todayStr();
   const dueCount = allCards().filter(c => state.srsState.cards[c.id] && state.srsState.cards[c.id].dueDate <= today).length;
-  header.innerHTML = `<div class="progress-label">Streak: ${state.srsState.streak || 0} day(s) &middot; ${dueCount} due today</div>${renderDeckBars()}`;
+  const { budget: newAvailable } = newCardBudget();
+  header.innerHTML = `<div class="progress-label">Streak: ${state.srsState.streak || 0} day(s) &middot; ${dueCount} due today &middot; ${newAvailable} new available</div>${renderDeckBars()}`;
 
   if(sessionIndex >= sessionQueue.length){
     body.innerHTML = sessionQueue.length
@@ -125,6 +153,7 @@ function answerCurrent(idx){
   const newRecord = gradeCard(state.srsState.cards[card.id], isCorrect, today);
   const newStreak = computeStreak(state.srsState.streak || 0, state.srsState.lastReviewDate, today);
   state.srsState = {
+    ...state.srsState,
     cards: { ...state.srsState.cards, [card.id]: newRecord },
     streak: newStreak,
     lastReviewDate: today,
