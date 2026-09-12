@@ -380,10 +380,10 @@ function scannerRowHtml(data, rank){
     <td class="num">$${price.toFixed(2)}</td>
     <td class="num">${vol.toLocaleString()}</td>
     <td>
-      <input type="number" step="any" class="sc-avgvol-input" data-ticker="${ticker}" value="${avgVolM!=null?avgVolM:''}" placeholder="avg vol (M)" style="width:80px;min-height:32px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);">
+      <input type="number" step="any" class="sc-avgvol-input" data-ticker="${ticker}" value="${avgVolM!=null?avgVolM:''}" placeholder="avg vol (M)" style="width:80px;min-height:32px;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);">
       <div class="num" style="font-size:11px;margin-top:2px;${relVol!=null && relVol>=5 ? 'color:var(--good);font-weight:700;' : ''}">${relVol!=null ? relVol.toFixed(1)+'x' : '—'}</div>
     </td>
-    <td><input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8" style="width:70px;min-height:32px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);"></td>
+    <td><input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8" style="width:70px;min-height:32px;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);"></td>
     <td class="num">${floatRotation!=null ? floatRotation.toFixed(1)+'x' : '—'}</td>
     <td class="num" title="${shortTitle}">${shortFloatPct!=null ? shortFloatPct.toFixed(1)+'%' : '—'}</td>
     <td><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></td>
