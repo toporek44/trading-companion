@@ -1,4 +1,4 @@
-// ---------- Candlestick Drill (per-browser practice, not synced) ----------
+// ---------- Candlestick pattern data + shared rendering (used by the Practice deck) ----------
 export const CANDLE_PATTERNS = [
   { name: 'Hammer', cls: 'bullish', type: 'single', candles: [{color:'g',bodyTop:15,bodyBottom:30,wickTop:10,wickBottom:95}] },
   { name: 'Inverted Hammer', cls: 'bullish', type: 'single', candles: [{color:'g',bodyTop:68,bodyBottom:83,wickTop:8,wickBottom:85}] },
@@ -39,80 +39,10 @@ export function renderCandleSVG(candles){
   return `<svg viewBox="0 0 ${totalW} 100" style="width:100%;max-width:220px;height:160px;display:block;margin:0 auto;">${parts}</svg>`;
 }
 
-export function candleTodayStr(){ return new Date().toISOString().slice(0,10); }
-export function loadCandleDrillStats(){
-  let s = null;
-  try{ s = JSON.parse(localStorage.getItem('tc-candle-drill-stats') || 'null'); }catch(e){ s = null; }
-  if(!s || typeof s !== 'object') s = { today: candleTodayStr(), attempts:0, correct:0, bestStreak:0, currentStreak:0 };
-  if(s.today !== candleTodayStr()){ s.today = candleTodayStr(); s.attempts = 0; s.correct = 0; s.currentStreak = 0; }
-  if(typeof s.bestStreak !== 'number') s.bestStreak = 0;
-  return s;
-}
-export function saveCandleDrillStats(s){
-  try{ localStorage.setItem('tc-candle-drill-stats', JSON.stringify(s)); }catch(e){}
-}
-let candleDrillStats = loadCandleDrillStats();
-
-export function pickCandleRound(){
-  const idx = Math.floor(Math.random() * CANDLE_PATTERNS.length);
-  const pattern = CANDLE_PATTERNS[idx];
-  const rest = CANDLE_PATTERNS.filter((_, i) => i !== idx);
-  for(let i = rest.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
-  const options = [pattern.name, ...rest.slice(0, 3).map(p => p.name)];
-  for(let i = options.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [options[i], options[j]] = [options[j], options[i]]; }
-  return { pattern, options };
+function slug(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-let candleDrillRound = pickCandleRound();
-let candleDrillAnswered = null;
-
-export function renderCandleDrill(){
-  const body = document.getElementById('candle-drill-body');
-  const statsEl = document.getElementById('candle-drill-stats');
-  if(!body || !statsEl) return;
-  const { pattern, options } = candleDrillRound;
-  const answered = candleDrillAnswered;
-  const optionsHtml = options.map(name => {
-    let style = 'display:block;width:100%;text-align:left;margin-bottom:6px;';
-    if(answered){
-      if(name === pattern.name) style += 'border-color:var(--good);background:var(--good-soft);color:var(--good);';
-      else if(name === answered) style += 'border-color:var(--bad);background:var(--bad-soft);color:var(--bad);';
-    }
-    return `<button type="button" class="btn" style="${style}" data-candle-opt="${name}" ${answered ? 'disabled' : ''}>${name}</button>`;
-  }).join('');
-  const feedback = answered
-    ? `<div style="margin-top:10px;">${answered === pattern.name ? '<span class="pill good">correct</span>' : '<span class="pill bad">incorrect</span>'}
-        <p style="color:var(--muted);font-size:.83rem;margin:6px 0 0;">${pattern.name} &mdash; ${pattern.cls}, ${pattern.type}-candle pattern.</p></div>
-       <div class="form-actions"><button class="btn primary" type="button" data-action="candle-next">Next</button></div>`
-    : '';
-  body.innerHTML = `<div style="text-align:center;margin-bottom:10px;">${renderCandleSVG(pattern.candles)}</div>${optionsHtml}${feedback}`;
-  statsEl.textContent = `Today: ${candleDrillStats.correct}/${candleDrillStats.attempts} correct · best streak ${candleDrillStats.bestStreak}`;
+export function getCandleCards(){
+  return CANDLE_PATTERNS.map(p => ({ id: 'candle:' + slug(p.name), deck: 'candle', name: p.name, candles: p.candles }));
 }
-
-document.getElementById('candle-drill-body').addEventListener('click', (e) => {
-  const optBtn = e.target.closest('button[data-candle-opt]');
-  if(optBtn && !candleDrillAnswered){
-    const chosen = optBtn.dataset.candleOpt;
-    candleDrillAnswered = chosen;
-    candleDrillStats = loadCandleDrillStats();
-    candleDrillStats.attempts++;
-    if(chosen === candleDrillRound.pattern.name){
-      candleDrillStats.correct++;
-      candleDrillStats.currentStreak++;
-      candleDrillStats.bestStreak = Math.max(candleDrillStats.bestStreak, candleDrillStats.currentStreak);
-    } else {
-      candleDrillStats.currentStreak = 0;
-    }
-    saveCandleDrillStats(candleDrillStats);
-    renderCandleDrill();
-    return;
-  }
-  const nextBtn = e.target.closest('button[data-action="candle-next"]');
-  if(nextBtn){
-    candleDrillRound = pickCandleRound();
-    candleDrillAnswered = null;
-    renderCandleDrill();
-  }
-});
-
-renderCandleDrill();
