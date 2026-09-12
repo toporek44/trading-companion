@@ -88,6 +88,72 @@ localStorage progress) still lives at the original artifact URL:
 https://claude.ai/code/artifact/2a9852fb-bf85-4b51-b8a6-e4ac898376a9 — the
 markdown copy in this repo has the same content but no interactivity.
 
+## Scanner (current state — three market tabs, all card-grid UI)
+
+The Scanner tab has grown well beyond the original US-stocks-only design.
+It now covers three markets via a segmented tab control (`#sc-market-tabs`,
+values `stocks`/`crypto`/`futures`), each rendering the same shared
+`.sc-stock-card`/`.sc-card-grid` card UI (`js/scanner.js` exports the
+reusable pieces — `scannerFreshnessBucket`, `escapeHtml`,
+`scannerNewsPanelHtml`, `csvEscape`, `downloadCsv`).
+
+- **US Stocks** (`js/scanner.js`) — Finviz Elite live data
+  (`api/scanner-gainers.js`), Finnhub news (`api/scanner-news.js`), the
+  5-Pillars scoring system, a **Setup Grade** (A+/A/B/C/D — a mechanical
+  score from pillar count + rel-vol + news freshness, explicitly labeled
+  "not investment advice"), a **Today's Top Picks** 3-ticker daily shortlist
+  (ranked by Setup Grade, independent of the user's filters), a **Cards /
+  Heatmap** view toggle on Top Gainers, **saved filter presets**
+  (Supabase-synced, same pattern as the price-range setting), **per-ticker
+  notes** (localStorage only, not synced — matches the watchlist's own
+  persistence tier), CSV export, and keyboard shortcuts
+  (`js/scanner-shortcuts.js`: 1/2/3 switch tabs, r refresh, e export CSV, w
+  watchlist filter, ? help).
+- **Crypto** (`js/crypto-scanner.js`) — CoinGecko free public API
+  (`api/scanner-crypto.js`, no key), 24/7 coverage for when the US market
+  is closed. News via Cointelegraph's per-tag RSS feed
+  (`api/scanner-crypto-news.js`) — CryptoCompare/CryptoPanic/CoinGecko's own
+  news endpoints all now require a paid key (verified live, all 401/403'd).
+  No Pillars/Setup-Grade scoring (float/short-interest/catalyst mechanics
+  don't apply to crypto) — instead a transparent "momentum" tag from
+  volume/market-cap turnover.
+- **Futures** (`js/futures-scanner.js`) — a fixed watchlist of 14 major
+  CME/CBOT/NYMEX/COMEX contracts via Yahoo Finance's free v8 chart endpoint
+  (`api/scanner-futures.js` — Yahoo's newer v7/quote endpoint now requires
+  an auth crumb and 401s; the older per-symbol v8/chart endpoint still works
+  unauthenticated). No screener concept (too few liquid contracts to screen)
+  — ranked by \|% change\| instead. Shared "macro headlines" feed (Finnhub
+  general news) in every card's detail, since futures move on Fed/CPI/jobs
+  news shared across contracts rather than per-contract filings.
+
+**Telegram + Discord/Slack alerts** (`api/check-alerts.js`) — runs
+automatically every 2 minutes via **Supabase `pg_cron`+`pg_net`** (not an
+external scheduler; `pg_net`'s default 5000ms timeout was too short for
+this endpoint's sequential Finviz+Finnhub calls, bumped to 25000ms), fires
+a Telegram message on a new 5/5-Pillars stock or fresh (<2h) news, and
+optionally also posts to a Discord/Slack webhook (`DISCORD_WEBHOOK_URL` env
+var, entirely additive — Telegram remains the only required channel).
+Dedup state lives in the same Supabase `progress` table as everything else
+(key `telegram-alerts-fired`).
+
+**Shared server-side code**: `api/_lib/supabase.js` (SUPABASE_URL/
+SUPABASE_ANON_KEY/getPriceRange, used by `scanner-gainers.js` and
+`check-alerts.js`) and `api/_lib/finviz.js` (the Finviz CSV parser —
+`parseCsv`/`findCol`/`toNumber`/`shapeRow`/`fetchFinvizRows`, also shared
+by those same two files). Files under `api/_lib/` are never routed by
+Vercel (underscore-prefixed folders are excluded), so these add no new
+endpoints — just eliminate what used to be two verbatim-duplicated copies.
+
+**Known-safe empirical-testing pattern for this codebase**: Finviz/Yahoo
+column IDs and filter syntax are undocumented and easy to get silently
+wrong (a real bug this session: `sh_price_oN`/`sh_price_uN` looked valid
+but were silently no-ops — the correct syntax is `sh_price_NtoM`). Never
+guess a new column ID or filter token from third-party docs alone — add it
+to a live deploy and curl the production endpoint to confirm the actual
+returned data before trusting it. This already blocked adding a
+sector-relative-strength feature and a Finviz earnings/IPO-date column
+this session (both would have needed an unverified guess).
+
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
 `python3 -m http.server` (no HMR) or `vercel dev` alone (slower to start).
