@@ -2,8 +2,8 @@
 // Hash-based routing (#scanner, #journal, ...) so each tab is a real,
 // bookmarkable/shareable URL and the browser's back/forward buttons work
 // — no server-side rewrite needed since this is a pure static site.
-export const pages = ['dashboard','calendar','journal','plan','scanner','lessons','milestones','brief'];
-export const titles = {dashboard:'Dashboard', calendar:'Calendar', journal:'Trade Journal', plan:'Trading Plan', scanner:'Scanner', lessons:'Lessons', milestones:'Milestones', brief:'Daily Brief'};
+export const pages = ['dashboard','calendar','journal','plan','scanner','lessons','practice','milestones','brief'];
+export const titles = {dashboard:'Dashboard', calendar:'Calendar', journal:'Trade Journal', plan:'Trading Plan', scanner:'Scanner', lessons:'Lessons', practice:'Practice', milestones:'Milestones', brief:'Daily Brief'};
 
 function renderPage(name){
   pages.forEach(p => { document.getElementById('page-'+p).hidden = (p !== name); });

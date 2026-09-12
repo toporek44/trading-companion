@@ -8,13 +8,13 @@ import { renderTradesTable } from './journal.js';
 import { renderJournalStats, renderEquityChart, renderStatsByStrategy, renderStatsByTag, renderCoachRules, renderWeeklyReport, renderPnlHeatmap } from './journal-stats.js';
 import { renderPlan } from './plan.js';
 import { renderLessons } from './lessons.js';
-import './candle-drill.js';
+import { renderPractice } from './practice.js';
 import './scanner.js';
 import { renderDashboard } from './dashboard.js';
 import './brief.js';
 
 export function renderAll(){
-  if(!(state.calLoaded && state.msLoaded && state.tradesLoaded && state.briefsLoaded && state.planLoaded && state.checklistLoaded && state.lessonsLoaded)) return;
+  if(!(state.calLoaded && state.msLoaded && state.tradesLoaded && state.briefsLoaded && state.planLoaded && state.checklistLoaded && state.lessonsLoaded && state.srsLoaded)) return;
   renderCalendar();
   renderMilestones();
   renderJournalStats();
@@ -27,6 +27,7 @@ export function renderAll(){
   renderTradesTable();
   renderPlan();
   renderLessons();
+  renderPractice();
   renderDashboard();
 }
 
