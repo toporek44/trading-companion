@@ -470,6 +470,10 @@ document.getElementById('scanner-alerts-toggle').addEventListener('click', async
   updateScannerAlertsUI();
 });
 updateScannerAlertsUI();
+// Lets a user check their volume/hear what it sounds like before relying
+// on it for real — works regardless of whether alerts are enabled, since
+// this is a deliberate manual preview, not a real triggered alert.
+document.getElementById('scanner-alerts-test-sound').addEventListener('click', playScannerAlertChime);
 
 // ---------- Scanner: watchlist (localStorage, ticker array) ----------
 const SCANNER_WATCHLIST_KEY = 'tc-scanner-watchlist';
