@@ -2,83 +2,41 @@ import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
 import { showPage } from './nav.js';
 
-// ---------- Scanner (Alpha Vantage TOP_GAINERS_LOSERS, free-tier, cached) ----------
-const AV_CACHE_KEY = 'tc-scanner-cache';
-document.getElementById('av-key').value = lsGet('tc-av-key', '');
-document.getElementById('av-key').addEventListener('change', (e) => lsSet('tc-av-key', e.target.value.trim()));
+// ---------- Scanner (Finviz Elite + Finnhub, server-side, auto-refreshing) ----------
+// No manual API key ever needed here — FINVIZ_API_KEY / FINHUB_API_KEY are
+// configured server-side (Vercel env vars). If either isn't set, the
+// relevant feature just reports a clear "not configured" status instead
+// of silently doing nothing.
+const SCANNER_CACHE_KEY = 'tc-scanner-cache';
+const AUTO_REFRESH_MS = 60000; // 60s — frequent enough to catch a fresh mover quickly without hammering the API; also the cadence alerts will piggyback on.
+
 ['sc-minprice','sc-maxprice','sc-minpct','sc-minvol'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderScannerTables);
 });
 
 function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
 
-// Normalizes Alpha Vantage's raw TOP_GAINERS_LOSERS row shape (string
-// fields, no float/avg-volume) into the same shape the Finviz-backed path
-// produces, so filtering/sorting/rendering downstream never need to know
-// which data source a row came from.
-function normalizeAvRow(raw){
-  return {
-    ticker: raw.ticker,
-    price: parseFloat(raw.price),
-    pct: parseFloat((raw.change_percentage||'0').replace('%','')),
-    vol: Number(raw.volume),
-    avgVolMAuto: null,
-    floatMAuto: null,
-    shortFloatPct: null, // Alpha Vantage has no short-interest data
-    shortRatio: null,
-  };
-}
-
-async function refreshScannerFinviz(){
-  scannerStatus('Fetching top gainers / most active from the upgraded scanner…');
+async function refreshScanner(){
+  scannerStatus('Fetching top gainers / most active…');
   try{
     const res = await fetch('/api/scanner-gainers');
     const data = await res.json();
-    if(data.configured === false) return false;
-    if(data.error){ scannerStatus(`${data.error} Showing last cached scan if available.`); return true; }
-    lsSet(AV_CACHE_KEY, { fetchedAt: data.fetchedAt, source: 'finviz', top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
-    scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — live scanner (float & relative volume computed automatically).`);
-    renderScannerTables();
-    autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker)); // fire-and-forget, updates the fire-icon badges as results come in
-    return true;
-  }catch(err){
-    scannerStatus('Could not reach the upgraded scanner endpoint. Showing last cached scan if available.');
-    return true; // it was configured, just failed — don't silently fall back to Alpha Vantage
-  }
-}
-
-async function refreshScannerAv(){
-  const key = document.getElementById('av-key').value.trim();
-  if(!key){ scannerStatus('Add your free Alpha Vantage API key above first.'); return; }
-  scannerStatus('Fetching top gainers / most active from Alpha Vantage…');
-  try{
-    const res = await fetch(`https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=${encodeURIComponent(key)}`);
-    const data = await res.json();
-    if(data.Note || data.Information){
-      scannerStatus((data.Note || data.Information) + ' Showing last cached scan if available.');
-      renderScannerTables();
+    if(data.configured === false){
+      scannerStatus('Scanner not configured — FINVIZ_API_KEY is not set on the server (see docs/scanner-upgrade-plan.md).');
       return;
     }
-    lsSet(AV_CACHE_KEY, {
-      fetchedAt: Date.now(),
-      source: 'av',
-      top_gainers: (data.top_gainers||[]).map(normalizeAvRow),
-      most_actively_traded: (data.most_actively_traded||[]).map(normalizeAvRow),
-    });
-    scannerStatus(`Scan updated ${new Date().toLocaleTimeString()}. Data is delayed/end-of-run, not live tick data.`);
+    if(data.error){ scannerStatus(`${data.error} Showing last cached scan if available.`); return; }
+    lsSet(SCANNER_CACHE_KEY, { fetchedAt: data.fetchedAt, top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
+    scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`);
     renderScannerTables();
+    autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker)); // fire-and-forget, updates the fire-icon badges as results come in
   }catch(err){
-    scannerStatus('Could not reach Alpha Vantage — check your key and connection.');
+    scannerStatus('Could not reach the scanner endpoint. Showing last cached scan if available.');
   }
 }
-
-// Tries the upgraded (Finviz-backed) scanner first; only falls back to the
-// free Alpha Vantage flow when the server reports FINVIZ_API_KEY isn't set.
-async function refreshScanner(){
-  const usedFinviz = await refreshScannerFinviz();
-  if(!usedFinviz) await refreshScannerAv();
-}
 document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
+refreshScanner(); // fetch immediately on load, don't wait for a click or the first interval tick
+setInterval(refreshScanner, AUTO_REFRESH_MS);
 
 function scannerFilterRow(row){
   const minP = parseFloat(document.getElementById('sc-minprice').value) || 0;
@@ -87,11 +45,9 @@ function scannerFilterRow(row){
   const minVol = parseFloat(document.getElementById('sc-minvol').value) || 0;
   return row.price >= minP && row.price <= maxP && Math.abs(row.pct) >= minPct && row.vol >= minVol;
 }
-// Manual per-ticker News/Float entries — Alpha Vantage's free TOP_GAINERS_LOSERS
-// endpoint has no float or true relative-volume data, so those 2 pillars are
-// filled in by hand and kept in localStorage (session-durable, not synced).
-// News now also has a REAL per-ticker freshness check (see NEWS_CACHE_KEY below);
-// the manual checkbox here is the fallback for tickers not checked today.
+// Manual per-ticker News/Float overrides — always available as a correction
+// on top of Finviz's automatic values (e.g. for a symbol Finviz has no
+// float data for), kept in localStorage (session-durable, not synced).
 const SCANNER_MANUAL_KEY = 'tc-scanner-manual';
 function getScannerManual(){ return lsGet(SCANNER_MANUAL_KEY, {}); }
 function setScannerManualField(ticker, field, value){
@@ -99,7 +55,7 @@ function setScannerManualField(ticker, field, value){
   manual[ticker] = {...(manual[ticker]||{}), [field]: value};
   lsSet(SCANNER_MANUAL_KEY, manual);
 }
-const SCANNER_VOL_PILLAR_MIN = 500000; // rough liquidity proxy, NOT true relative volume
+const SCANNER_VOL_PILLAR_MIN = 500000; // rough liquidity proxy, used only if a row somehow has no relVol at all
 const SCANNER_RELVOL_PILLAR_MIN = 5; // the Toolkit's real bar: relative volume >=5x average
 
 // Catalyst types a trader can tag a row with by hand. "merger" is deliberately
@@ -134,19 +90,13 @@ function scannerNewsOk(newsEntry, catalystType){
 function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
   const priceOk = price >= 1 && price <= 20;
   const gainOk = Math.abs(pct) >= 10;
-  // Real relative volume (user-entered avg volume) takes priority; falls back
-  // to the crude liquidity-proxy threshold when no average volume is on file.
   const volOk = relVol != null ? relVol >= SCANNER_RELVOL_PILLAR_MIN : vol >= SCANNER_VOL_PILLAR_MIN;
   const floatOk = floatM != null && floatM < 20;
   const count = [priceOk, gainOk, volOk, newsOk, floatOk].filter(Boolean).length;
   return count;
 }
 
-// ---------- Scanner: real news freshness (Alpha Vantage NEWS_SENTIMENT, cached per ticker per day) ----------
-// Free-tier keys are tightly rate-limited, so this is NEVER auto-fetched for
-// rows on render — only an explicit "Check news" click calls the endpoint,
-// and the result is cached per ticker+date so revisiting/re-rendering the
-// page the same day never re-calls it.
+// ---------- Scanner: real news freshness (Finnhub, cached per ticker per day) ----------
 const NEWS_CACHE_KEY = 'tc-scanner-news-cache';
 function scannerTodayStr(){ return new Date().toISOString().slice(0,10); }
 function getScannerNewsCache(){ return lsGet(NEWS_CACHE_KEY, {}); }
@@ -157,15 +107,6 @@ function setScannerNewsCacheEntry(ticker, entry){
 }
 function getScannerNewsToday(ticker){
   return getScannerNewsCache()[`${ticker}|${scannerTodayStr()}`] || null;
-}
-// Alpha Vantage time_published is "YYYYMMDDTHHMMSS" in UTC, no separators —
-// Date.parse() does not reliably handle this format, so parse it by hand.
-function parseAvNewsTimestamp(ts){
-  if(!ts || typeof ts !== 'string' || ts.length < 15) return null;
-  const y = +ts.slice(0,4), mo = +ts.slice(4,6) - 1, d = +ts.slice(6,8);
-  const h = +ts.slice(9,11), mi = +ts.slice(11,13), s = +ts.slice(13,15);
-  const ms = Date.UTC(y, mo, d, h, mi, s);
-  return isNaN(ms) ? null : ms;
 }
 // Freshness buckets, per Ross Cameron's "news comes out at the top and
 // bottom of every hour" routine — an icon-first read so a whole row of
@@ -179,17 +120,18 @@ function scannerFreshnessBucket(h){
 }
 function scannerNewsBadgeHtml(entry){
   if(!entry) return '';
-  if(entry.hoursOld == null) return `<span class="pill" title="No recent articles from Alpha Vantage's news feed">no news found</span>`;
+  if(entry.hoursOld == null) return `<span class="pill" title="No recent articles found">no news found</span>`;
   const b = scannerFreshnessBucket(entry.hoursOld);
   const title = entry.headline ? entry.headline.replace(/"/g,'&quot;') : '';
   return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old</span>`;
 }
-async function checkScannerNewsFinnhub(ticker, {silent} = {}){
+async function checkScannerNews(ticker, {silent} = {}){
+  if(!silent) scannerStatus(`Checking news freshness for ${ticker}…`);
   try{
     const res = await fetch(`/api/scanner-news?symbol=${encodeURIComponent(ticker)}`);
     const data = await res.json();
-    if(data.configured === false) return false;
-    if(data.error){ if(!silent) scannerStatus(`${data.error} News check for ${ticker} not completed.`); return true; }
+    if(data.configured === false){ if(!silent) scannerStatus('News check not configured — FINHUB_API_KEY is not set on the server.'); return; }
+    if(data.error){ if(!silent) scannerStatus(`${data.error} News check for ${ticker} not completed.`); return; }
     setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: data.hoursOld, headline: data.headline, url: null });
     if(!silent){
       scannerStatus(data.hoursOld != null
@@ -197,65 +139,24 @@ async function checkScannerNewsFinnhub(ticker, {silent} = {}){
         : `No recent news found for ${ticker} (checked just now, cached for today).`);
       renderScannerTables();
     }
-    return true;
   }catch(err){
     if(!silent) scannerStatus(`Could not reach the news endpoint for ${ticker}.`);
-    return true;
   }
 }
 
-// Automatically checks news freshness for the top N rows right after a
-// live (Finviz-backed) refresh, so the 🔥 fire icon shows up without
-// requiring a manual "Check news" click per ticker — Finnhub's free tier
-// (60 calls/min) has plenty of headroom for a handful of checks per scan.
-// Stops immediately (silently) if Finnhub isn't configured, rather than
-// firing N doomed requests.
+// Automatically checks news freshness for the top N rows right after every
+// refresh, so the 🔥 fire-icon freshness badge shows up with no manual
+// "Check news" click needed — Finnhub's free tier (60 calls/min) has
+// plenty of headroom for this.
 const AUTO_NEWS_CHECK_COUNT = 8;
 async function autoCheckTopNews(tickers){
   let checkedAny = false;
   for(const ticker of tickers.slice(0, AUTO_NEWS_CHECK_COUNT)){
     if(getScannerNewsToday(ticker)) continue; // already cached today
-    const usedFinnhub = await checkScannerNewsFinnhub(ticker, {silent: true});
-    if(!usedFinnhub) return; // Finnhub not configured — stop, don't fall back per-ticker
+    await checkScannerNews(ticker, {silent: true});
     checkedAny = true;
   }
   if(checkedAny) renderScannerTables();
-}
-
-async function checkScannerNewsAv(ticker){
-  const key = document.getElementById('av-key').value.trim();
-  if(!key){ scannerStatus('Add your free Alpha Vantage API key above first.'); return; }
-  scannerStatus(`Checking news freshness for ${ticker}…`);
-  try{
-    const res = await fetch(`https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}&limit=3&sort=LATEST`);
-    const data = await res.json();
-    if(data.Note || data.Information){
-      scannerStatus((data.Note || data.Information) + ` News check for ${ticker} not completed.`);
-      return;
-    }
-    const feed = Array.isArray(data.feed) ? data.feed : [];
-    if(feed.length === 0){
-      setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: null, headline: null, url: null });
-      scannerStatus(`No recent news found for ${ticker} (checked just now, cached for today).`);
-    } else {
-      const latest = feed[0];
-      const ts = parseAvNewsTimestamp(latest.time_published);
-      const hoursOld = ts != null ? (Date.now() - ts) / 3600000 : null;
-      setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld, headline: latest.title || null, url: latest.url || null });
-      scannerStatus(hoursOld != null
-        ? `${ticker}: latest news is ~${hoursOld.toFixed(1)}h old (checked just now, cached for today).`
-        : `${ticker}: found news but couldn't parse its timestamp (checked just now, cached for today).`);
-    }
-    renderScannerTables();
-  }catch(err){
-    scannerStatus(`Could not reach Alpha Vantage for ${ticker}'s news.`);
-  }
-}
-
-async function checkScannerNews(ticker){
-  scannerStatus(`Checking news freshness for ${ticker}…`);
-  const usedFinnhub = await checkScannerNewsFinnhub(ticker);
-  if(!usedFinnhub) await checkScannerNewsAv(ticker);
 }
 
 // ---------- Scanner: watchlist (localStorage, ticker array) ----------
@@ -319,8 +220,8 @@ function scannerSortRows(rows, scope){
 }
 
 // Computes all derived per-row fields once so filtering/sorting/rendering share it.
-// row is already normalized (see normalizeAvRow / the Finviz serverless function's
-// shapeRow) to {ticker, price, pct, vol, avgVolMAuto, floatMAuto}.
+// row is already normalized to {ticker, price, pct, vol, avgVolMAuto, floatMAuto,
+// shortFloatPct, shortRatio} by the Finviz serverless function's shapeRow.
 function scannerRowData(row){
   const { ticker, price, pct, vol } = row;
   const manual = getScannerManual()[ticker] || {};
@@ -332,13 +233,12 @@ function scannerRowData(row){
   const floatM = manual.float != null && manual.float !== '' ? parseFloat(manual.float) : row.floatMAuto;
   const avgVolM = manual.avgVol != null && manual.avgVol !== '' ? parseFloat(manual.avgVol) : row.avgVolMAuto;
   // Relative volume = today's volume / the ticker's own average daily volume,
-  // the real "5x average" the Toolkit means — automatic when the upgraded
-  // (Finviz) scanner is configured, otherwise computable once entered by hand.
+  // the real "5x average" the Toolkit means.
   const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
   const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
   // Float rotation = today's volume / float. A stock trading multiples of
   // its own float (rotation well above 1x) is the classic sign of a real
-  // supply/demand imbalance. Automatic (Finviz, once its float column is confirmed) or manually entered.
+  // supply/demand imbalance.
   const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
   return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
 }
@@ -383,7 +283,7 @@ function scannerRowHtml(data, rank){
   </tr>`;
 }
 function renderScannerTables(){
-  const cache = lsGet(AV_CACHE_KEY, null);
+  const cache = lsGet(SCANNER_CACHE_KEY, null);
   const gainersBody = document.getElementById('scan-gainers-tbody');
   const activeBody = document.getElementById('scan-active-tbody');
   const gainersEmpty = document.getElementById('scan-gainers-empty');
@@ -400,9 +300,6 @@ function renderScannerTables(){
   gainersEmpty.hidden = gainers.length > 0;
   activeEmpty.hidden = active.length > 0;
   scannerUpdateSortIndicators();
-  if(!document.getElementById('scanner-status').textContent){
-    scannerStatus(`Showing cached scan from ${new Date(cache.fetchedAt).toLocaleString()}.`);
-  }
 }
 // Catalyst select / Float input / Avg-vol input / Check news / Watch buttons
 // are re-created on every render, so wire them via delegated listeners on

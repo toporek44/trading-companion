@@ -11,7 +11,7 @@ export const WEEKS = [
     ["Order types — market, limit, stop, and why a market order on a thin-float stock can slip badly", "Place every order type on TradingView's paper trading panel without hesitating"],
   ]},
   { theme: "Tools, alerts & your journal", days: [
-    ["How this app's Scanner tab works — the 5 Pillars, and why price/volume/float/catalyst are checked together", "Add your free Alpha Vantage API key in the Scanner tab and run your first Refresh"],
+    ["How this app's Scanner tab works — the 5 Pillars, and why price/volume/float/catalyst are checked together", "Open the Scanner tab and watch it auto-load a live scan; note today's top 5 gainers"],
     ["Bar Replay — why blind drilling beats reading about patterns", "Run 10 blind Bar Replay drills on a watchlist stock; log your call before revealing the outcome"],
     ["Reading MACD and volume together — the two-signal gate you'll use before every entry (Lessons: The MACD + volume filter)", "Watch 10 setups through a session; for each, write MACD yes/no and Volume yes/no before seeing what happens next"],
     ["What the Journal tab tracks and why — the 5-pillars fields, R-multiple, process-followed", "Log your first Journal entry, even if it's a no-trade decision"],
