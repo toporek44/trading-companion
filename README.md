@@ -5,6 +5,30 @@ This is the full, uncompressed source for the standalone Trading Companion app
 It's a single self-contained `index.html` — no build step, no dependencies to
 install beyond what's already loaded via CDN `<script>` tags in the file.
 
+## Local development
+
+Production deploy is still zero-build (Vercel serves `index.html` /
+`styles.css` / `js/*.js` / `api/*.js` literally, unchanged). Vite is
+available as an *optional* local dev-tooling layer for a nicer iteration
+loop than `python3 -m http.server` — it does not participate in the deploy.
+
+```bash
+npm install     # installs vite, the only devDependency
+npm run dev     # Vite dev server (index.html, HMR) — good for UI/CSS work
+```
+
+Scanner API calls (`/api/scanner-gainers`, `/api/scanner-news`) 404 under
+plain `npm run dev` since Vite doesn't run Vercel serverless functions. For
+full local testing including live Scanner data, run both in separate
+terminals:
+
+```bash
+vercel dev      # serves api/*.js on http://localhost:3000
+npm run dev     # Vite proxies /api/* to the vercel dev instance above
+```
+
+See `CLAUDE.md` for more detail.
+
 ## Why you're getting this as a plain file instead of a live push
 
 Working in Cowork/this chat, deploys had to go through a remote Vercel MCP

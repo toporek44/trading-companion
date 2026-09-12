@@ -88,6 +88,45 @@ localStorage progress) still lives at the original artifact URL:
 https://claude.ai/code/artifact/2a9852fb-bf85-4b51-b8a6-e4ac898376a9 — the
 markdown copy in this repo has the same content but no interactivity.
 
+## Local dev with Vite (dev-tooling only, does not affect deploy)
+Vite was added purely to make local iteration nicer than
+`python3 -m http.server` (no HMR) or `vercel dev` alone (slower to start).
+**This does not change how the app is built or deployed** — Vercel still
+deploys the literal `index.html` / `styles.css` / `js/*.js` / `api/*.js`
+files unchanged, with zero build step. There is no `dist/` output, no
+Vercel build command, and `vite`/`vite.config.js`/`package.json` are dev-only
+files that Vercel's static/serverless deploy never touches.
+
+- **Install once:** `npm install` (installs `vite` as the only
+  devDependency — the app itself still has zero npm runtime deps; Supabase
+  stays a CDN `<script>` tag in `index.html`).
+- **UI/CSS/markup-only iteration:** `npm run dev` alone. Vite serves
+  `index.html` at the root with fast reload and native ES module support.
+  Scanner API calls (`/api/scanner-gainers`, `/api/scanner-news`) will fail
+  in this mode (no serverless functions behind plain Vite) — expected and
+  fine when you're not touching Scanner data.
+- **Full local testing (anything touching Scanner's live data):** run both,
+  in two terminals:
+  1. `vercel dev` (serves `api/*.js` on `http://localhost:3000`, picks up
+     `.env` at the repo root the same way it always has)
+  2. `npm run dev` (Vite on its default port, e.g. 5173)
+  Vite's `vite.config.js` proxies `/api/*` requests to
+  `http://localhost:3000`, so the app's own `fetch('/api/scanner-gainers')`
+  calls reach the real `vercel dev` serverless functions. Browse the app via
+  the Vite URL, not the `vercel dev` one.
+- No application source files (`index.html`, `js/*.js`, `styles.css`,
+  `api/*.js`) needed to change to make this work.
+- **Why `vercel.json` exists:** adding `vite`/`vite.config.js` as
+  devDependencies made both `vercel dev` and (would-be) Vercel project
+  creation auto-detect this as a "Vite" framework project and want to run
+  `vite build` → `dist/`, which would silently turn on a build step this
+  project must never have. `vercel.json` pins `"framework": null` (the
+  "Other" preset) to force plain static + serverless-functions behavior
+  regardless of `vite`'s presence — confirmed by testing: without this file,
+  `vercel dev` reported "Detected Vite (Build Command: vite build, Output
+  Directory: dist)"; with it, `vercel dev` served `index.html` and
+  `api/*.js` directly, unchanged, exactly like today's production deploy.
+
 ## Working notes on tooling
 - Vercel: authenticate via local CLI (`vercel login` — device-code flow,
   runs long, use background bash), not the claude.ai Vercel MCP connector —
