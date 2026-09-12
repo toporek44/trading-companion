@@ -35,3 +35,10 @@ export function renderAll(){
 }
 
 initData(renderAll);
+
+// PWA installability (add-to-home-screen, standalone window). sw.js is
+// deliberately a no-op — this app's whole value is live data, so it must
+// never risk serving a cached/stale API response.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
