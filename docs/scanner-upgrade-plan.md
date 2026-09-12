@@ -1,8 +1,13 @@
 # Scanner upgrade: Alpha Vantage (free) → Financial Modeling Prep (paid)
 
-Status: **scoped, not yet implemented.** Queued behind the in-progress
-index.html modularization and the Calendar/Lessons stock-focus rewrite,
-since it touches the same `js/scanner.js` module those are creating.
+Status: **implemented, pending API keys.** `api/scanner-gainers.js` and
+`api/scanner-news.js` are live in the repo and deployed; `js/scanner.js`
+tries them first and falls back to the Alpha Vantage flow automatically
+when `FMP_API_KEY`/`FINNHUB_API_KEY` aren't set. Verified locally with
+`vercel dev` that both endpoints correctly report `configured:false` and
+the client falls through cleanly. **Not yet verified against real FMP/
+Finnhub data** — that requires actually signing up and adding the keys
+(see "Rollout steps" below, now the only remaining step).
 
 ## Why
 
@@ -88,24 +93,28 @@ once the user adds their own key to this Vercel project's env vars.
 | News + freshness | `NEWS_SENTIMENT`, 1 call/ticker/day, cached | Finnhub company-news, same caching/freshness-bucket logic, just a new data source |
 | MACD (for the new MACD+volume lesson) | Not available today | Stretch goal — FMP has technical-indicator endpoints; confirm exact endpoint/params during implementation |
 
-## Rollout steps (when ready to implement)
+## Rollout steps — remaining
 
 1. Sign up for FMP Starter ($49/mo) — confirm at signup whether real-time
-   vs. slightly-delayed data requires Starter or the next tier up, since
-   this was unconfirmed in research.
+   vs. slightly-delayed data requires Starter or the next tier up, and
+   whether the gainers/actives/quote/shares_float endpoints used here are
+   all included at that tier (unconfirmed in research).
 2. Get a Finnhub API key (free tier).
 3. Add both as Vercel environment variables: `vercel env add FMP_API_KEY`
    and `vercel env add FINNHUB_API_KEY` (production + preview).
-4. Implement `api/scanner-gainers.js` and `api/scanner-news.js`.
-5. Update `js/scanner.js` to call the new endpoints, drop the manual
-   float/avg-volume input fields (now automatic), keep the Alpha Vantage
-   fallback path behind the "not configured" check.
-6. Test locally with `vercel dev` (runs serverless functions locally),
-   then verify in a real browser that the API key never appears in
-   Network tab requests from the client.
-7. Deploy, verify live, confirm the Scanner tab's help text is updated to
-   reflect the new data source and remove the "~25 requests/day" free-tier
-   caveat.
+4. ~~Implement `api/scanner-gainers.js` and `api/scanner-news.js`~~ — done.
+5. ~~Update `js/scanner.js`~~ — done. Note: manual float/avg-volume input
+   fields were kept rather than removed, now pre-filled with the automatic
+   value and still overridable (a manual entry always wins over the
+   automatic one) — this was simpler and safer than removing the fields
+   outright, and covers symbols FMP's float endpoint doesn't have data for.
+6. Redeploy (env var changes need a new deployment to take effect —
+   `vercel --prod` or push a commit) and check the Scanner tab's Refresh:
+   status text should say "live scanner (float & relative volume computed
+   automatically)" instead of falling through to the Alpha Vantage message.
+7. Spot-check a few known small-cap tickers' float/relative-volume numbers
+   against a trusted source to confirm FMP's data is accurate for this
+   use case before trusting it for real trades.
 
 ## Not in scope for this task
 
