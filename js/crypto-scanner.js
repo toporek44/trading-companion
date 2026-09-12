@@ -7,7 +7,7 @@
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
 import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, csvEscape } from './scanner.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
@@ -179,6 +179,30 @@ async function refreshCrypto(){
   }
 }
 document.getElementById('crypto-refresh').addEventListener('click', refreshCrypto);
+
+function exportCryptoCsv(){
+  const cache = lsGet(CRYPTO_CACHE_KEY, null);
+  const gainers = cache?.top_gainers || [];
+  const active = cache?.most_active || [];
+  if(gainers.length === 0 && active.length === 0) return;
+  const header = ['List','Rank','Symbol','Name','Price','24hChange%','24hVolume','MarketCap'];
+  const toRow = (c, list, rank) => [list, rank, c.symbol, c.name, c.price, c.pct != null ? c.pct.toFixed(2) : '', c.volume, c.marketCap];
+  const rows = [
+    ...gainers.map((c,i) => toRow(c, 'Top Movers', i+1)),
+    ...active.map((c,i) => toRow(c, 'Most Active', i+1)),
+  ];
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `crypto-scanner-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('crypto-export-csv').addEventListener('click', exportCryptoCsv);
 
 // ---------- Market tabs (US Stocks / Crypto) ----------
 let cryptoStarted = false;

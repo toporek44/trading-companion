@@ -11,7 +11,7 @@
 const SHORTCUTS_HELP = [
   ['1 / 2 / 3', 'Switch market tab (US Stocks / Crypto / Futures)'],
   ['r', 'Refresh the active tab now'],
-  ['e', 'Export CSV (US Stocks tab)'],
+  ['e', 'Export the active tab to CSV'],
   ['w', 'Toggle Watchlist-only filter (US Stocks tab)'],
   ['?', 'Show this shortcut list'],
 ];
@@ -62,7 +62,9 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'e':
     case 'E':
-      if(market === 'stocks') clickIfPresent('scanner-export-csv');
+      if(market === 'crypto') clickIfPresent('crypto-export-csv');
+      else if(market === 'futures') clickIfPresent('futures-export-csv');
+      else clickIfPresent('scanner-export-csv');
       break;
     case 'w':
     case 'W':

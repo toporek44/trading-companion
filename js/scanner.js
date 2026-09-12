@@ -684,7 +684,7 @@ function renderScannerTables(){
 }
 
 // ---------- Scanner: CSV export (what you see is what you export) ----------
-function csvEscape(v){
+export function csvEscape(v){
   const s = v == null ? '' : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
 }

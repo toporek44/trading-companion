@@ -7,7 +7,7 @@
 // macro-news feed in each card's detail (futures move on Fed/CPI/jobs/OPEC
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, csvEscape } from './scanner.js';
 
 const FUTURES_AUTO_REFRESH_MS = 60000;
 const FUTURES_CACHE_KEY = 'tc-futures-cache';
@@ -110,6 +110,28 @@ async function refreshFutures(){
   }
 }
 document.getElementById('futures-refresh').addEventListener('click', refreshFutures);
+
+function exportFuturesCsv(){
+  const cache = lsGet(FUTURES_CACHE_KEY, null);
+  const contracts = cache?.contracts || [];
+  if(contracts.length === 0) return;
+  const header = ['Rank','Symbol','Label','Group','Price','Change%','Volume','Contract','Exchange'];
+  const rows = contracts.map((c,i) => [
+    i+1, c.symbol.replace('=F',''), c.label, c.group, c.price,
+    c.pct != null ? c.pct.toFixed(2) : '', c.volume ?? '', c.contractName, c.exchange,
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `futures-scanner-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('futures-export-csv').addEventListener('click', exportFuturesCsv);
 
 let futuresStarted = false;
 export function startFuturesIfNeeded(){
