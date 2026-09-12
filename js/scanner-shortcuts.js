@@ -72,6 +72,11 @@ document.addEventListener('keydown', (e) => {
         const filter = document.getElementById('sc-watch-filter');
         const other = filter?.querySelector(`.seg-btn[data-value="${filter.dataset.value === 'watch' ? 'all' : 'watch'}"]`);
         other?.click();
+      } else {
+        // Crypto/Futures have no watchlist feature — give feedback instead
+        // of silently doing nothing, unlike r/e which work on every tab.
+        const status = document.getElementById(market === 'crypto' ? 'crypto-status' : 'futures-status');
+        if(status) status.textContent = 'No watchlist filter on this tab — that\'s a US Stocks-only feature.';
       }
       break;
     case '?':
