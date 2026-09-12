@@ -16,60 +16,14 @@
 // unset, rather than partially running.
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, getPriceRange } from './_lib/supabase.js';
+import { fetchFinvizRows } from './_lib/finviz.js';
 
-const FINVIZ_BASE = 'https://elite.finviz.com';
-const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31';
 const OTHER_FILTERS = 'ta_change_u10,sh_float_u20,sh_relvol_o2';
 const NEWS_CHECK_LIMIT = 15; // bound Finnhub calls per run to the top N candidates by change%
 const SCANNER_RELVOL_PILLAR_MIN = 5;
 
-function parseCsv(text){
-  const lines = text.trim().split(/\r?\n/);
-  if(lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
-  return lines.slice(1).map(line => {
-    const cells = line.split(',');
-    const row = {};
-    headers.forEach((h, i) => { row[h] = cells[i] != null ? cells[i].replace(/^"|"$/g, '').trim() : ''; });
-    return row;
-  });
-}
-function findCol(row, ...names){
-  const keys = Object.keys(row);
-  for(const name of names){
-    const key = keys.find(k => k.toLowerCase() === name.toLowerCase());
-    if(key) return row[key];
-  }
-  return null;
-}
-function toNumber(v){
-  if(v == null || v === '' || v === '-') return null;
-  const n = parseFloat(String(v).replace(/[%,]/g, ''));
-  return isNaN(n) ? null : n;
-}
-function shapeRow(row){
-  const vol = toNumber(findCol(row, 'Volume'));
-  const avgVolThousands = toNumber(findCol(row, 'Average Volume', 'Avg Volume'));
-  const floatM = toNumber(findCol(row, 'Shares Float', 'Shs Float', 'Float'));
-  const relVolFromFinviz = toNumber(findCol(row, 'Relative Volume', 'Rel Volume'));
-  const avgVolMAuto = avgVolThousands != null ? avgVolThousands / 1000
-    : (relVolFromFinviz && vol ? (vol / relVolFromFinviz) / 1e6 : null);
-  return {
-    ticker: findCol(row, 'Ticker'),
-    price: toNumber(findCol(row, 'Price')),
-    pct: toNumber(findCol(row, 'Change')),
-    vol,
-    avgVolMAuto,
-    floatMAuto: floatM,
-  };
-}
-
 async function fetchFinvizGainers(apiKey, filters){
-  const url = `${FINVIZ_BASE}/export.ashx?v=152&f=${filters}&ft=4&c=${DEFAULT_COLUMNS}&auth=${apiKey}`;
-  const r = await fetch(url);
-  const text = await r.text();
-  if(!r.ok || /<html/i.test(text)) throw new Error('Unexpected response from Finviz');
-  return parseCsv(text).map(shapeRow).filter(row => row.ticker && row.price != null);
+  return fetchFinvizRows(apiKey, filters);
 }
 
 async function fetchFinnhubFreshness(ticker, apiKey){

@@ -33,70 +33,10 @@
 // Set FINVIZ_FILTERS env var to bypass this entirely with a fixed string.
 
 import { getPriceRange } from './_lib/supabase.js';
+import { DEFAULT_COLUMNS, fetchFinvizRows } from './_lib/finviz.js';
 
-const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float, Short Float, Short Ratio
 const OTHER_FILTERS = 'ta_change_u10,sh_float_u20,sh_relvol_o2';
 const ROW_LIMIT = 30;
-
-function parseCsv(text){
-  const lines = text.trim().split(/\r?\n/);
-  if(lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
-  return lines.slice(1).map(line => {
-    const cells = line.split(','); // ticker/numeric columns here never contain embedded commas
-    const row = {};
-    headers.forEach((h, i) => { row[h] = cells[i] != null ? cells[i].replace(/^"|"$/g, '').trim() : ''; });
-    return row;
-  });
-}
-
-function findCol(row, ...candidateNames){
-  const keys = Object.keys(row);
-  for(const name of candidateNames){
-    const key = keys.find(k => k.toLowerCase() === name.toLowerCase());
-    if(key) return row[key];
-  }
-  return null;
-}
-
-function toNumber(v){
-  if(v == null || v === '' || v === '-') return null;
-  const n = parseFloat(String(v).replace(/[%,]/g, ''));
-  return isNaN(n) ? null : n;
-}
-
-// Verified live against a real Finviz Elite export (2026-09-12): unlike
-// the Finviz UI, the raw CSV export has NO K/M/B suffix letters — each
-// column uses a fixed implicit scale instead. Confirmed by cross-checking
-// against Finviz's own Relative Volume figure: Volume is a plain share
-// count, Average Volume is in THOUSANDS of shares (e.g. "1315.11" =
-// 1,315,110), and Shares Float is in MILLIONS (e.g. "45.54" = 45.54M —
-// this already matches this app's own floatM convention directly).
-function shapeRow(row){
-  const vol = toNumber(findCol(row, 'Volume'));
-  const avgVolThousands = toNumber(findCol(row, 'Average Volume', 'Avg Volume'));
-  const floatM = toNumber(findCol(row, 'Shares Float', 'Shs Float', 'Float'));
-  const relVolFromFinviz = toNumber(findCol(row, 'Relative Volume', 'Rel Volume'));
-  // avgVolMAuto feeds js/scanner.js's existing relVol = vol/(avgVolM*1e6)
-  // formula, so prefer real average volume; if only Finviz's own relative
-  // volume figure came back, back-derive an equivalent average volume so
-  // that same formula still reproduces it.
-  const avgVolMAuto = avgVolThousands != null ? avgVolThousands / 1000
-    : (relVolFromFinviz && vol ? (vol / relVolFromFinviz) / 1e6 : null);
-  return {
-    ticker: findCol(row, 'Ticker'),
-    price: toNumber(findCol(row, 'Price')),
-    pct: toNumber(findCol(row, 'Change')),
-    vol,
-    avgVolMAuto,
-    floatMAuto: floatM,
-    // Short Float (%) and Short Ratio (days-to-cover) — the two fields
-    // Ross Cameron's video explicitly names as what a real paid scanner
-    // shows that a free one can't; verified live as Finviz columns 30/31.
-    shortFloatPct: toNumber(findCol(row, 'Short Float')),
-    shortRatio: toNumber(findCol(row, 'Short Ratio')),
-  };
-}
 
 export default async function handler(req, res){
   const apiKey = process.env.FINVIZ_API_KEY;
@@ -114,18 +54,7 @@ export default async function handler(req, res){
   }
 
   try{
-    const url = `https://elite.finviz.com/export.ashx?v=152&f=${filters}&ft=4&c=${columns}&auth=${apiKey}`;
-    const r = await fetch(url);
-    const text = await r.text();
-    if(!r.ok || /<html/i.test(text)){
-      res.status(502).json({ configured: true, error: 'Unexpected response from Finviz — check FINVIZ_API_KEY, FINVIZ_COLUMNS, and FINVIZ_FILTERS.' });
-      return;
-    }
-    // Halted/no-trade tickers come back from Finviz with "-" for Change/
-    // Volume, which toNumber() correctly turns into null — excluding them
-    // here (not just checking price) prevents that null from reaching
-    // client code that calls .toFixed()/.toLocaleString() on it unguarded.
-    const rows = parseCsv(text).map(shapeRow).filter(r => r.ticker && r.price != null && r.pct != null && r.vol != null);
+    const rows = await fetchFinvizRows(apiKey, filters, columns);
     const byChange = rows.slice().sort((a, b) => Math.abs(b.pct||0) - Math.abs(a.pct||0));
     const byVolume = rows.slice().sort((a, b) => (b.vol||0) - (a.vol||0));
 
@@ -136,6 +65,6 @@ export default async function handler(req, res){
       most_actively_traded: byVolume.slice(0, ROW_LIMIT),
     });
   }catch(err){
-    res.status(502).json({ configured: true, error: 'Could not reach Finviz.' });
+    res.status(502).json({ configured: true, error: String(err && err.message || 'Could not reach Finviz.') });
   }
 }
