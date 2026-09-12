@@ -562,8 +562,20 @@ function scannerUpdateSortIndicators(){
     const state = scannerSortState[headRow.dataset.scope];
     headRow.querySelectorAll('[data-sort]').forEach(el => {
       const ind = el.querySelector('.sc-sort-ind');
-      if(!ind) return;
-      ind.textContent = (state.stage !== 0 && state.key === el.dataset.sort) ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
+      const isActive = state.stage !== 0 && state.key === el.dataset.sort;
+      // The ▲/▼ glyph alone is a visual-only cue — a passive DOM text
+      // change elsewhere on the page isn't reliably announced to screen
+      // readers. aria-pressed on each sort button gives that same "is this
+      // the active sort, and which direction" state a real accessible name.
+      // Base label must be captured BEFORE ind.textContent is set below —
+      // otherwise the first capture on an already-active button would bake
+      // the arrow glyph permanently into the cached label.
+      if(el.tagName === 'BUTTON'){
+        const base = (el.dataset.baseLabel ??= el.textContent.trim());
+        el.setAttribute('aria-pressed', String(isActive));
+        el.setAttribute('aria-label', isActive ? `${base}, sorted ${state.dir === 1 ? 'ascending' : 'descending'}` : `Sort by ${base}`);
+      }
+      if(ind) ind.textContent = isActive ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
     });
   });
 }
