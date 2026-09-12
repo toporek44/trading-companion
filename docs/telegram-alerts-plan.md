@@ -82,6 +82,17 @@ working end to end).
   `"chat":{"id":...}`)
 - `FINVIZ_API_KEY`, `FINHUB_API_KEY` — already configured, reused here.
 
+## Optional: Discord/Slack webhook (second channel)
+
+Set `DISCORD_WEBHOOK_URL` to also post every alert to a Discord channel
+(TradingView's own most common alert path is a generic incoming webhook,
+per competitor research). Entirely additive — Telegram remains the only
+required channel; if the webhook send fails it's swallowed so it never
+breaks the Telegram send. Alert text is converted from Telegram's HTML
+to Discord Markdown (`<b>`→`**bold**`, `<a href>`→`[text](url)`) so both
+channels carry identical content. A Slack "Incoming Webhook" URL also
+works — same `{content: "..."}` JSON body format.
+
 Until `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` are set, the endpoint
 returns `{ok:false, reason:'not configured', missing:{...}}` rather than
 partially running.

@@ -123,6 +123,37 @@ async function sendTelegram(token, chatId, html){
   }
 }
 
+// Optional second alert channel — TradingView's own most-used alert path is
+// a generic webhook into Discord/Slack, per competitor research. Entirely
+// additive: DISCORD_WEBHOOK_URL is never required, only Telegram is (see
+// the `missing` check in handler() below). Discord webhooks accept plain
+// Markdown in a `content` field, not Telegram's HTML — converts the same
+// alert text so both channels carry identical information.
+function telegramHtmlToDiscordMarkdown(html){
+  return html
+    .replace(/<a href="([^"]*)">([^<]*)<\/a>/g, '[$2]($1)')
+    .replace(/<b>([^<]*)<\/b>/g, '**$1**')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+}
+async function sendDiscordWebhook(webhookUrl, html){
+  const res = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: telegramHtmlToDiscordMarkdown(html) }),
+  });
+  if(!res.ok){
+    const body = await res.text();
+    throw new Error(`Webhook send failed: ${res.status} ${body}`);
+  }
+}
+async function sendAlert(text, { tgToken, tgChat, webhookUrl }){
+  await sendTelegram(tgToken, tgChat, text);
+  if(webhookUrl){
+    try{ await sendDiscordWebhook(webhookUrl, text); }
+    catch(err){ /* webhook is a bonus channel — don't fail the whole run if only it errors */ }
+  }
+}
+
 // Telegram's HTML parse_mode only needs these three characters escaped in
 // dynamic text (tickers are always plain uppercase letters, safe as-is;
 // headlines are freeform and can contain any of these).
@@ -168,11 +199,13 @@ export default async function handler(req, res){
   const finhubKey = process.env.FINHUB_API_KEY;
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChat = process.env.TELEGRAM_CHAT_ID;
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL || null; // optional second channel, never required
   const missing = { finviz: !finvizKey, finhub: !finhubKey, telegramToken: !tgToken, telegramChat: !tgChat };
   if(Object.values(missing).some(Boolean)){
     res.status(200).json({ ok: false, reason: 'not configured', missing });
     return;
   }
+  const channels = { tgToken, tgChat, webhookUrl };
 
   // ?preview=1 sends one clearly-labeled sample message with realistic
   // fake data, using the exact same formatting/send path as a real alert —
@@ -182,8 +215,8 @@ export default async function handler(req, res){
     const sampleRow = { ticker: 'AAPL', price: 5.42, pct: 18.7, floatMAuto: 6.3 };
     const sampleFreshness = { hoursOld: 0.4, headline: 'Sample Corp announces surprise Q3 earnings beat & raises guidance', url: 'https://finviz.com/quote.ashx?t=AAPL' };
     const previewText = `🧪 <b>Preview</b> — this is a sample, not a real alert\n\n` + formatPillarAlert(sampleRow, 8.2) + '\n\n———\n\n' + formatFreshNewsAlert(sampleRow, sampleFreshness);
-    await sendTelegram(tgToken, tgChat, previewText);
-    res.status(200).json({ ok: true, preview: true });
+    await sendAlert(previewText, channels);
+    res.status(200).json({ ok: true, preview: true, discordWebhookConfigured: !!webhookUrl });
     return;
   }
 
@@ -225,11 +258,11 @@ export default async function handler(req, res){
     }
 
     for(const text of alertsToSend){
-      await sendTelegram(tgToken, tgChat, text);
+      await sendAlert(text, channels);
     }
     if(alertsToSend.length) await saveFiredState(fired);
 
-    res.status(200).json({ ok: true, checked: candidates.length, alertsSent: alertsToSend.length });
+    res.status(200).json({ ok: true, checked: candidates.length, alertsSent: alertsToSend.length, discordWebhookConfigured: !!webhookUrl });
   }catch(err){
     res.status(502).json({ ok: false, error: String(err && err.message || err) });
   }
