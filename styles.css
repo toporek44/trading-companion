@@ -201,6 +201,17 @@
   }
   .sc-sort-bar button:hover{ border-color:var(--accent); color:var(--accent); }
 
+  /* ---- Scanner: heatmap view (TC2000-style, Top Gainers only) ---- */
+  .sc-heatmap-grid{ display:flex; flex-wrap:wrap; gap:3px; }
+  .sc-heatmap-tile{
+    min-width:90px; min-height:70px; flex-basis:90px; border-radius:8px; padding:8px 10px;
+    display:flex; flex-direction:column; justify-content:space-between; cursor:pointer;
+    transition:transform .1s ease; color:var(--ink);
+  }
+  .sc-heatmap-tile:hover{ transform:scale(1.03); z-index:1; }
+  .sc-heatmap-ticker{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:13px; }
+  .sc-heatmap-pct{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15px; }
+
   /* ---- Scanner: card grid (replaces the horizontally-scrolling table) ---- */
   .sc-card-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
   .sc-stock-card{

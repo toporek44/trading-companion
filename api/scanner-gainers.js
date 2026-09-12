@@ -121,7 +121,11 @@ export default async function handler(req, res){
       res.status(502).json({ configured: true, error: 'Unexpected response from Finviz — check FINVIZ_API_KEY, FINVIZ_COLUMNS, and FINVIZ_FILTERS.' });
       return;
     }
-    const rows = parseCsv(text).map(shapeRow).filter(r => r.ticker && r.price != null);
+    // Halted/no-trade tickers come back from Finviz with "-" for Change/
+    // Volume, which toNumber() correctly turns into null — excluding them
+    // here (not just checking price) prevents that null from reaching
+    // client code that calls .toFixed()/.toLocaleString() on it unguarded.
+    const rows = parseCsv(text).map(shapeRow).filter(r => r.ticker && r.price != null && r.pct != null && r.vol != null);
     const byChange = rows.slice().sort((a, b) => Math.abs(b.pct||0) - Math.abs(a.pct||0));
     const byVolume = rows.slice().sort((a, b) => (b.vol||0) - (a.vol||0));
 

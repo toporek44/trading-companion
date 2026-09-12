@@ -130,6 +130,12 @@ refreshScanner(); // fetch immediately on load, don't wait for a click or the fi
 setInterval(refreshScanner, AUTO_REFRESH_MS);
 
 function scannerFilterRow(row){
+  // Defense in depth: the server already excludes halted/no-trade tickers
+  // (null pct/vol from Finviz's "-"), but this must never rely solely on
+  // that — scannerRowHtml calls .toFixed()/.toLocaleString() on these
+  // unguarded, and a null slipping through (e.g. a 0-valued min-pct/min-vol
+  // preset) would throw and abort the whole render, not just skip one row.
+  if(row.price == null || row.pct == null || row.vol == null) return false;
   const minP = parseFloat(document.getElementById('sc-minprice').value) || 0;
   const maxP = parseFloat(document.getElementById('sc-maxprice').value) || Infinity;
   const minPct = parseFloat(document.getElementById('sc-minpct').value) || 0;
@@ -477,6 +483,32 @@ function toggleScannerWatch(ticker){
 initSegmented('sc-watch-filter');
 document.getElementById('sc-watch-filter').addEventListener('click', () => renderScannerTables());
 
+// ---------- Scanner: heatmap view for Top Gainers (TC2000's signature view) ----------
+// Tile size communicates |% change| magnitude at a glance (bigger mover =
+// bigger tile), color communicates direction — the classic market-heatmap
+// pattern. Deliberately Top Gainers only for now (Most Active's ranking by
+// raw volume doesn't map as usefully to a color/size heatmap).
+initSegmented('sc-gainers-view');
+document.getElementById('sc-gainers-view').addEventListener('click', () => renderScannerTables());
+function scannerHeatmapTileHtml(d){
+  const absPct = Math.abs(d.pct);
+  const intensity = Math.min(absPct / 50, 1); // clamp at 50% move = full intensity
+  const bg = d.pct >= 0
+    ? `color-mix(in srgb, var(--good) ${15 + intensity*55}%, var(--surface))`
+    : `color-mix(in srgb, var(--bad) ${15 + intensity*55}%, var(--surface))`;
+  const flex = 1 + intensity * 3; // bigger mover = proportionally bigger tile
+  return `<div class="sc-heatmap-tile" data-ticker="${d.ticker}" style="background:${bg};flex-grow:${flex};" title="${d.ticker}: ${d.pct>=0?'+':''}${d.pct.toFixed(2)}% at $${d.price.toFixed(2)} — click to expand">
+    <span class="sc-heatmap-ticker">${d.ticker}</span>
+    <span class="sc-heatmap-pct">${d.pct>=0?'+':''}${d.pct.toFixed(1)}%</span>
+  </div>`;
+}
+document.getElementById('scan-gainers-heatmap').addEventListener('click', (e) => {
+  const tile = e.target.closest('.sc-heatmap-tile');
+  if(!tile) return;
+  scannerExpandedTickers.add(tile.dataset.ticker);
+  document.getElementById('sc-gainers-view').querySelector('[data-value="cards"]').click(); // switch back to Cards so the expanded detail is visible
+});
+
 // ---------- Scanner: sortable columns (in-memory only, resets on refresh) ----------
 // Default sort: Change % descending, so the leading gainer of the day is row one.
 // Three-click cycle per column: 1st click = ascending, 2nd = descending,
@@ -655,7 +687,7 @@ function scannerRowHtml(data, rank){
           </div>
         </div>
         <div class="sc-detail-col" style="justify-content:flex-end;">
-          <button class="btn primary" style="padding:8px 14px;font-size:12px;" onclick="__logScannerTrade('${ticker}', ${price}, ${pct})">Log this trade &rarr;</button>
+          <button class="btn primary" style="padding:8px 14px;font-size:12px;" onclick="__logScannerTrade('${ticker.replace(/'/g,"\\'")}', ${price}, ${pct})">Log this trade &rarr;</button>
         </div>
       </div>
     </div>
@@ -684,6 +716,7 @@ function scannerTopPicks(n){
   if(!cache) return [];
   const seen = new Set();
   return [...(cache.top_gainers||[]), ...(cache.most_actively_traded||[])]
+    .filter(r => r.price != null && r.pct != null && r.vol != null) // see scannerFilterRow for why this guard exists
     .filter(r => { if(seen.has(r.ticker)) return false; seen.add(r.ticker); return true; })
     .map(scannerRowData)
     .sort((a,b) => b.setupGrade.score - a.setupGrade.score)
@@ -709,12 +742,17 @@ function renderScannerTopPicks(){
 }
 function renderScannerTables(){
   const gainersBody = document.getElementById('scan-gainers-tbody');
+  const gainersHeatmap = document.getElementById('scan-gainers-heatmap');
   const activeBody = document.getElementById('scan-active-tbody');
   const gainersEmpty = document.getElementById('scan-gainers-empty');
   const activeEmpty = document.getElementById('scan-active-empty');
-  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); renderScannerTopPicks(); return; }
+  const heatmapView = document.getElementById('sc-gainers-view').dataset.value === 'heatmap';
+  gainersBody.hidden = heatmapView;
+  gainersHeatmap.hidden = !heatmapView;
+  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; gainersHeatmap.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); renderScannerTopPicks(); return; }
   const { gainers, active } = scannerVisibleRows();
-  gainersBody.innerHTML = gainers.map((d,i) => scannerRowHtml(d, i+1)).join('');
+  if(heatmapView) gainersHeatmap.innerHTML = gainers.map(scannerHeatmapTileHtml).join('');
+  else gainersBody.innerHTML = gainers.map((d,i) => scannerRowHtml(d, i+1)).join('');
   activeBody.innerHTML = active.map((d,i) => scannerRowHtml(d, i+1)).join('');
   gainersEmpty.hidden = gainers.length > 0;
   activeEmpty.hidden = active.length > 0;

@@ -409,9 +409,15 @@
         <div class="card" style="margin-bottom:18px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
             <h3>Top gainers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(filtered)</span></h3>
-            <div class="segmented" id="sc-watch-filter" data-value="all" style="max-width:280px;">
-              <button type="button" class="seg-btn active" data-value="all">Show: All</button>
-              <button type="button" class="seg-btn" data-value="watch">Watchlist only</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <div class="segmented" id="sc-gainers-view" data-value="cards" style="max-width:200px;">
+                <button type="button" class="seg-btn active" data-value="cards">Cards</button>
+                <button type="button" class="seg-btn" data-value="heatmap">Heatmap</button>
+              </div>
+              <div class="segmented" id="sc-watch-filter" data-value="all" style="max-width:280px;">
+                <button type="button" class="seg-btn active" data-value="all">Show: All</button>
+                <button type="button" class="seg-btn" data-value="watch">Watchlist only</button>
+              </div>
             </div>
           </div>
           <div class="sc-sort-row sc-sort-bar" data-scope="gainers">
@@ -426,6 +432,7 @@
             <button type="button" data-sort="pillars">Pillars<span class="sc-sort-ind"></span></button>
           </div>
           <div class="sc-card-grid" id="scan-gainers-tbody"></div>
+          <div class="sc-heatmap-grid" id="scan-gainers-heatmap" hidden></div>
           <div class="empty-state" id="scan-gainers-empty" hidden>
             <div>No results yet &mdash; add your API key and refresh.</div>
           </div>
