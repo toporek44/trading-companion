@@ -1,10 +1,24 @@
 import { state, persistProgress } from './state.js';
 
 // ---------- Lessons ----------
+export const THEME_LABELS = {
+  'scanner-catalyst': 'Scanner & Catalyst',
+  'planning': 'Planning',
+  'entry-exit': 'Entry & Exit',
+  'risk-management': 'Risk Management',
+  'process-review': 'Process & Review',
+  'psychology': 'Psychology',
+  'progression': 'Progression',
+  'chart-patterns': 'Chart Patterns',
+  'level2-tape': 'Level 2 & Tape',
+  'options-crypto': 'Options & Crypto',
+};
+
 export const LESSONS = [
   {
     id: 'pillars',
     title: 'The 5 Pillars',
+    theme: 'scanner-catalyst',
     body: "Before you even think about buying, Warrior Trading's Small Account Toolkit asks a stock to clear five checks: it's already up at least 10% on the day (unless it's continuing a big move from a prior day), relative volume is at least 5x its average, there's a real news catalyst behind the move, price sits in the $1–$20 range (sweet spot $5–$10), and float is under 20 million shares (under 10 million is better). A stock that clears all five in your journal shows as a 5/5 pillars badge — that's your highest-quality setup, not just any green stock.",
     quiz: [
       { q: 'What relative volume does the Toolkit require?', options: ['At least 2x average', 'At least 5x average', 'At least 10x average', 'No specific number'], correct: 1, explain: "5x average volume is the Toolkit's own bar — anything less and the stock probably won't have the liquidity or attention to keep moving." },
@@ -15,6 +29,7 @@ export const LESSONS = [
   {
     id: 'worksheet',
     title: 'The Trading Plan Worksheet',
+    theme: 'planning',
     body: "The worksheet turns vague good intentions into a checklist you fill out before the market opens: your strategy, price range, trading window, volume/float rules, technical setup, invalidation/exit, risk and profit target sizing, premarket requirements, and daily loss/profit limits. Warrior Trading's own worked example sizes risk at about 5% of account per trade and profit target at about 10% — a built-in 2:1 reward-to-risk built into the plan itself, before a single trade is placed.",
     quiz: [
       { q: 'In the worked example, roughly what fraction of the account is risked per trade?', options: ['1%', '5%', '10%', '25%'], correct: 1, explain: "The worksheet's own example: about 5% risk per trade against a ~10% profit target." },
@@ -25,6 +40,7 @@ export const LESSONS = [
   {
     id: 'patterns',
     title: 'Entry patterns',
+    theme: 'entry-exit',
     body: 'Three entry patterns run through this whole system: Pullback (buy the first green candle that makes a new high after a dip), Bull Flag Breakout (buy the first candle making a new high after a flag/pullback), and Flat Top Breakout (buy the first candle that breaks a flat resistance top). All three share the same idea — wait for the market to show you it wants to keep going, then get in on strength, not in anticipation of it.',
     quiz: [
       { q: 'What do a Bull Flag Breakout and a Flat Top Breakout have in common?', options: ['Both are only used for options', 'Both wait for a new high to actually be made before entering', 'Both require a red candle to trigger entry', 'Both ignore volume completely'], correct: 1, explain: "Both patterns enter on confirmation — a new high being made — rather than anticipating one." },
@@ -35,6 +51,7 @@ export const LESSONS = [
   {
     id: 'rmultiples',
     title: 'Risk math: R-multiples',
+    theme: 'risk-management',
     body: "An R-multiple measures a trade's result relative to what you risked: risk $50 and make $100, that's +2R; risk $50 and lose $50, that's -1R. This matters because win rate alone can be misleading — a trader who wins 3 out of 10 trades can still be solidly profitable if winners average +2R and losers average -1R. That's the whole logic behind trading a 2:1 (or better) reward-to-risk ratio.",
     quiz: [
       { q: 'You risk $40 and the trade nets +$120. What is the R-multiple?', options: ['+1R', '+2R', '+3R', '+4R'], correct: 2, explain: '$120 / $40 = 3, so +3R.' },
@@ -45,6 +62,7 @@ export const LESSONS = [
   {
     id: 'breakeven',
     title: 'The breakeven win-rate table',
+    theme: 'risk-management',
     body: "Every reward:risk ratio has a breakeven win rate — the minimum win % needed to not lose money over time. At 1:1 you need 50% just to break even. At 2:1 (risk $1 to make $2) you only need 33%. At 3:1 you need just 25%. The table in your Plan tab has this fully worked out from 50:1 down to 1:50 — the point isn't to memorize it, it's to check your own numbers against it honestly.",
     quiz: [
       { q: 'At a 2:1 reward:risk ratio, what win rate do you need to break even?', options: ['25%', '33%', '50%', '67%'], correct: 1, explain: '2:1 needs about 33% to break even — see the Plan tab table.' },
@@ -55,6 +73,7 @@ export const LESSONS = [
   {
     id: 'trifecta',
     title: 'The Profit Trifecta',
+    theme: 'process-review',
     body: "The Profit Trifecta tracks three things together — consistency (how many weeks in a row you're net green), accuracy (win rate), and P/L ratio (average winner vs average loser) — because chasing any one alone is a trap. Warrior Trading's own tiers: Novice needs just 1 green week, 40–50% accuracy, and a 0.5–1 P/L ratio; by Pro you're looking at 5+ green weeks, over 70% accuracy, and a P/L ratio over 1.0.",
     quiz: [
       { q: 'What three things does the Profit Trifecta track together?', options: ['Consistency, accuracy, P/L ratio', 'Just win rate', 'Account size and leverage', 'Number of trades per day'], correct: 0, explain: 'All three together — chasing just one in isolation is the trap.' },
@@ -65,6 +84,7 @@ export const LESSONS = [
   {
     id: 'macdvolume',
     title: 'The MACD + volume filter',
+    theme: 'entry-exit',
     body: "Two things have to say yes before you take a pattern entry: MACD must be positive and not rolling over, and volume must confirm — meaning the green (up) candles are trading on higher volume than the red (down) candles around them. If either one says no, skip the trade, even if the chart pattern looks perfect. A stock can look like a textbook pullback and still fail if the volume underneath it shows more selling than buying, or if MACD has already turned down. Both signals agreeing doesn't guarantee a winner, but it meaningfully raises the odds — and needing only about a 33% win rate at 2:1 reward:risk means you don't need every trade to work, just most of the ones where both signals agree.",
     quiz: [
       { q: "A stock's chart shows a clean pullback and MACD is positive, but the pullback candles are on unusually high volume. What should you do?", options: ['Buy anyway — MACD is positive', 'Skip it — high-volume selling on the pullback is a warning sign even with MACD positive', 'Buy double size since volume is high', 'Ignore volume, it never matters'], correct: 1, explain: 'Both signals have to agree. High-volume selling on the pullback says sellers are in control, even though MACD hasn’t rolled over yet.' },
@@ -75,6 +95,7 @@ export const LESSONS = [
   {
     id: 'scanner',
     title: 'Reading the Scanner: catalyst quality & news freshness',
+    theme: 'scanner-catalyst',
     body: "The Scanner tab auto-refreshes every 60 seconds from Finviz Elite — price, % gain, relative volume, and float all come through automatically, no manual entry needed. News freshness is checked automatically for the top rows right after each refresh, and rendered as an age icon (🔥 under 2h, 🟢 under 4h, 🟡 under 12h, 🟠 under 24h, ⚪ 24h+); anything outside the top rows still has a manual \"Check news\" button. A catalyst's type matters as much as its freshness: earnings, FDA approvals, clinical trial results, and major contracts all count toward the News pillar — but a merger, buyout, or acquisition catalyst is flagged and deliberately excluded, because once a buyout price is set, the stock's upside is capped and it tends to go flat.",
     quiz: [
       { q: 'Which of these does the Scanner check automatically, with no manual entry needed?', options: ['Only price and % change', 'Price, % change, relative volume, and float', 'Only news freshness', 'Nothing — everything needs manual entry'], correct: 1, explain: 'Finviz Elite supplies price, change, relative volume, and float automatically; a manual override is still available per ticker if you have better data.' },
@@ -85,6 +106,7 @@ export const LESSONS = [
   {
     id: 'process',
     title: 'Process over P&L',
+    theme: 'process-review',
     body: "A trade can be a technical 'A+' setup that still loses money, and a sloppy trade can still make money by luck — that's exactly why the journal tracks 'process followed' separately from the dollar result. Grading yourself on whether you followed your own rules, not just whether you made money, is what actually compounds skill over time; P&L on any single trade is mostly noise.",
     quiz: [
       { q: "Why track 'process followed' as its own field, separate from P&L?", options: ['It is required by brokers', 'A good process can still lose on any single trade, and a bad process can still win by luck — P&L alone does not show which happened', 'It is the same thing as P&L', 'It does not matter'], correct: 1, explain: 'Process and outcome are different things — a single trade cannot tell you which one happened.' },
@@ -94,6 +116,7 @@ export const LESSONS = [
   {
     id: 'alphabeta',
     title: 'Alpha → Beta → Live',
+    theme: 'progression',
     body: 'Before real money, this system asks for two proving grounds. Alpha is high-volume simulator reps — no real-money pressure, just building pattern recognition and mechanical execution. Beta is trading small real size, but capped to one truly A+ setup a day for 10 straight trading days, and the whole stretch has to net green to graduate. Only after that does Live start — and even then, expect the very first live trade to lose; the point of Beta was proving the process works over a sample, not that any one trade wins.',
     quiz: [
       { q: 'What is the goal of the Alpha stage?', options: ['Make as much money as possible', 'Build pattern recognition and mechanical execution with no real-money pressure', 'Trade full size immediately', 'Skip straight to live trading'], correct: 1, explain: 'Alpha is purely about building skill in the simulator, no real-money pressure.' },
@@ -104,6 +127,7 @@ export const LESSONS = [
   {
     id: 'chartpatterns',
     title: 'Chart pattern catalog',
+    theme: 'chart-patterns',
     body: "Beyond the Pullback, Bull Flag, and Flat Top setups you already know, a few more chart patterns come up constantly: a Flat Bottom Breakdown (the bearish mirror of a Flat Top — sell/short the first candle that breaks a flat support floor), an ABCD pattern (price swings from A down to B, retraces up to C, then pushes to a new extreme at D — the C-to-D leg is the tradeable move), a Double Top (two peaks near the same round-dollar price, often only breaking through on a third attempt), Head and Shoulders (a peak, a higher peak, then a lower peak — a classic reversal), and two traps worth knowing by name: a Bull Trap (a breakout that looks real but quickly reverses, trapping buyers who bought the false move) and a Bear Trap (the same idea to the downside). One more reversal signal: after 5+ consecutive candles moving one direction, the first candle to make a new high (or low) against that run is a classic exhaustion/reversal signal.",
     quiz: [
       { q: 'In a Flat Top Breakout, when do you buy?', options: ['The first candle that breaks above the flat resistance top', 'At the very bottom of the flag', 'On the first red candle', 'Only after 3 closes below support'], correct: 0, explain: 'You buy confirmation of the break, not in anticipation of it.' },
@@ -116,6 +140,7 @@ export const LESSONS = [
   {
     id: 'level2',
     title: 'Level 2 & Time and Sales',
+    theme: 'level2-tape',
     body: "Level 2 shows the order book: every buyer's bid and every seller's ask, each with a size and an ECN/market-maker destination, not just the single best bid/ask price you get from Level 1. The gap between the best bid and best ask is the spread. Time and Sales is the separate scrolling log of trades that actually executed — green prints happened at the ask (a buyer paid up), red prints happened at the bid (a seller gave in), white prints happened in between. Reading both together is called tape reading: a big size sitting on the offer can cap a breakout before it happens, and a burst of green prints on the tape right as price approaches resistance is a stronger \"it's about to break\" signal than the chart pattern alone. This app can't show you real Level 2 — it's live order-book data that only comes from your actual broker's trading platform (thinkorswim, Webull, DAS, Lightspeed), not from a screener API — so treat this as what to check there, on your own platform, before every entry, not something to expect here.",
     quiz: [
       { q: 'What does Level 2 show that Level 1 does not?', options: ['The full order book — every bid and ask with size, not just the single best price', 'The company\'s earnings history', 'A prediction of where price will go next', 'The float and short interest'], correct: 0, explain: 'Level 1 is just the best bid/ask; Level 2 shows the full depth of resting orders behind it.' },
@@ -130,6 +155,9 @@ export const LESSONS = [
 let lessonAnswers = {};
 // Whether the current in-progress attempt for a lesson has been submitted (shows feedback).
 let lessonSubmitted = {};
+// Selected theme filter for the Lessons list ('all' or a THEME_LABELS key). Per-browser only.
+let lessonThemeFilter = 'all';
+try { lessonThemeFilter = localStorage.getItem('tc-lessons-theme-filter') || 'all'; } catch(e){}
 
 export function lessonPassThreshold(total){
   // 2-question quiz needs 2/2, 3-question quiz needs 2/3 (fixed 67%+ threshold, rounded).
@@ -164,6 +192,24 @@ export function submitLessonQuiz(lessonId){
   state.lessonsState = newState;
   persistProgress('lessons', newState);
   renderLessons();
+}
+
+export function setLessonThemeFilter(theme){
+  lessonThemeFilter = theme;
+  try { localStorage.setItem('tc-lessons-theme-filter', theme); } catch(e){}
+  renderLessons();
+}
+
+function renderThemeFilterBar(){
+  const themesPresent = [...new Set(LESSONS.map(l => l.theme))];
+  const pill = (value, label) => {
+    const active = lessonThemeFilter === value;
+    const style = active
+      ? 'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);'
+      : '';
+    return `<button type="button" class="btn" style="display:inline-block;width:auto;margin:0 6px 6px 0;padding:4px 10px;font-size:.78rem;${style}" data-action="lessons-theme" data-theme="${value}">${label}</button>`;
+  };
+  return `<div style="margin-bottom:14px;">${pill('all', 'All')}${themesPresent.map(t => pill(t, THEME_LABELS[t] || t)).join('')}</div>`;
 }
 
 export function renderLessonCard(lesson){
@@ -205,7 +251,10 @@ export function renderLessonCard(lesson){
   return `<div class="card" style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
         <h3 style="margin-bottom:0;">${lesson.title}</h3>
-        ${s.passed ? '<span class="pill good">passed</span>' : ''}
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="pill" style="background:var(--surface-2);color:var(--muted);">${THEME_LABELS[lesson.theme] || lesson.theme}</span>
+          ${s.passed ? '<span class="pill good">passed</span>' : ''}
+        </div>
       </div>
       <p style="color:var(--muted);font-size:.86rem;margin:10px 0 0;">${lesson.body}</p>
       ${questionsHtml}
@@ -217,12 +266,15 @@ export function renderLessonCard(lesson){
 export function renderLessons(){
   const root = document.getElementById('lessons-list');
   if(!root) return;
-  root.innerHTML = LESSONS.map(lesson => renderLessonCard(lesson)).join('');
+  const visibleLessons = lessonThemeFilter === 'all' ? LESSONS : LESSONS.filter(l => l.theme === lessonThemeFilter);
+  root.innerHTML = renderThemeFilterBar() + visibleLessons.map(lesson => renderLessonCard(lesson)).join('');
   const passedCount = LESSONS.filter(l => (state.lessonsState[l.id]||{}).passed).length;
   document.getElementById('lessons-progress-label').textContent = `${passedCount} / ${LESSONS.length} lessons passed`;
   document.getElementById('lessons-progress-fill').style.width = (passedCount/LESSONS.length*100)+'%';
 }
 document.getElementById('lessons-list').addEventListener('click', (e) => {
+  const themeBtn = e.target.closest('button[data-action="lessons-theme"]');
+  if(themeBtn){ setLessonThemeFilter(themeBtn.dataset.theme); return; }
   const optBtn = e.target.closest('button[data-lesson][data-oidx]');
   if(optBtn){ selectLessonAnswer(optBtn.dataset.lesson, parseInt(optBtn.dataset.qidx,10), parseInt(optBtn.dataset.oidx,10)); return; }
   const submitBtn = e.target.closest('button[data-action="submit-quiz"]');
