@@ -115,6 +115,11 @@
 
   .page-inner{ padding:16px 16px 40px; }
   .lede{ color:var(--muted); font-size:.94rem; max-width:66ch; margin:2px 0 18px; }
+  .lede-list{ list-style:none; margin:-6px 0 18px; padding:0; display:flex; flex-direction:column; gap:10px; max-width:70ch; }
+  .lede-list li{ position:relative; padding-left:20px; color:var(--muted); font-size:.94rem; line-height:1.55; }
+  .lede-list li::before{ content:"\203A"; position:absolute; left:0; top:0; color:var(--accent); font-weight:700; }
+  .lede-list strong{ color:var(--ink); }
+  .lede-list code{ font-family:"IBM Plex Mono",monospace; font-size:.85em; background:var(--surface-2); padding:1px 5px; border-radius:5px; }
 
   /* Bottom tab bar (mobile) */
   .sidebar{
