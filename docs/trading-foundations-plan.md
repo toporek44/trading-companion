@@ -1,6 +1,20 @@
-# Trading Foundations
+# Trading Foundations *(historical reference — superseded, see note below)*
 
-*Beginner → Intermediate · Futures & Options*
+> **This document no longer reflects the live plan.** It's preserved as a
+> reference/research archive (the educator research in Section 10
+> especially is still useful background), but the actual curriculum this
+> project follows now lives in the app itself — the Calendar, Lessons, and
+> Milestones tabs of `index.html` — and it teaches **stocks**, not futures.
+> That pivot happened after this doc was written: the user confirmed the
+> real goal was "find the best stocks to trade" (Warrior Trading's
+> small-cap momentum system — 5 Pillars, Pullback/Bull Flag/Flat Top
+> entries), and the app's Journal/Plan/Scanner were already built around
+> that system, not the futures/VWAP framing below. See `CLAUDE.md` for the
+> full history of that reconciliation. If you want the current curriculum
+> in prose form, read `js/calendar.js`'s `WEEKS` array and `js/lessons.js`'s
+> `LESSONS` array directly rather than trusting anything below this notice.
+
+*Beginner → Intermediate · Futures & Options (archived framing, see notice above)*
 
 A skill-first curriculum for going from zero to a disciplined, risk-managed
 trader — paper account first, TradingView as home base, no shortcuts to an
@@ -9,10 +23,12 @@ account size.
 **Tags:** 1–3 hrs/day · Futures (ES/NQ) · Options · Crypto (secondary) ·
 Paper → Live · Starting capital $1,000
 
-> Updated focus: futures (ES/NQ index futures) is the primary market, with
-> the strategy set drawn from Section 10's VWAP/Market Profile educators.
-> Options stays in the plan; crypto is kept as an optional, lower-priority
-> market rather than the main track.
+> Updated focus (as of when this doc was written): futures (ES/NQ index
+> futures) is the primary market, with the strategy set drawn from Section
+> 10's VWAP/Market Profile educators. Options stays in the plan; crypto is
+> kept as an optional, lower-priority market rather than the main track.
+> **This framing was later superseded — see the notice at the top of this
+> file.**
 
 Originally published as a Claude.ai Artifact ("Trading Foundations") with an
 interactive day-by-day calendar and milestone tracker (progress saved via
