@@ -122,7 +122,13 @@ async function refreshScanner(){
     scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`);
     renderScannerTables();
     checkScannerPillarAlerts(data.top_gainers||[]);
-    autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker)); // fire-and-forget, updates the fire-icon badges as results come in
+    // Awaited (not fire-and-forget) so scannerRefreshInFlight stays true for
+    // the full duration of this news-check sequence — otherwise clicking
+    // "Refresh now" again mid-sequence could start a second concurrent pass
+    // over the same tickers, racing on the same localStorage cache entries
+    // (found by a later audit this session; same root cause as the outer
+    // overlapping-refresh race already fixed above).
+    await autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker));
   }catch(err){
     scannerStatus('Could not reach the scanner endpoint. Showing last cached scan if available.');
   }finally{

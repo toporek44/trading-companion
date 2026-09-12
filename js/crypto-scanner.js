@@ -97,8 +97,8 @@ function cryptoCardHtml(coin, rank){
       ${headlineHtml}
       <div class="sc-card-stats">
         <div class="sc-stat"><span class="k">Price</span><span class="v num">$${coin.price < 1 ? coin.price.toPrecision(4) : coin.price.toLocaleString(undefined,{maximumFractionDigits:2})}</span></div>
-        <div class="sc-stat"><span class="k">24h Volume</span><span class="v num">$${Math.round(coin.volume).toLocaleString()}</span></div>
-        <div class="sc-stat"><span class="k">Market Cap</span><span class="v num">$${Math.round(coin.marketCap).toLocaleString()}</span></div>
+        <div class="sc-stat"><span class="k">24h Volume</span><span class="v num">${coin.volume!=null ? '$'+Math.round(coin.volume).toLocaleString() : '—'}</span></div>
+        <div class="sc-stat"><span class="k">Market Cap</span><span class="v num">${coin.marketCap!=null ? '$'+Math.round(coin.marketCap).toLocaleString() : '—'}</span></div>
         <div class="sc-stat"><span class="k">Momentum</span><span class="v"><span class="pill ${momentum.cls}">${momentum.label}</span></span></div>
       </div>
     </div>
@@ -194,7 +194,13 @@ async function refreshCrypto(){
     lsSet(CRYPTO_CACHE_KEY, { top_gainers: data.top_gainers || [], most_active: data.most_active || [] });
     renderCryptoLists();
     cryptoStatus(`Updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${CRYPTO_AUTO_REFRESH_MS/1000}s.`);
-    autoCheckTopCryptoNews(data.top_gainers || []);
+    // Awaited (not fire-and-forget) so cryptoRefreshInFlight — and thus the
+    // overlapping-refresh guard above — stays true for the full duration of
+    // this up-to-8-coin news-check sequence, not just the initial fetch.
+    // Without this, clicking "Refresh now" again mid-sequence could start a
+    // second concurrent pass over the same coins, wasting Cointelegraph
+    // calls and racing on the same localStorage cache entries.
+    await autoCheckTopCryptoNews(data.top_gainers || []);
   }catch(err){
     cryptoStatus('Could not reach the crypto endpoint. Showing last cached data if available.');
   }finally{
