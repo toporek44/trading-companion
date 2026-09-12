@@ -101,7 +101,7 @@ change.
 - **Auto news-check for the top 8 gainers** on every refresh (Finnhub
   free tier, 60 calls/min, has plenty of headroom) — the 🔥 freshness
   badge now appears without a manual "Check news" click. Requires
-  `FINNHUB_API_KEY` to be set; silently no-ops otherwise rather than
+  `FINHUB_API_KEY` to be set; silently no-ops otherwise rather than
   firing doomed requests.
 
 ## The architecture change this required
