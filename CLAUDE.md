@@ -72,13 +72,21 @@ volume, float, R:R ratios, daily loss caps, consecutive-loss circuit
 breakers) onto crypto/options equivalents rather than reinventing risk
 rules from scratch.
 
-## Related but separate: "Trading Foundations" plan
-A 5-phase learning curriculum (platform literacy → crypto paper trading →
-options paper trading → live $1,000 crypto → live options) with milestone
-tracking was built as a Claude.ai Artifact + doc in a **separate Cowork
-session/project ("TradingHelper")**, not in this repo. If the user wants it
-merged here, ask for the content/URL and add it as a markdown doc — do not
-assume it already exists in this repository.
+## "Trading Foundations" plan — now merged into this repo
+Full content merged from the Claude.ai Artifact into
+`docs/trading-foundations-plan.md`. It supersedes/refines the earlier
+crypto+options framing above in one respect: **the artifact's later version
+pivoted futures (ES/NQ index futures) to the primary market**, with options
+as secondary and crypto downgraded to optional/tertiary — driven by the
+Section 10 VWAP/Market-Profile educator research. If asked to build
+scanner/journal features, check which market focus is currently intended
+(ask the user if unclear) rather than assuming the original crypto+options
+framing still holds.
+
+The interactive version (day-by-day calendar + milestone tracker with
+localStorage progress) still lives at the original artifact URL:
+https://claude.ai/code/artifact/2a9852fb-bf85-4b51-b8a6-e4ac898376a9 — the
+markdown copy in this repo has the same content but no interactivity.
 
 ## Working notes on tooling
 - Vercel: authenticate via local CLI (`vercel login` — device-code flow,
