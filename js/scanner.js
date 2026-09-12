@@ -471,7 +471,10 @@ function scannerRowHtml(data, rank){
     <div class="sc-card-clickzone" aria-expanded="${expanded}">
       <div class="sc-card-top">
         <span class="sc-card-rank mono">${rankBadge} #${rank}</span>
-        <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
+        <div class="sc-card-top-right">
+          <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
+          <button type="button" class="sc-watch-toggle" data-ticker="${ticker}" title="${watched?'Remove from':'Add to'} watchlist">${watched ? '★' : '☆'}</button>
+        </div>
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
@@ -487,7 +490,6 @@ function scannerRowHtml(data, rank){
         <div class="sc-stat"><span class="k">Pillars</span><span class="v"><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></span></div>
       </div>
     </div>
-    <button type="button" class="btn sc-watch-toggle" data-ticker="${ticker}" title="${watched?'Remove from':'Add to'} watchlist">${watched ? '★' : '☆'}</button>
     <div class="sc-card-detail" ${expanded ? '' : 'hidden'}>
       <div class="sc-detail-grid">
         <div class="sc-detail-col">

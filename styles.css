@@ -197,29 +197,32 @@
   .sc-sort-bar button:hover{ border-color:var(--accent); color:var(--accent); }
 
   /* ---- Scanner: card grid (replaces the horizontally-scrolling table) ---- */
-  .sc-card-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+  .sc-card-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
   .sc-stock-card{
-    position:relative; border:1px solid var(--line); border-radius:14px; padding:14px 14px 0;
-    background:var(--surface); transition:box-shadow .15s ease, transform .15s ease;
+    border:1px solid var(--line); border-radius:14px; padding:14px;
+    background:var(--surface); transition:box-shadow .15s ease;
   }
-  .sc-card-clickzone{ cursor:pointer; padding-bottom:14px; }
+  .sc-card-clickzone{ cursor:pointer; }
   .sc-stock-card:hover{ box-shadow:0 4px 16px -6px rgba(20,22,35,.18); }
-  .sc-card-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-right:30px; }
+  .sc-card-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .sc-card-top-right{ display:flex; align-items:center; gap:10px; }
   .sc-card-rank{ font-size:11px; color:var(--muted); }
   .sc-card-expand-hint{ font-size:10px; color:var(--accent); font-family:"IBM Plex Mono",monospace; }
-  .sc-card-main{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+  .sc-card-main{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
   .sc-card-ticker{ font-weight:700; font-size:16px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .sc-card-ticker-sym{ letter-spacing:.01em; }
   .sc-card-change{ font-weight:700; font-size:16px; white-space:nowrap; }
-  .sc-card-stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(75px, 1fr)); gap:8px; }
+  .sc-card-stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:8px; }
   .sc-stat{ display:flex; flex-direction:column; gap:2px; }
   .sc-stat .k{ font-family:"IBM Plex Mono",monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .sc-stat .v{ font-size:13px; font-weight:600; }
-  .sc-stock-card > .sc-watch-toggle{
-    position:absolute; top:10px; right:10px; width:24px; height:24px; padding:0;
-    font-size:14px; line-height:1; z-index:1; display:flex; align-items:center; justify-content:center;
+  .sc-watch-toggle{
+    width:26px; height:26px; padding:0; flex-shrink:0; border-radius:6px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink); font-size:14px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
   }
-  .sc-card-detail{ border-top:1px solid var(--line); margin:0 -14px; padding:14px; background:var(--surface-2); border-radius:0 0 14px 14px; }
+  .sc-watch-toggle:hover{ border-color:var(--accent); color:var(--accent); }
+  .sc-card-detail{ border-top:1px solid var(--line); margin:12px -14px -14px; padding:14px; background:var(--surface-2); border-radius:0 0 14px 14px; }
   .sc-detail-grid{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:20px;
   }
