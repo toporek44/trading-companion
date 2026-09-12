@@ -296,8 +296,35 @@ function markScannerAlertFired(ticker, cond){
 function scannerAlertsActive(){
   return scannerAlertsSupported() && Notification.permission === 'granted' && scannerAlertsEnabled();
 }
+// Audio alert — a two-tone chime synthesized with the Web Audio API, no
+// sound file to fetch/host. Trade Ideas and Benzinga Pro both play a sound
+// the instant a scan hits; a browser notification alone is easy to miss if
+// this tab isn't focused. Best-effort: browsers require a prior user
+// gesture to unlock audio, which "Enable alerts" already provides (it's a
+// click), and a fresh AudioContext per alert avoids holding one open/
+// suspended across the whole session.
+function playScannerAlertChime(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1320].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      const start = ctx.currentTime + i * 0.14;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.24);
+    });
+    setTimeout(() => ctx.close(), 600);
+  }catch(err){ /* Web Audio unsupported/blocked — alert still shows visually */ }
+}
 function fireScannerAlert(title, body){
   if(!scannerAlertsActive()) return;
+  playScannerAlertChime();
   try{ new Notification(title, { body }); }catch(err){ /* notification creation can throw in some contexts; alerts are best-effort */ }
 }
 function findScannerCachedRow(ticker){
@@ -567,25 +594,64 @@ function scannerRowHtml(data, rank){
     </div>
   </div>`;
 }
-function renderScannerTables(){
+// Shared by renderScannerTables and the CSV export, so "what you see is
+// what you export" — same filter/watch-only toggle/sort applied both ways
+// instead of the export silently pulling a different (e.g. unfiltered) set.
+function scannerVisibleRows(){
   const cache = lsGet(SCANNER_CACHE_KEY, null);
-  const gainersBody = document.getElementById('scan-gainers-tbody');
-  const activeBody = document.getElementById('scan-active-tbody');
-  const gainersEmpty = document.getElementById('scan-gainers-empty');
-  const activeEmpty = document.getElementById('scan-active-empty');
-  if(!cache){ gainersBody.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); return; }
+  if(!cache) return { gainers: [], active: [] };
   const watchOnly = document.getElementById('sc-watch-filter').dataset.value === 'watch';
   let gainers = (cache.top_gainers||[]).filter(scannerFilterRow).map(scannerRowData);
   let active = (cache.most_actively_traded||[]).filter(scannerFilterRow).map(scannerRowData);
   if(watchOnly){ gainers = gainers.filter(d => d.watched); active = active.filter(d => d.watched); }
-  gainers = scannerSortRows(gainers, 'gainers');
-  active = scannerSortRows(active, 'active');
+  return { gainers: scannerSortRows(gainers, 'gainers'), active: scannerSortRows(active, 'active') };
+}
+function renderScannerTables(){
+  const gainersBody = document.getElementById('scan-gainers-tbody');
+  const activeBody = document.getElementById('scan-active-tbody');
+  const gainersEmpty = document.getElementById('scan-gainers-empty');
+  const activeEmpty = document.getElementById('scan-active-empty');
+  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); return; }
+  const { gainers, active } = scannerVisibleRows();
   gainersBody.innerHTML = gainers.map((d,i) => scannerRowHtml(d, i+1)).join('');
   activeBody.innerHTML = active.map((d,i) => scannerRowHtml(d, i+1)).join('');
   gainersEmpty.hidden = gainers.length > 0;
   activeEmpty.hidden = active.length > 0;
   scannerUpdateSortIndicators();
 }
+
+// ---------- Scanner: CSV export (what you see is what you export) ----------
+function csvEscape(v){
+  const s = v == null ? '' : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+function scannerRowToCsvFields(d, list, rank){
+  return [
+    list, rank, d.ticker, d.price.toFixed(2), d.pct.toFixed(2), d.vol,
+    d.relVol != null ? d.relVol.toFixed(1) : '', d.floatM != null ? d.floatM.toFixed(1) : '',
+    d.pillarCount, d.setupGrade.grade, d.newsEntry?.headline || '',
+  ];
+}
+function exportScannerCsv(){
+  const { gainers, active } = scannerVisibleRows();
+  if(gainers.length === 0 && active.length === 0){ scannerStatus('Nothing to export yet — refresh the scanner first.'); return; }
+  const header = ['List','Rank','Ticker','Price','Change%','Volume','RelVol','FloatM','Pillars','SetupGrade','Headline'];
+  const rows = [
+    ...gainers.map((d,i) => scannerRowToCsvFields(d, 'Top Gainers', i+1)),
+    ...active.map((d,i) => scannerRowToCsvFields(d, 'Most Active', i+1)),
+  ];
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scanner-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('scanner-export-csv').addEventListener('click', exportScannerCsv);
 // Catalyst select / Float input / Avg-vol input / Check news / Watch buttons
 // are re-created on every render, so wire them via delegated listeners on
 // the tbody rather than per-element.

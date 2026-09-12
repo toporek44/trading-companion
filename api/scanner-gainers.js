@@ -1,7 +1,9 @@
 // Vercel serverless function — proxies Finviz Elite's screener export so
 // the paid API key never ships in client-side code. Returns
-// { configured: false } when FINVIZ_API_KEY isn't set, so the client
-// falls back to the Alpha Vantage flow. See docs/scanner-upgrade-plan.md.
+// { configured: false } when FINVIZ_API_KEY isn't set, so the client shows
+// a clear "not configured" status instead of silently doing nothing (there
+// is no fallback data source — Alpha Vantage was removed entirely, see
+// docs/scanner-upgrade-plan.md).
 //
 // Column IDs (FINVIZ_COLUMNS) are Finviz's numeric `c=` export codes,
 // requested against the "Custom" view (v=152 — the fixed "Overview" view,
@@ -30,25 +32,11 @@
 // filter. Falls back to $2-$20 (Ross Cameron's stated range) if unset.
 // Set FINVIZ_FILTERS env var to bypass this entirely with a fixed string.
 
-const SUPABASE_URL = "https://wcqickazhkxgyofyqnxq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcWlja2F6aGt4Z3lvZnlxbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5Njc4MjUsImV4cCI6MjEwNDU0MzgyNX0.6o4MmgXZTfuXrvK5sEXYUUJk_wYY64xgE-PnE6IxcVc";
+import { getPriceRange } from './_lib/supabase.js';
 
 const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float, Short Float, Short Ratio
 const OTHER_FILTERS = 'ta_change_u10,sh_float_u20,sh_relvol_o2';
 const ROW_LIMIT = 30;
-
-async function getPriceRange(){
-  try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.scanner-price-range&select=state`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-    });
-    const rows = await res.json();
-    const s = Array.isArray(rows) && rows[0] && rows[0].state;
-    return { min: (s && s.min != null) ? s.min : 2, max: (s && s.max != null) ? s.max : 20 };
-  }catch(e){
-    return { min: 2, max: 20 };
-  }
-}
 
 function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
