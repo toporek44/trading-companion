@@ -29,7 +29,7 @@ function futuresCardHtml(c, rank){
     ? `<span title="${escapeHtml(macroNewsEntry.items[0].headline||'')}">${scannerFreshnessBucket(macroNewsEntry.items[0].hoursOld).icon}</span>` : '';
 
   return `<div class="sc-stock-card" data-symbol="${c.symbol}">
-    <div class="sc-card-clickzone" aria-expanded="${expanded}">
+    <div class="sc-card-clickzone" role="button" tabindex="0" aria-expanded="${expanded}" aria-label="${expanded ? 'Collapse' : 'Expand'} ${c.symbol.replace('=F','')} details">
       <div class="sc-card-top">
         <span class="sc-card-rank mono">#${rank} &middot; ${escapeHtml(c.group)}</span>
         <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
@@ -92,6 +92,18 @@ document.getElementById('futures-list').addEventListener('click', (e) => {
     if(futuresExpanded.has(symbol)) futuresExpanded.delete(symbol); else futuresExpanded.add(symbol);
     renderFuturesList();
   }
+});
+// See scanner.js's matching keydown handler for why this exists — the
+// clickzone is a <div role="button">, which needs manual Enter/Space
+// activation (browsers only auto-handle that for real <button>/<a>).
+document.getElementById('futures-list').addEventListener('keydown', (e) => {
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const zone = e.target.closest('.sc-card-clickzone');
+  if(!zone) return;
+  e.preventDefault();
+  const symbol = zone.closest('.sc-stock-card').dataset.symbol;
+  if(futuresExpanded.has(symbol)) futuresExpanded.delete(symbol); else futuresExpanded.add(symbol);
+  renderFuturesList();
 });
 
 // See scanner.js's scannerRefreshInFlight for why this guard exists — same

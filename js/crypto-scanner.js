@@ -82,7 +82,7 @@ function cryptoCardHtml(coin, rank){
     ? `<div class="sc-card-headline" title="${escapeHtml(newsEntry.headline)}">${escapeHtml(newsEntry.headline.length>70?newsEntry.headline.slice(0,68)+'…':newsEntry.headline)}</div>` : '';
 
   return `<div class="sc-stock-card" data-symbol="${coin.symbol}">
-    <div class="sc-card-clickzone" aria-expanded="${expanded}">
+    <div class="sc-card-clickzone" role="button" tabindex="0" aria-expanded="${expanded}" aria-label="${expanded ? 'Collapse' : 'Expand'} ${coin.symbol} details">
       <div class="sc-card-top">
         <span class="sc-card-rank mono">#${rank}</span>
         <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
@@ -165,6 +165,18 @@ function renderCryptoLists(){
       if(cryptoExpanded.has(symbol)) cryptoExpanded.delete(symbol); else cryptoExpanded.add(symbol);
       renderCryptoLists();
     }
+  });
+  // See scanner.js's matching keydown handler for why this exists — the
+  // clickzone is a <div role="button">, which needs manual Enter/Space
+  // activation (browsers only auto-handle that for real <button>/<a>).
+  container.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const zone = e.target.closest('.sc-card-clickzone');
+    if(!zone) return;
+    e.preventDefault();
+    const symbol = zone.closest('.sc-stock-card').dataset.symbol;
+    if(cryptoExpanded.has(symbol)) cryptoExpanded.delete(symbol); else cryptoExpanded.add(symbol);
+    renderCryptoLists();
   });
 });
 

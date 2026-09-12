@@ -644,12 +644,12 @@ function scannerRowHtml(data, rank){
   const cardTint = rank <= 3 ? 'background:var(--good-soft);' : (rank <= 10 ? 'background:var(--accent-soft);' : '');
 
   return `<div class="sc-stock-card" data-ticker="${ticker}" style="${cardTint}">
-    <div class="sc-card-clickzone" aria-expanded="${expanded}">
+    <div class="sc-card-clickzone" role="button" tabindex="0" aria-expanded="${expanded}" aria-label="${expanded ? 'Collapse' : 'Expand'} ${ticker} details">
       <div class="sc-card-top">
         <span class="sc-card-rank mono">${rankBadge} #${rank}</span>
         <div class="sc-card-top-right">
           <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
-          <button type="button" class="sc-watch-toggle" data-ticker="${ticker}" title="${watched?'Remove from':'Add to'} watchlist">${watched ? '★' : '☆'}</button>
+          <button type="button" class="sc-watch-toggle" data-ticker="${ticker}" title="${watched?'Remove from':'Add to'} watchlist" aria-label="${watched?'Remove '+ticker+' from':'Add '+ticker+' to'} watchlist" aria-pressed="${watched}">${watched ? '★' : '☆'}</button>
         </div>
       </div>
       <div class="sc-card-main">
@@ -859,6 +859,21 @@ document.getElementById('scanner-export-csv').addEventListener('click', exportSc
       else scannerExpandedTickers.add(ticker);
       renderScannerTables();
     }
+  });
+  // The clickzone is a <div role="button"> (not a real <button>), so it
+  // needs its own Enter/Space handling — browsers only give real buttons
+  // and links free keyboard-activation. Without this, the click-to-expand
+  // detail panel (which holds the Pillars breakdown, news, notes) would be
+  // completely unreachable via keyboard.
+  tbody.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const zone = e.target.closest('.sc-card-clickzone');
+    if(!zone) return;
+    e.preventDefault();
+    const ticker = zone.closest('.sc-stock-card').dataset.ticker;
+    if(scannerExpandedTickers.has(ticker)) scannerExpandedTickers.delete(ticker);
+    else scannerExpandedTickers.add(ticker);
+    renderScannerTables();
   });
 });
 window.__logScannerTrade = function(ticker, price, pctGain){
