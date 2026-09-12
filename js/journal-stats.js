@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, escapeHtml } from './state.js';
 
 export function computeStats(list){
   const total = list.length;
@@ -154,7 +154,7 @@ export function renderCoachRules(){
     const border = idx < insights.length - 1 ? 'border-bottom:1px solid var(--line);' : '';
     return `<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;${border}">
       <span class="pill ${meta.cls}" style="flex-shrink:0;white-space:nowrap;">${meta.label}</span>
-      <span style="font-size:.88rem;line-height:1.4;">${i.text}</span>
+      <span style="font-size:.88rem;line-height:1.4;">${escapeHtml(i.text)}</span>
     </div>`;
   }).join('');
 }
@@ -174,7 +174,7 @@ export function statsTableHtml(groups){
   const fmtUsd = v => (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
   return `<table style="min-width:0;"><thead><tr><th>Name</th><th>#</th><th>Win%</th><th>Avg R</th><th>Total P&amp;L</th></tr></thead><tbody>
     ${rows.map(r => `<tr>
-      <td>${r.key}</td>
+      <td>${escapeHtml(r.key)}</td>
       <td class="num">${r.s.total}</td>
       <td class="num">${fmtPct(r.s.winRate)}</td>
       <td class="num">${fmtR(r.s.avgR)}</td>

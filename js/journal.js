@@ -1,4 +1,4 @@
-import { state, lsSet, refetchTrades } from './state.js';
+import { state, lsSet, refetchTrades, escapeHtml, getScannerPriceRange } from './state.js';
 import { renderAll } from './app.js';
 
 // ---------- Journal ----------
@@ -50,10 +50,14 @@ export function resetTradeForm(){
 }
 
 // The 5 Pillars, per the Small Account Toolkit / Trading Plan Worksheet:
-// rel volume >=5x, up >=10% on the day, has a news catalyst, price $1-$20, float <20M shares.
+// rel volume >=5x, up >=10% on the day, has a news catalyst, price in range
+// (the Scanner tab's user-editable range — was hardcoded to $1-$20 here,
+// which silently drifted from the Scanner's own range once that became
+// editable; see getScannerPriceRange in state.js), float <20M shares.
 // Each pillar only counts when its underlying value is actually present.
-export function computePillars(entryPrice, pctGainOnDay, relVolume, newsCatalyst, floatM){
-  const priceOk = entryPrice != null && entryPrice >= 1 && entryPrice <= 20;
+export function computePillars(entryPrice, pctGainOnDay, relVolume, newsCatalyst, floatM, priceRange){
+  const { min: priceMin, max: priceMax } = priceRange || { min: 2, max: 20 };
+  const priceOk = entryPrice != null && entryPrice >= priceMin && entryPrice <= priceMax;
   const gainOk = pctGainOnDay != null && pctGainOnDay >= 10;
   const relVolOk = relVolume != null && relVolume >= 5;
   const newsOk = newsCatalyst === true;
@@ -73,12 +77,14 @@ document.getElementById('trade-form').addEventListener('submit', async (e) => {
   const floatM = parseFloat(document.getElementById('f-float').value);
   const newsCatalyst = document.getElementById('f-news').dataset.value === 'true';
   const holdTime = parseFloat(document.getElementById('f-holdtime').value);
+  const priceRange = await getScannerPriceRange();
   const {meetsPillars, pillarsCount} = computePillars(
     entryPrice,
     isNaN(pctGainOnDay) ? null : pctGainOnDay,
     isNaN(relVolume) ? null : relVolume,
     newsCatalyst,
-    isNaN(floatM) ? null : floatM
+    isNaN(floatM) ? null : floatM,
+    priceRange
   );
   const entry = {
     date: document.getElementById('f-date').value,
@@ -198,7 +204,10 @@ export function parseTVStrategyExport(text, instrument, strategyName){
     const exitRow = rowsForTrade.find(r => (r[iType]||'').toLowerCase().includes('exit'));
     if(!entryRow) return;
     const typeStr = (entryRow[iType]||'').toLowerCase();
-    const cleanNum = v => parseFloat(String(v||'').replace(/[^0-9.\-]/g,'')) || null;
+    // NOT `parseFloat(...) || null` — that treats a real 0 (a legitimate
+    // breakeven trade's Net P&L) as falsy and silently turns it into null,
+    // which then displays as "—" and drops out of win/loss classification.
+    const cleanNum = v => { const n = parseFloat(String(v||'').replace(/[^0-9.\-]/g,'')); return isNaN(n) ? null : n; };
     entries.push({
       date: (entryRow[iDate]||'').split(' ')[0] || '',
       market: 'Stock',
@@ -275,16 +284,16 @@ export function renderTradesTable(){
     const tr = document.createElement('tr');
     const resultClass = (t.resultAmount||0) > 0 ? 'good' : ((t.resultAmount||0) < 0 ? 'bad' : '');
     tr.innerHTML = `
-      <td class="num">${t.date||'—'}</td>
-      <td>${t.market||'—'}</td>
-      <td>${t.instrument||'—'}${t.source==='tradingview' ? ' <span class="pill neutral" title="Imported from TradingView">TV</span>' : ''}</td>
-      <td>${t.strategy||'—'}${(t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(tag=>` <span class="pill neutral">${tag}</span>`).join('')}</td>
-      <td>${t.direction||'—'}</td>
+      <td class="num">${escapeHtml(t.date)||'—'}</td>
+      <td>${escapeHtml(t.market)||'—'}</td>
+      <td>${escapeHtml(t.instrument)||'—'}${t.source==='tradingview' ? ' <span class="pill neutral" title="Imported from TradingView">TV</span>' : ''}</td>
+      <td>${escapeHtml(t.strategy)||'—'}${(t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(tag=>` <span class="pill neutral">${escapeHtml(tag)}</span>`).join('')}</td>
+      <td>${escapeHtml(t.direction)||'—'}</td>
       <td class="num"><span class="pill ${resultClass||'neutral'}">${t.resultAmount!=null ? ((t.resultAmount>=0?'+$':'-$')+Math.abs(t.resultAmount).toFixed(2)) : '—'}</span></td>
       <td class="num">${typeof t.rMultiple==='number' ? t.rMultiple.toFixed(2)+'R' : '—'}</td>
       <td>${t.processFollowed ? '<span class="pill good">yes</span>' : '<span class="pill bad">no</span>'}</td>
       <td>${(() => { const pc = t.pillarsCount ?? null; if(!pc) return '<span class="pill">—</span>'; return `<span class="pill ${pc===5?'good':'neutral'}">${pc}/5</span>`; })()}</td>
-      <td><button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${t.id}')">delete</button></td>`;
+      <td><button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">delete</button></td>`;
     tbody.appendChild(tr);
   });
 }

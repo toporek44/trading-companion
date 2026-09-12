@@ -27,6 +27,35 @@ export function lsSet(key, value){
   try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
 }
 
+// Shared HTML-escaping helper — was previously defined only in scanner.js
+// (and re-exported from there for crypto-scanner.js/futures-scanner.js).
+// Moved here so journal.js can use it too without creating a circular
+// import (scanner.js already imports from journal.js for initSegmented).
+export function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// Same 'scanner-price-range' Supabase row the Scanner tab's Min/Max price
+// fields write to (js/scanner.js persistProgress) — shared here so any
+// client-side code that needs the current price range (Scanner's own
+// display filter, Journal's price pillar) reads the same value instead of
+// each keeping a separate copy of this fetch that could silently drift out
+// of sync (the Journal's Pillars check was hardcoded to $1-$20 for a while
+// after the Scanner's own range became user-editable — this fixes that).
+// Falls back to $2-$20 (Ross Cameron's stated range) if unset/unreachable.
+export async function getScannerPriceRange(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.scanner-price-range&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const s = Array.isArray(rows) && rows[0] && rows[0].state;
+    return { min: (s && s.min != null) ? s.min : 2, max: (s && s.max != null) ? s.max : 20 };
+  }catch(e){
+    return { min: 2, max: 20 };
+  }
+}
+
 export const statusEl = document.getElementById('conn-status');
 
 export function tradeFromRow(r){

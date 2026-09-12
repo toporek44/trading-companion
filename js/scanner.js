@@ -1,4 +1,5 @@
-import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY } from './state.js';
+import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY, escapeHtml, getScannerPriceRange } from './state.js';
+export { escapeHtml };
 import { initSegmented } from './journal.js';
 import { showPage } from './nav.js';
 
@@ -18,15 +19,9 @@ const AUTO_REFRESH_MS = 60000; // 60s — frequent enough to catch a fresh mover
 // $2-$20 matches Ross Cameron's own stated range in the reference video.
 const PRICE_RANGE_KEY = 'scanner-price-range';
 async function loadPriceRangeSetting(){
-  try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.${PRICE_RANGE_KEY}&select=state`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-    });
-    const rows = await res.json();
-    const s = Array.isArray(rows) && rows[0] && rows[0].state;
-    if(s && s.min != null) document.getElementById('sc-minprice').value = s.min;
-    if(s && s.max != null) document.getElementById('sc-maxprice').value = s.max;
-  }catch(e){ /* keep the HTML defaults */ }
+  const { min, max } = await getScannerPriceRange();
+  document.getElementById('sc-minprice').value = min;
+  document.getElementById('sc-maxprice').value = max;
 }
 function savePriceRangeSetting(){
   const min = parseFloat(document.getElementById('sc-minprice').value);
@@ -283,9 +278,6 @@ function scannerNewsBadgeHtml(entry){
   const title = entry.headline ? entry.headline.replace(/"/g,'&quot;') : '';
   const count = (entry.items && entry.items.length > 1) ? ` (${entry.items.length})` : '';
   return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old${count}</span>`;
-}
-export function escapeHtml(s){
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 // Last-3-news panel: exact local date/time (not just a relative bucket) so
 // results can be trusted and cross-checked, plus a direct link to the
