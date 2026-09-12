@@ -382,6 +382,12 @@
       </section>
 
       <section id="page-scanner" class="page" hidden>
+        <div class="segmented" id="sc-market-tabs" data-value="stocks" style="max-width:340px;margin-bottom:14px;">
+          <button type="button" class="seg-btn active" data-value="stocks">US Stocks</button>
+          <button type="button" class="seg-btn" data-value="crypto">Crypto <span style="font-size:.7em;opacity:.7;">(24/7)</span></button>
+        </div>
+
+        <div id="sc-market-stocks">
         <div class="sc-topbar">
           <p class="lede" style="margin:0;flex:1 1 320px;">Momentum scanner, Ross Cameron's way &mdash; up &ge;4% on the day, sorted by <strong>Change % descending</strong>. Click any row to expand its full Pillars/news/override detail.</p>
           <div class="sc-topbar-actions">
@@ -467,6 +473,29 @@
           </ul>
           <p class="lede" style="margin:14px 0 0;">Data still isn't tick-by-tick real-time &mdash; treat this as a watchlist builder, not a live execution feed. It also can't show real Level 2 (order book depth) or Time and Sales &mdash; check that on your actual broker platform before every entry (see the Level 2 &amp; Time and Sales lesson).</p>
         </details>
+        </div><!-- /sc-market-stocks -->
+
+        <div id="sc-market-crypto" hidden>
+          <div class="sc-topbar">
+            <p class="lede" style="margin:0;flex:1 1 320px;">Top 100 coins by market cap, live from CoinGecko &mdash; useful when the US stock market is closed. No Pillars/news scoring here (this system wasn't built for crypto); just clean gainers/volume data so you have something to watch overnight.</p>
+            <div class="sc-topbar-actions">
+              <button class="btn primary" id="crypto-refresh">Refresh now</button>
+            </div>
+          </div>
+          <p id="crypto-status" class="mono" style="margin:6px 0 16px;font-size:.78rem;color:var(--muted);"></p>
+
+          <div class="card" style="margin-bottom:18px;">
+            <h3>Top movers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(24h % change)</span></h3>
+            <div class="sc-card-grid" id="crypto-gainers-list" style="margin-top:10px;"></div>
+            <div class="empty-state" id="crypto-gainers-empty" hidden><div>Loading&hellip;</div></div>
+          </div>
+
+          <div class="card" style="margin-bottom:18px;">
+            <h3>Most active <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(24h volume)</span></h3>
+            <div class="sc-card-grid" id="crypto-active-list" style="margin-top:10px;"></div>
+            <div class="empty-state" id="crypto-active-empty" hidden><div>Loading&hellip;</div></div>
+          </div>
+        </div>
       </section>
 
       <section id="page-lessons" class="page" hidden>

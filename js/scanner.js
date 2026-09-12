@@ -366,14 +366,24 @@ document.getElementById('sc-watch-filter').addEventListener('click', () => rende
 
 // ---------- Scanner: sortable columns (in-memory only, resets on refresh) ----------
 // Default sort: Change % descending, so the leading gainer of the day is row one.
-const scannerSortState = { gainers: {key:'pct', dir:-1}, active: {key:'pct', dir:-1} };
+// Three-click cycle per column: 1st click = ascending, 2nd = descending,
+// 3rd = back to the default (Change % descending) — so sorting is always
+// escapable without needing to remember which column was "original."
+const DEFAULT_SORT = { key: 'pct', dir: -1 };
+const scannerSortState = { gainers: {...DEFAULT_SORT, stage:0}, active: {...DEFAULT_SORT, stage:0} };
 document.querySelectorAll('.sc-sort-row').forEach(headRow => {
   headRow.addEventListener('click', (e) => {
     const el = e.target.closest('[data-sort]');
     if(!el) return;
     const scope = headRow.dataset.scope;
     const state = scannerSortState[scope];
-    if(state.key === el.dataset.sort){ state.dir *= -1; } else { state.key = el.dataset.sort; state.dir = 1; }
+    if(state.key === el.dataset.sort){
+      state.stage = (state.stage + 1) % 3;
+      if(state.stage === 0){ state.key = DEFAULT_SORT.key; state.dir = DEFAULT_SORT.dir; }
+      else { state.dir = state.stage === 1 ? 1 : -1; }
+    } else {
+      state.key = el.dataset.sort; state.dir = 1; state.stage = 1;
+    }
     renderScannerTables();
   });
 });
@@ -383,7 +393,7 @@ function scannerUpdateSortIndicators(){
     headRow.querySelectorAll('[data-sort]').forEach(el => {
       const ind = el.querySelector('.sc-sort-ind');
       if(!ind) return;
-      ind.textContent = state.key === el.dataset.sort ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
+      ind.textContent = (state.stage !== 0 && state.key === el.dataset.sort) ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
     });
   });
 }
