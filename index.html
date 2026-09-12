@@ -413,6 +413,16 @@
           <p id="scanner-status" class="mono" style="margin:10px 0 0;font-size:.78rem;color:var(--muted);"></p>
         </div>
 
+        <div class="card" id="scanner-alerts-card" style="margin-bottom:18px;">
+          <h3>Alerts</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 12px;">Get a browser notification the moment a ticker hits a full 5/5 Pillars score, or a tracked ticker's news freshness newly turns &#128293;&nbsp;(&lt;2h). Each ticker alerts once per day per condition &mdash; no repeat spam on every 60s refresh.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btn primary" id="scanner-alerts-toggle" type="button">Enable alerts</button>
+            <span id="scanner-alerts-state" class="mono" style="font-size:.8rem;color:var(--muted);"></span>
+          </div>
+          <p style="color:var(--muted);font-size:.78rem;margin:12px 0 0;"><strong>Limitation:</strong> these are browser notifications &mdash; they only fire while this tab is open in a browser (it can be backgrounded/minimized and still work in most browsers), not when the browser or device is fully closed. There's no push-notification server behind this, so nothing arrives if you're not running this tab.</p>
+        </div>
+
         <div class="card" style="margin-bottom:18px;">
           <h3>Filters</h3>
           <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0;">Defaults roughly match the 5 pillars already; tighten min/max price to $5&ndash;$10 for the worksheet's "sweet spot" if you want a shorter list.</p>
