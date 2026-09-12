@@ -153,6 +153,25 @@ function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
   return count;
 }
 
+// "Setup grade" — a mechanical score built purely from the same 5 Pillars
+// inputs already computed above (pillar count, how far relative volume
+// clears the 5x bar, and whether news is genuinely fresh/breaking). This is
+// NOT a buy/sell signal or a valuation call — there's no fundamentals or
+// price-target model behind it — it's just a compressed read of "how many
+// of Ross Cameron's own criteria does this fully clear, and by how much."
+// Explicitly labeled "setup" (not "buy") to avoid implying investment advice.
+function scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType){
+  let score = pillarCount * 20;
+  if(relVol != null) score += Math.min(relVol, 20);
+  if(newsEntry && newsEntry.hoursOld != null && newsEntry.hoursOld < 2) score += 10;
+  if(catalystType === 'merger') score -= 30; // dead catalyst — never a real setup regardless of score
+  if(score >= 115) return { grade: 'A+', label: 'Prime setup', cls: 'good' };
+  if(score >= 95) return { grade: 'A', label: 'Strong setup', cls: 'good' };
+  if(score >= 70) return { grade: 'B', label: 'Developing setup', cls: 'neutral' };
+  if(score >= 40) return { grade: 'C', label: 'Weak setup', cls: 'neutral' };
+  return { grade: 'D', label: 'Not a setup', cls: 'bad' };
+}
+
 // ---------- Scanner: real news freshness (Finnhub, cached per ticker per day) ----------
 const NEWS_CACHE_KEY = 'tc-scanner-news-cache';
 function scannerTodayStr(){ return new Date().toISOString().slice(0,10); }
@@ -168,7 +187,7 @@ function getScannerNewsToday(ticker){
 // Freshness buckets, per Ross Cameron's "news comes out at the top and
 // bottom of every hour" routine — an icon-first read so a whole row of
 // tickers can be scanned for "which of these is actually fresh" at a glance.
-function scannerFreshnessBucket(h){
+export function scannerFreshnessBucket(h){
   if(h < 2) return { icon: '&#128293;', label: '<2h', cls: 'good' };   // 🔥 breaking
   if(h < 4) return { icon: '&#128994;', label: '<4h', cls: 'good' };   // 🟢 fresh
   if(h < 12) return { icon: '&#128993;', label: '<12h', cls: 'neutral' }; // 🟡
@@ -183,13 +202,13 @@ function scannerNewsBadgeHtml(entry){
   const count = (entry.items && entry.items.length > 1) ? ` (${entry.items.length})` : '';
   return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old${count}</span>`;
 }
-function escapeHtml(s){
+export function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 // Last-3-news panel: exact local date/time (not just a relative bucket) so
 // results can be trusted and cross-checked, plus a direct link to the
 // source article — this is the "why did this fire" evidence trail.
-function scannerNewsPanelHtml(ticker, entry){
+export function scannerNewsPanelHtml(ticker, entry){
   if(!entry){
     return `<div class="sc-news-empty" style="font-size:11px;color:var(--muted);padding:4px 0;">Not checked yet — click "Check news".</div>`;
   }
@@ -440,12 +459,13 @@ function scannerRowData(row){
   const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
   const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
   const pillarBreakdown = scannerPillarBreakdown(price, pct, vol, newsOk, floatM, relVol, newsEntry);
+  const setupGrade = scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType);
   // Float rotation = today's volume / float. A stock trading multiples of
   // its own float (rotation well above 1x) is the classic sign of a real
   // supply/demand imbalance.
   const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
   const newsHours = newsEntry && newsEntry.hoursOld != null ? newsEntry.hoursOld : null;
-  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, newsHours, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
+  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, setupGrade, newsHours, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
 }
 
 const CATALYST_OPTIONS_HTML = '<option value="">None yet</option>' +
@@ -462,11 +482,16 @@ const scannerExpandedTickers = new Set();
 // opens on click. Keeps the default view uncluttered while keeping every
 // control reachable and clearly labeled once expanded.
 function scannerRowHtml(data, rank){
-  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, shortFloatPct, shortRatio, watched } = data;
+  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, setupGrade, shortFloatPct, shortRatio, watched } = data;
   const expanded = scannerExpandedTickers.has(ticker);
   const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
   const freshnessIconHtml = newsEntry && newsEntry.hoursOld != null
     ? `<span title="${(newsEntry.headline||'').replace(/"/g,'&quot;')}">${scannerFreshnessBucket(newsEntry.hoursOld).icon}</span>`
+    : '';
+  // Surface the actual catalyst text on the card itself (not just a hover
+  // tooltip) — this is the answer to "what caused this to move."
+  const headlineSnippetHtml = newsEntry && newsEntry.headline
+    ? `<div class="sc-card-headline" title="${escapeHtml(newsEntry.headline)}">${escapeHtml(newsEntry.headline.length > 70 ? newsEntry.headline.slice(0,68)+'…' : newsEntry.headline)}</div>`
     : '';
   const catalystBadge = scannerCatalystBadgeHtml(catalystType);
   const pillarBreakdownHtml = pillarBreakdown.map(p =>
@@ -492,12 +517,14 @@ function scannerRowHtml(data, rank){
         </div>
         <div class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
       </div>
+      ${headlineSnippetHtml}
       <div class="sc-card-stats">
         <div class="sc-stat"><span class="k">Price</span><span class="v num">$${price.toFixed(2)}</span></div>
         <div class="sc-stat"><span class="k">Volume</span><span class="v num">${vol.toLocaleString()}</span></div>
         <div class="sc-stat"><span class="k">Rel Vol</span><span class="v num" style="${relVol!=null && relVol>=5 ? 'color:var(--good);font-weight:700;' : ''}">${relVol!=null ? relVol.toFixed(1)+'x' : '—'}</span></div>
         <div class="sc-stat"><span class="k">Float</span><span class="v num">${floatM!=null ? floatM.toFixed(1)+'M' : '—'}</span></div>
         <div class="sc-stat"><span class="k">Pillars</span><span class="v"><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></span></div>
+        <div class="sc-stat"><span class="k">Setup grade</span><span class="v"><span class="pill ${setupGrade.cls}" title="Mechanical score from Pillars + rel. volume + news freshness — not investment advice.">${setupGrade.grade} &middot; ${setupGrade.label}</span></span></div>
       </div>
     </div>
     <div class="sc-card-detail" ${expanded ? '' : 'hidden'}>
@@ -505,6 +532,7 @@ function scannerRowHtml(data, rank){
         <div class="sc-detail-col">
           <h4>Why ${pillarCount}/5 pillars</h4>
           <ul style="margin:0;padding:0;list-style:none;">${pillarBreakdownHtml}</ul>
+          <p class="sc-detail-hint" style="margin-top:10px;">Setup grade <strong>${setupGrade.grade}</strong> (${setupGrade.label}) is a mechanical score from pillar count + how far rel. volume clears 5x + news freshness. It is <strong>not</strong> a buy/sell recommendation — no fundamentals or price target behind it.</p>
         </div>
         <div class="sc-detail-col">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
