@@ -63,6 +63,9 @@ function futuresCardHtml(c, rank){
           <h4>Macro headlines</h4>
           ${scannerNewsPanelHtml(c.symbol, macroNewsEntry)}
           <p class="sc-detail-hint" style="margin-top:8px;">Shared across all contracts &mdash; futures move on Fed/CPI/jobs/OPEC-type macro news, not single-contract filings, so this is one feed rather than per-contract.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <a class="btn" href="https://finance.yahoo.com/quote/${encodeURIComponent(c.symbol)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">Yahoo Finance &#8599;</a>
+          </div>
         </div>
       </div>
     </div>

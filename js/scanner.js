@@ -705,7 +705,11 @@ function scannerRowHtml(data, rank){
           <h4>Your notes</h4>
           <textarea class="sc-note-textarea" data-ticker="${ticker}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getScannerNote(ticker))}</textarea>
           <div style="flex:1;"></div>
-          <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:10px;" onclick="__logScannerTrade('${ticker.replace(/'/g,"\\'")}', ${price}, ${pct})">Log this trade &rarr;</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <a class="btn" href="https://finviz.com/quote.ashx?t=${encodeURIComponent(ticker)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">Finviz &#8599;</a>
+            <a class="btn" href="https://www.tradingview.com/symbols/${encodeURIComponent(ticker)}/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">TradingView &#8599;</a>
+          </div>
+          <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:8px;" onclick="__logScannerTrade('${ticker.replace(/'/g,"\\'")}', ${price}, ${pct})">Log this trade &rarr;</button>
         </div>
       </div>
     </div>

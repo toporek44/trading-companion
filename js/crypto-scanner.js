@@ -120,6 +120,10 @@ function cryptoCardHtml(coin, rank){
           </div>
           ${scannerNewsPanelHtml(coin.symbol, newsEntry)}
           <p class="sc-detail-hint" style="margin-top:8px;">Sourced from Cointelegraph's per-coin feed &mdash; coverage depends on how actively that outlet tags this coin, so a "no articles found" doesn't necessarily mean nothing happened.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <a class="btn" href="https://www.coingecko.com/en/coins/${cryptoSlug(coin.name)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">CoinGecko &#8599;</a>
+            <a class="btn" href="https://www.tradingview.com/symbols/${encodeURIComponent(coin.symbol)}USD/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">TradingView &#8599;</a>
+          </div>
         </div>
       </div>
     </div>
