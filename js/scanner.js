@@ -137,7 +137,7 @@ async function refreshScanner(){
 }
 document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
 refreshScanner(); // fetch immediately on load, don't wait for a click or the first interval tick
-setInterval(refreshScanner, AUTO_REFRESH_MS);
+startVisibilityAwareRefresh(refreshScanner, AUTO_REFRESH_MS);
 
 function scannerFilterRow(row){
   // Defense in depth: the server already excludes halted/no-trade tickers
@@ -816,6 +816,29 @@ function scannerRowToCsvFields(d, list, rank){
     d.pillarCount, d.setupGrade.grade, d.newsEntry?.headline || '',
   ];
 }
+// Shared by all three scanner tabs' auto-refresh loops. A plain
+// setInterval keeps firing every 60s even when the tab is backgrounded/
+// inactive — wasted calls against Finviz Elite's paid quota, CoinGecko's
+// and Yahoo's rate limits, for data nobody's looking at. Skips the interval
+// tick entirely while hidden, and catches up immediately (rather than
+// waiting for the next tick) the moment the tab becomes visible again if
+// the data's gone stale — matches how a professional app behaves when you
+// switch back to a backgrounded tab.
+export function startVisibilityAwareRefresh(refreshFn, intervalMs){
+  let lastRun = Date.now();
+  setInterval(() => {
+    if(document.visibilityState !== 'visible') return;
+    lastRun = Date.now();
+    refreshFn();
+  }, intervalMs);
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && Date.now() - lastRun >= intervalMs){
+      lastRun = Date.now();
+      refreshFn();
+    }
+  });
+}
+
 // Shared by all three scanner tabs' CSV exports (js/scanner.js,
 // crypto-scanner.js, futures-scanner.js each had this exact "Blob → <a
 // download> → click → remove → revokeObjectURL" sequence copy-pasted).

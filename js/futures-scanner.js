@@ -7,7 +7,7 @@
 // macro-news feed in each card's detail (futures move on Fed/CPI/jobs/OPEC
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh } from './scanner.js';
 
 const FUTURES_AUTO_REFRESH_MS = 60000;
 const FUTURES_CACHE_KEY = 'tc-futures-cache';
@@ -151,5 +151,5 @@ export function startFuturesIfNeeded(){
   if(futuresStarted) return;
   futuresStarted = true;
   refreshFutures();
-  setInterval(refreshFutures, FUTURES_AUTO_REFRESH_MS);
+  startVisibilityAwareRefresh(refreshFutures, FUTURES_AUTO_REFRESH_MS);
 }

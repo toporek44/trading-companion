@@ -7,7 +7,7 @@
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
 import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh } from './scanner.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
@@ -237,7 +237,7 @@ document.getElementById('sc-market-tabs').addEventListener('click', (e) => {
   if(market === 'crypto' && !cryptoStarted){
     cryptoStarted = true;
     refreshCrypto();
-    setInterval(refreshCrypto, CRYPTO_AUTO_REFRESH_MS);
+    startVisibilityAwareRefresh(refreshCrypto, CRYPTO_AUTO_REFRESH_MS);
   }
   if(market === 'futures') startFuturesIfNeeded();
 });
