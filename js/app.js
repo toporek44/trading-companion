@@ -1,5 +1,6 @@
 import { state, initData } from './state.js';
 import './nav.js';
+import './market-clock.js';
 import { renderCalendar } from './calendar.js';
 import { renderMilestones } from './milestones.js';
 import './journal.js';

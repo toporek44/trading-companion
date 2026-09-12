@@ -76,7 +76,24 @@
     font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;
     line-height:1.5; font-size:15.5px;
     -webkit-tap-highlight-color:transparent;
+    padding-top:30px; /* offset for the fixed .market-clock bar */
   }
+
+  /* ============ Fixed clock bar: Poland time + US market status ============ */
+  .market-clock{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    height:30px; display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:0 12px;
+    background:var(--nav-bg); color:var(--nav-text);
+    font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:10.5px; letter-spacing:.02em;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    white-space:nowrap; overflow-x:auto;
+  }
+  .market-clock .mc-sep{ color:var(--nav-muted); }
+  .market-clock .mc-us-state{ font-weight:700; }
+  .market-clock .mc-us-state.is-open{ color:var(--good); }
+  .market-clock .mc-us-state.is-closed{ color:var(--bad); }
+  .market-clock .mc-us-state.is-premarket{ color:var(--accent); }
   h1,h2,h3{ font-family:"Manrope",sans-serif; text-wrap:balance; font-weight:800; color:var(--ink); margin:0; letter-spacing:-.015em; }
   .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
   .serif-num{ font-family:"Fraunces",serif; font-weight:500; }
@@ -277,8 +294,8 @@
     .topbar .date{ font-size:12px; }
 
     .sidebar{
-      position:sticky; top:0; left:auto; right:auto; bottom:auto;
-      width:230px; flex:none; height:100vh;
+      position:sticky; top:30px; left:auto; right:auto; bottom:auto;
+      width:230px; flex:none; height:calc(100vh - 30px);
       background:var(--nav-bg); color:var(--nav-text);
       display:flex; flex-direction:column;
       padding:22px 14px; border-top:none;
