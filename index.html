@@ -382,11 +382,12 @@
         <ul class="lede-list">
           <li><strong>5 Pillars scoring</strong> &mdash; relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $1&ndash;$20 ($5&ndash;$10 sweet spot), float under 20M (10M preferred). This is what scores the Pillars badge below.</li>
           <li><strong>Two data sources, chosen automatically</strong> &mdash; if a Finviz Elite key is configured on the server (see <code>docs/scanner-upgrade-plan.md</code>), relative volume and float are both computed for real; otherwise it falls back to the free Alpha Vantage flow, where both need a value entered once per ticker (a rough 500k-share liquidity proxy is used until then). A manual entry always overrides the automatic value.</li>
-          <li><strong>News freshness</strong> &mdash; click "Check news" to pull the latest real headline's publish time (Finnhub if configured, Alpha Vantage otherwise), shown as an age icon: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Cached per ticker per day; a manual catalyst-type field is the fallback until checked.</li>
+          <li><strong>News freshness, checked automatically for the top rows</strong> &mdash; when the upgraded scanner is active, the top gainers are auto-checked for fresh news right after each refresh, no click needed; everything else still has a manual "Check news" button. Either way it pulls the latest real headline's publish time (Finnhub if configured, Alpha Vantage otherwise), shown as an age icon: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Cached per ticker per day; a manual catalyst-type field is the fallback until checked.</li>
           <li><strong>Catalyst quality</strong> &mdash; earnings, FDA approvals, clinical results, and new contracts count toward the News pillar. A merger/buyout/acquisition catalyst is flagged and deliberately excluded &mdash; once a buyout price is set, the stock tends to go flat.</li>
+          <li><strong>Short %</strong> &mdash; short float and short ratio (days to cover), shown when the upgraded scanner is active. High short interest on a low-float mover is exactly the setup that produces a short squeeze — this is the one data point Ross Cameron says a real paid scanner shows that a free one usually can't.</li>
           <li><strong>Ranking</strong> &mdash; rows are numbered by rank; the top 3 get a leader highlight, the top 10 a subtle tint, mirroring "page one of a search."</li>
         </ul>
-        <p class="lede">Data still isn't tick-by-tick real-time on either path &mdash; treat this as a watchlist builder, not a live execution feed.</p>
+        <p class="lede">Data still isn't tick-by-tick real-time on either path &mdash; treat this as a watchlist builder, not a live execution feed. It also can't show real Level 2 (order book depth) or Time and Sales &mdash; that's live data only your actual broker platform can provide, so check it there before every entry (see the Level 2 &amp; Time and Sales lesson).</p>
 
         <div class="card" style="margin-bottom:18px;">
           <h3>What makes a catalyst worth trading</h3>
@@ -449,6 +450,7 @@
                 <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
                 <th data-sort="float" style="cursor:pointer;">Float (M)<span class="sc-sort-ind"></span></th>
                 <th data-sort="floatrot" style="cursor:pointer;">Float rotation<span class="sc-sort-ind"></span></th>
+                <th data-sort="shortpct" style="cursor:pointer;">Short %<span class="sc-sort-ind"></span></th>
                 <th data-sort="pillars" style="cursor:pointer;">Pillars<span class="sc-sort-ind"></span></th>
                 <th></th>
               </tr></thead>
@@ -473,6 +475,7 @@
                 <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
                 <th data-sort="float" style="cursor:pointer;">Float (M)<span class="sc-sort-ind"></span></th>
                 <th data-sort="floatrot" style="cursor:pointer;">Float rotation<span class="sc-sort-ind"></span></th>
+                <th data-sort="shortpct" style="cursor:pointer;">Short %<span class="sc-sort-ind"></span></th>
                 <th data-sort="pillars" style="cursor:pointer;">Pillars<span class="sc-sort-ind"></span></th>
                 <th></th>
               </tr></thead>

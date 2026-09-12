@@ -5,17 +5,26 @@
 //
 // Column IDs (FINVIZ_COLUMNS) are Finviz's numeric `c=` export codes,
 // requested against the "Custom" view (v=152 — the fixed "Overview" view,
-// v=111, ignores c= and always returns its own default column set).
-// All 7 default columns below were confirmed live against a real Finviz
-// Elite export on 2026-09-12: 1=Ticker, 65=Price, 66=Change, 67=Volume,
-// 63=Average Volume, 64=Relative Volume, 25=Shares Float. Parsing is done
-// BY HEADER NAME (not position), so a different FINVIZ_COLUMNS value (env
-// var) is picked up automatically with zero code changes.
+// v=111, ignores c= and always returns its own default column set). All 9
+// default columns below were confirmed live against a real Finviz Elite
+// export on 2026-09-12: 1=Ticker, 65=Price, 66=Change, 67=Volume,
+// 63=Average Volume, 64=Relative Volume, 25=Shares Float, 30=Short Float,
+// 31=Short Ratio. Parsing is done BY HEADER NAME (not position), so a
+// different FINVIZ_COLUMNS value (env var) is picked up automatically
+// with zero code changes.
+//
+// Server-side filters (FINVIZ_FILTERS) pre-qualify candidates against the
+// strategy's hard requirements before they ever reach the client: price
+// $1-$20, up >=4% (a broad "catch it moving" net — the Pillars badge
+// still requires >=10% for full credit), float under 20M, and relative
+// volume over 2x (again a broad net; the Pillars badge requires >=5x).
+// Confirmed live: `sh_float_u20` and `sh_relvol_o2` correctly cut a
+// ~356-row unfiltered result down to ~37 float/volume-qualified rows.
 
-const DEFAULT_COLUMNS = '1,65,66,67,63,64,25'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float
+const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float, Short Float, Short Ratio
 // Price $1-$20, up >=4% on the day — mirrors this app's own default
 // Scanner filters (see the Filters card in the Scanner tab).
-const DEFAULT_FILTERS = 'sh_price_o1,sh_price_u20,ta_change_u4';
+const DEFAULT_FILTERS = 'sh_price_o1,sh_price_u20,ta_change_u4,sh_float_u20,sh_relvol_o2';
 const ROW_LIMIT = 30;
 
 function parseCsv(text){
@@ -70,6 +79,11 @@ function shapeRow(row){
     vol,
     avgVolMAuto,
     floatMAuto: floatM,
+    // Short Float (%) and Short Ratio (days-to-cover) — the two fields
+    // Ross Cameron's video explicitly names as what a real paid scanner
+    // shows that a free one can't; verified live as Finviz columns 30/31.
+    shortFloatPct: toNumber(findCol(row, 'Short Float')),
+    shortRatio: toNumber(findCol(row, 'Short Ratio')),
   };
 }
 

@@ -24,6 +24,8 @@ function normalizeAvRow(raw){
     vol: Number(raw.volume),
     avgVolMAuto: null,
     floatMAuto: null,
+    shortFloatPct: null, // Alpha Vantage has no short-interest data
+    shortRatio: null,
   };
 }
 
@@ -37,6 +39,7 @@ async function refreshScannerFinviz(){
     lsSet(AV_CACHE_KEY, { fetchedAt: data.fetchedAt, source: 'finviz', top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
     scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — live scanner (float & relative volume computed automatically).`);
     renderScannerTables();
+    autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker)); // fire-and-forget, updates the fire-icon badges as results come in
     return true;
   }catch(err){
     scannerStatus('Could not reach the upgraded scanner endpoint. Showing last cached scan if available.');
@@ -181,22 +184,42 @@ function scannerNewsBadgeHtml(entry){
   const title = entry.headline ? entry.headline.replace(/"/g,'&quot;') : '';
   return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old</span>`;
 }
-async function checkScannerNewsFinnhub(ticker){
+async function checkScannerNewsFinnhub(ticker, {silent} = {}){
   try{
     const res = await fetch(`/api/scanner-news?symbol=${encodeURIComponent(ticker)}`);
     const data = await res.json();
     if(data.configured === false) return false;
-    if(data.error){ scannerStatus(`${data.error} News check for ${ticker} not completed.`); return true; }
+    if(data.error){ if(!silent) scannerStatus(`${data.error} News check for ${ticker} not completed.`); return true; }
     setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: data.hoursOld, headline: data.headline, url: null });
-    scannerStatus(data.hoursOld != null
-      ? `${ticker}: latest news is ~${data.hoursOld.toFixed(1)}h old (checked just now, cached for today).`
-      : `No recent news found for ${ticker} (checked just now, cached for today).`);
-    renderScannerTables();
+    if(!silent){
+      scannerStatus(data.hoursOld != null
+        ? `${ticker}: latest news is ~${data.hoursOld.toFixed(1)}h old (checked just now, cached for today).`
+        : `No recent news found for ${ticker} (checked just now, cached for today).`);
+      renderScannerTables();
+    }
     return true;
   }catch(err){
-    scannerStatus(`Could not reach the news endpoint for ${ticker}.`);
+    if(!silent) scannerStatus(`Could not reach the news endpoint for ${ticker}.`);
     return true;
   }
+}
+
+// Automatically checks news freshness for the top N rows right after a
+// live (Finviz-backed) refresh, so the 🔥 fire icon shows up without
+// requiring a manual "Check news" click per ticker — Finnhub's free tier
+// (60 calls/min) has plenty of headroom for a handful of checks per scan.
+// Stops immediately (silently) if Finnhub isn't configured, rather than
+// firing N doomed requests.
+const AUTO_NEWS_CHECK_COUNT = 8;
+async function autoCheckTopNews(tickers){
+  let checkedAny = false;
+  for(const ticker of tickers.slice(0, AUTO_NEWS_CHECK_COUNT)){
+    if(getScannerNewsToday(ticker)) continue; // already cached today
+    const usedFinnhub = await checkScannerNewsFinnhub(ticker, {silent: true});
+    if(!usedFinnhub) return; // Finnhub not configured — stop, don't fall back per-ticker
+    checkedAny = true;
+  }
+  if(checkedAny) renderScannerTables();
 }
 
 async function checkScannerNewsAv(ticker){
@@ -286,6 +309,7 @@ function scannerSortRows(rows, scope){
         case 'relvol': return d.relVol != null ? d.relVol : -Infinity;
         case 'float': return d.floatM != null ? d.floatM : -Infinity;
         case 'floatrot': return d.floatRotation != null ? d.floatRotation : -Infinity;
+        case 'shortpct': return d.shortFloatPct != null ? d.shortFloatPct : -Infinity;
         default: return d.pillarCount;
       }
     };
@@ -316,14 +340,15 @@ function scannerRowData(row){
   // its own float (rotation well above 1x) is the classic sign of a real
   // supply/demand imbalance. Automatic (Finviz, once its float column is confirmed) or manually entered.
   const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
-  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched: isScannerWatched(ticker) };
+  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
 }
 
 const CATALYST_OPTIONS_HTML = '<option value="">News? (pick a catalyst)</option>' +
   Object.entries(CATALYST_TYPES).map(([val, info]) => `<option value="${val}">${info.good ? '' : '⚠ '}${info.label}</option>`).join('');
 
 function scannerRowHtml(data, rank){
-  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched } = data;
+  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, shortFloatPct, shortRatio, watched } = data;
+  const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
   const newsCellHtml = newsEntry ? scannerNewsBadgeHtml(newsEntry) : '';
   const catalystBadge = scannerCatalystBadgeHtml(catalystType);
   const rankBadge = rank === 1 ? '&#127942;' : (rank <= 3 ? '&#129352;' : '');
@@ -349,6 +374,7 @@ function scannerRowHtml(data, rank){
     </td>
     <td><input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8" style="width:70px;min-height:32px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);"></td>
     <td class="num">${floatRotation!=null ? floatRotation.toFixed(1)+'x' : '—'}</td>
+    <td class="num" title="${shortTitle}">${shortFloatPct!=null ? shortFloatPct.toFixed(1)+'%' : '—'}</td>
     <td><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></td>
     <td style="display:flex;flex-direction:column;gap:4px;">
       <button type="button" class="btn sc-watch-toggle" data-ticker="${ticker}" style="padding:4px 8px;font-size:11px;">${watched ? '★ Watching' : '☆ Watch'}</button>

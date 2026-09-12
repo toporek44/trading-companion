@@ -113,6 +113,17 @@ export const LESSONS = [
       { q: 'After 5+ consecutive candles moving in one direction, what is the classic reversal signal?', options: ['The first candle to make a new high (or low) against that run', 'Another candle in the same direction', 'A gap in the same direction', 'Doubling your position size'], correct: 0, explain: 'The first candle to break the run is read as early exhaustion of that move.' },
     ],
   },
+  {
+    id: 'level2',
+    title: 'Level 2 & Time and Sales',
+    body: "Level 2 shows the order book: every buyer's bid and every seller's ask, each with a size and an ECN/market-maker destination, not just the single best bid/ask price you get from Level 1. The gap between the best bid and best ask is the spread. Time and Sales is the separate scrolling log of trades that actually executed — green prints happened at the ask (a buyer paid up), red prints happened at the bid (a seller gave in), white prints happened in between. Reading both together is called tape reading: a big size sitting on the offer can cap a breakout before it happens, and a burst of green prints on the tape right as price approaches resistance is a stronger \"it's about to break\" signal than the chart pattern alone. This app can't show you real Level 2 — it's live order-book data that only comes from your actual broker's trading platform (thinkorswim, Webull, DAS, Lightspeed), not from a screener API — so treat this as what to check there, on your own platform, before every entry, not something to expect here.",
+    quiz: [
+      { q: 'What does Level 2 show that Level 1 does not?', options: ['The full order book — every bid and ask with size, not just the single best price', 'The company\'s earnings history', 'A prediction of where price will go next', 'The float and short interest'], correct: 0, explain: 'Level 1 is just the best bid/ask; Level 2 shows the full depth of resting orders behind it.' },
+      { q: 'On Time and Sales, what does a green print mean?', options: ['The trade executed at the ask price (a buyer paid up)', 'The stock is guaranteed to keep rising', 'The trade executed at the bid price', 'A halt is coming'], correct: 0, explain: 'Green = executed at the ask (aggressive buying); red = executed at the bid (aggressive selling).' },
+      { q: 'A stock looks ready to break resistance on the chart, but Level 2 shows a very large sell order sitting right at that price. What does that suggest?', options: ['The breakout may struggle or fail until that size is absorbed', 'The breakout is now guaranteed', 'Level 2 has no relevance to chart breakouts', 'You should immediately short with maximum size'], correct: 0, explain: 'A large resting offer can act as a ceiling — real orders sitting on the book matter as much as the chart pattern.' },
+      { q: 'Why can\'t this app show real Level 2 data?', options: ['It\'s live order-book data that only comes from a real broker trading platform, not a screener/data API', 'Level 2 was discontinued industry-wide', 'It only exists for futures, not stocks', 'It requires a Level 3 subscription first'], correct: 0, explain: 'Order-book depth requires a live connection to an exchange/broker feed — exactly why this app is a watchlist-builder, not an execution platform.' },
+    ],
+  },
 ];
 
 // In-progress (unsaved) quiz answers per lesson: lessonId -> array of chosen option indices.
