@@ -12,7 +12,39 @@ document.getElementById('av-key').addEventListener('change', (e) => lsSet('tc-av
 
 function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
 
-async function refreshScanner(){
+// Normalizes Alpha Vantage's raw TOP_GAINERS_LOSERS row shape (string
+// fields, no float/avg-volume) into the same shape the FMP-backed path
+// produces, so filtering/sorting/rendering downstream never need to know
+// which data source a row came from.
+function normalizeAvRow(raw){
+  return {
+    ticker: raw.ticker,
+    price: parseFloat(raw.price),
+    pct: parseFloat((raw.change_percentage||'0').replace('%','')),
+    vol: Number(raw.volume),
+    avgVolMAuto: null,
+    floatMAuto: null,
+  };
+}
+
+async function refreshScannerFmp(){
+  scannerStatus('Fetching top gainers / most active from the upgraded scanner…');
+  try{
+    const res = await fetch('/api/scanner-gainers');
+    const data = await res.json();
+    if(data.configured === false) return false;
+    if(data.error){ scannerStatus(`${data.error} Showing last cached scan if available.`); return true; }
+    lsSet(AV_CACHE_KEY, { fetchedAt: data.fetchedAt, source: 'fmp', top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
+    scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — live scanner (float & relative volume computed automatically).`);
+    renderScannerTables();
+    return true;
+  }catch(err){
+    scannerStatus('Could not reach the upgraded scanner endpoint. Showing last cached scan if available.');
+    return true; // it was configured, just failed — don't silently fall back to Alpha Vantage
+  }
+}
+
+async function refreshScannerAv(){
   const key = document.getElementById('av-key').value.trim();
   if(!key){ scannerStatus('Add your free Alpha Vantage API key above first.'); return; }
   scannerStatus('Fetching top gainers / most active from Alpha Vantage…');
@@ -24,24 +56,33 @@ async function refreshScanner(){
       renderScannerTables();
       return;
     }
-    lsSet(AV_CACHE_KEY, { fetchedAt: Date.now(), top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
+    lsSet(AV_CACHE_KEY, {
+      fetchedAt: Date.now(),
+      source: 'av',
+      top_gainers: (data.top_gainers||[]).map(normalizeAvRow),
+      most_actively_traded: (data.most_actively_traded||[]).map(normalizeAvRow),
+    });
     scannerStatus(`Scan updated ${new Date().toLocaleTimeString()}. Data is delayed/end-of-run, not live tick data.`);
     renderScannerTables();
   }catch(err){
     scannerStatus('Could not reach Alpha Vantage — check your key and connection.');
   }
 }
+
+// Tries the upgraded (FMP-backed) scanner first; only falls back to the
+// free Alpha Vantage flow when the server reports FMP_API_KEY isn't set.
+async function refreshScanner(){
+  const usedFmp = await refreshScannerFmp();
+  if(!usedFmp) await refreshScannerAv();
+}
 document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
 
 function scannerFilterRow(row){
-  const price = parseFloat(row.price);
-  const pct = parseFloat((row.change_percentage||'0').replace('%',''));
-  const vol = parseFloat(row.volume);
   const minP = parseFloat(document.getElementById('sc-minprice').value) || 0;
   const maxP = parseFloat(document.getElementById('sc-maxprice').value) || Infinity;
   const minPct = parseFloat(document.getElementById('sc-minpct').value) || 0;
   const minVol = parseFloat(document.getElementById('sc-minvol').value) || 0;
-  return price >= minP && price <= maxP && Math.abs(pct) >= minPct && vol >= minVol;
+  return row.price >= minP && row.price <= maxP && Math.abs(row.pct) >= minPct && row.vol >= minVol;
 }
 // Manual per-ticker News/Float entries — Alpha Vantage's free TOP_GAINERS_LOSERS
 // endpoint has no float or true relative-volume data, so those 2 pillars are
@@ -140,7 +181,25 @@ function scannerNewsBadgeHtml(entry){
   const title = entry.headline ? entry.headline.replace(/"/g,'&quot;') : '';
   return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old</span>`;
 }
-async function checkScannerNews(ticker){
+async function checkScannerNewsFinnhub(ticker){
+  try{
+    const res = await fetch(`/api/scanner-news?symbol=${encodeURIComponent(ticker)}`);
+    const data = await res.json();
+    if(data.configured === false) return false;
+    if(data.error){ scannerStatus(`${data.error} News check for ${ticker} not completed.`); return true; }
+    setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: data.hoursOld, headline: data.headline, url: null });
+    scannerStatus(data.hoursOld != null
+      ? `${ticker}: latest news is ~${data.hoursOld.toFixed(1)}h old (checked just now, cached for today).`
+      : `No recent news found for ${ticker} (checked just now, cached for today).`);
+    renderScannerTables();
+    return true;
+  }catch(err){
+    scannerStatus(`Could not reach the news endpoint for ${ticker}.`);
+    return true;
+  }
+}
+
+async function checkScannerNewsAv(ticker){
   const key = document.getElementById('av-key').value.trim();
   if(!key){ scannerStatus('Add your free Alpha Vantage API key above first.'); return; }
   scannerStatus(`Checking news freshness for ${ticker}…`);
@@ -168,6 +227,12 @@ async function checkScannerNews(ticker){
   }catch(err){
     scannerStatus(`Could not reach Alpha Vantage for ${ticker}'s news.`);
   }
+}
+
+async function checkScannerNews(ticker){
+  scannerStatus(`Checking news freshness for ${ticker}…`);
+  const usedFinnhub = await checkScannerNewsFinnhub(ticker);
+  if(!usedFinnhub) await checkScannerNewsAv(ticker);
 }
 
 // ---------- Scanner: watchlist (localStorage, ticker array) ----------
@@ -230,26 +295,28 @@ function scannerSortRows(rows, scope){
 }
 
 // Computes all derived per-row fields once so filtering/sorting/rendering share it.
+// row is already normalized (see normalizeAvRow / the FMP serverless function's
+// shapeRow) to {ticker, price, pct, vol, avgVolMAuto, floatMAuto}.
 function scannerRowData(row){
-  const price = parseFloat(row.price);
-  const pct = parseFloat((row.change_percentage||'0').replace('%',''));
-  const vol = Number(row.volume);
-  const manual = getScannerManual()[row.ticker] || {};
-  const newsEntry = getScannerNewsToday(row.ticker);
+  const { ticker, price, pct, vol } = row;
+  const manual = getScannerManual()[ticker] || {};
+  const newsEntry = getScannerNewsToday(ticker);
   const catalystType = manual.catalystType || '';
   const newsOk = scannerNewsOk(newsEntry, catalystType);
-  const floatM = manual.float != null && manual.float !== '' ? parseFloat(manual.float) : null;
-  const avgVolM = manual.avgVol != null && manual.avgVol !== '' ? parseFloat(manual.avgVol) : null;
+  // A manual entry always overrides the automatic (FMP-derived) value, in
+  // case the user has more current or more accurate data than the API.
+  const floatM = manual.float != null && manual.float !== '' ? parseFloat(manual.float) : row.floatMAuto;
+  const avgVolM = manual.avgVol != null && manual.avgVol !== '' ? parseFloat(manual.avgVol) : row.avgVolMAuto;
   // Relative volume = today's volume / the ticker's own average daily volume,
-  // the real "5x average" the Toolkit means — computable only once you enter
-  // an average volume by hand (Alpha Vantage's free tier doesn't supply it).
+  // the real "5x average" the Toolkit means — automatic when the upgraded
+  // (FMP) scanner is configured, otherwise computable once entered by hand.
   const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
   const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
   // Float rotation = today's volume / float. A stock trading multiples of
   // its own float (rotation well above 1x) is the classic sign of a real
-  // supply/demand imbalance. Only computable once a manual float is entered.
+  // supply/demand imbalance. Automatic (FMP) or manually entered.
   const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
-  return { row, ticker: row.ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched: isScannerWatched(row.ticker) };
+  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched: isScannerWatched(ticker) };
 }
 
 const CATALYST_OPTIONS_HTML = '<option value="">News? (pick a catalyst)</option>' +
