@@ -1,0 +1,2652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trading Companion</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#eef1f6;
+    --bg-glow-1:rgba(10,132,255,.10);
+    --bg-glow-2:rgba(191,90,242,.08);
+    --surface:#ffffff;
+    --surface-2:#f4f6fa;
+    --ink:#1a1c26;
+    --muted:#666b80;
+    --line:#dde1ea;
+    --accent:#0a6cf5;
+    --accent-2:#7c5cff;
+    --accent-ink:#ffffff;
+    --accent-soft:#e7edfd;
+    --good:#12875a;
+    --good-soft:#e0f5ec;
+    --bad:#d43a35;
+    --bad-soft:#fceae8;
+    --nav-bg:#14161f;
+    --nav-text:#c9cbdb;
+    --nav-muted:#767a90;
+
+    --glass-bg:rgba(255,255,255,.62);
+    --glass-bg-strong:rgba(255,255,255,.78);
+    --glass-border:rgba(255,255,255,.7);
+    --glass-blur:22px;
+    --shadow-card:0 1px 1px rgba(20,22,35,.03), 0 2px 6px rgba(20,22,35,.04), 0 16px 40px -12px rgba(20,22,35,.14);
+    --shadow-card-hover:0 1px 1px rgba(20,22,35,.03), 0 4px 10px rgba(20,22,35,.05), 0 22px 48px -14px rgba(20,22,35,.18);
+    --shadow-nav:0 0 0 1px rgba(255,255,255,.04), 8px 0 40px -12px rgba(0,0,0,.35);
+    --shadow-btn:0 1px 2px rgba(20,22,35,.06), 0 6px 16px -6px rgba(10,108,245,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b0c11; --surface:#181a24; --surface-2:#1f212c; --ink:#eef0f6; --muted:#999eb3;
+      --line:rgba(255,255,255,.09); --accent:#4d9bff; --accent-2:#a58bff; --accent-ink:#0b0c11; --accent-soft:#232a45;
+      --good:#4fd1a5; --good-soft:#122a24; --bad:#ff8f87; --bad-soft:#33201f;
+      --nav-bg:#08090d; --nav-text:#c9cbdb; --nav-muted:#5f6479;
+      --bg-glow-1:rgba(77,155,255,.14); --bg-glow-2:rgba(165,139,255,.12);
+
+      --glass-bg:rgba(32,34,44,.55);
+      --glass-bg-strong:rgba(36,38,50,.72);
+      --glass-border:rgba(255,255,255,.09);
+      --shadow-card:0 1px 1px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.22), 0 18px 44px -14px rgba(0,0,0,.55);
+      --shadow-card-hover:0 1px 1px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.28), 0 24px 52px -16px rgba(0,0,0,.6);
+      --shadow-nav:0 0 0 1px rgba(255,255,255,.05), 8px 0 40px -10px rgba(0,0,0,.6);
+      --shadow-btn:0 1px 2px rgba(0,0,0,.3), 0 6px 18px -6px rgba(77,155,255,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0c11; --surface:#181a24; --surface-2:#1f212c; --ink:#eef0f6; --muted:#999eb3;
+    --line:rgba(255,255,255,.09); --accent:#4d9bff; --accent-2:#a58bff; --accent-ink:#0b0c11; --accent-soft:#232a45;
+    --good:#4fd1a5; --good-soft:#122a24; --bad:#ff8f87; --bad-soft:#33201f;
+    --nav-bg:#08090d; --nav-text:#c9cbdb; --nav-muted:#5f6479;
+    --bg-glow-1:rgba(77,155,255,.14); --bg-glow-2:rgba(165,139,255,.12);
+
+    --glass-bg:rgba(32,34,44,.55);
+    --glass-bg-strong:rgba(36,38,50,.72);
+    --glass-border:rgba(255,255,255,.09);
+    --shadow-card:0 1px 1px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.22), 0 18px 44px -14px rgba(0,0,0,.55);
+    --shadow-card-hover:0 1px 1px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.28), 0 24px 52px -16px rgba(0,0,0,.6);
+    --shadow-nav:0 0 0 1px rgba(255,255,255,.05), 8px 0 40px -10px rgba(0,0,0,.6);
+    --shadow-btn:0 1px 2px rgba(0,0,0,.3), 0 6px 18px -6px rgba(77,155,255,.4);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{ height:100%; }
+  body{
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(1100px 600px at 8% -10%, var(--bg-glow-1), transparent 60%),
+      radial-gradient(900px 700px at 100% 0%, var(--bg-glow-2), transparent 55%),
+      radial-gradient(1200px 800px at 50% 120%, var(--bg-glow-1), transparent 60%);
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;
+    line-height:1.5; font-size:15.5px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1,h2,h3{ font-family:"Manrope",sans-serif; text-wrap:balance; font-weight:800; color:var(--ink); margin:0; letter-spacing:-.015em; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
+  .serif-num{ font-family:"Fraunces",serif; font-weight:500; }
+  a{ color:var(--accent); }
+  button{ font-family:inherit; }
+  input,select,textarea{ font-family:inherit; font-size:1rem; }
+  svg.icon{ width:20px; height:20px; flex:none; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ============ Mobile-first base layout ============ */
+  .app{ display:flex; flex-direction:column; min-height:100vh; }
+  main{ flex:1; min-width:0; padding-bottom:78px; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:16px 16px 0;
+  }
+  .topbar h1{ font-size:1.3rem; }
+  .topbar .date{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); text-align:right; letter-spacing:.02em; }
+
+  .page-inner{ padding:16px 16px 40px; }
+  .lede{ color:var(--muted); font-size:.94rem; max-width:66ch; margin:2px 0 18px; }
+
+  /* Bottom tab bar (mobile) */
+  .sidebar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:var(--nav-bg);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border-top:1px solid rgba(255,255,255,.07);
+    box-shadow:0 -8px 30px -12px rgba(0,0,0,.35);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .brand{ display:none; }
+  nav.side-nav{ display:flex; flex-direction:row; }
+  nav.side-nav button{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    background:none; border:none; color:var(--nav-muted);
+    padding:9px 2px 8px; cursor:pointer; font-size:10.5px; letter-spacing:.01em;
+    transition:color .15s ease;
+  }
+  nav.side-nav button svg.icon{ width:21px; height:21px; }
+  nav.side-nav button.active{ color:var(--accent); }
+  .side-foot{ display:none; }
+
+  /* ============ Cards / grid ============ */
+  .grid{ display:grid; gap:12px; }
+  .grid.cols-2{ grid-template-columns:1fr 1fr; }
+  .grid.cols-4{ grid-template-columns:repeat(2,1fr); }
+
+  .card{
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border:1px solid var(--glass-border);
+    border-radius:18px; padding:18px;
+    box-shadow:var(--shadow-card);
+    transition:box-shadow .2s ease, transform .2s ease;
+  }
+  .card h3{ font-size:.98rem; margin-bottom:4px; }
+  .stat-tile{
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border:1px solid var(--glass-border);
+    border-radius:18px; padding:15px 16px; position:relative; overflow:hidden;
+    box-shadow:var(--shadow-card);
+  }
+  .stat-tile::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--line); }
+  .stat-tile.is-good::before{ background:var(--good); box-shadow:0 0 12px 0 var(--good); }
+  .stat-tile.is-bad::before{ background:var(--bad); box-shadow:0 0 12px 0 var(--bad); }
+  .stat-tile .k{ font-family:"IBM Plex Mono",monospace; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .stat-tile .v{ font-family:"IBM Plex Mono",monospace; font-size:1.5rem; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
+  .stat-tile .v.good{ color:var(--good); }
+  .stat-tile .v.bad{ color:var(--bad); }
+
+  .progress-bar{ height:7px; border-radius:100px; background:var(--surface-2); overflow:hidden; margin:8px 0; border:1px solid var(--line); }
+  .progress-bar > div{ height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); transition:width .3s ease; }
+  .progress-label{ font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); }
+
+  .pill{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:3px 9px; border-radius:100px; letter-spacing:.02em; }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.bad{ background:var(--bad-soft); color:var(--bad); }
+  .pill.neutral{ background:var(--accent-soft); color:var(--accent); }
+
+  /* ---- Buttons / forms ---- */
+  .btn{
+    font-family:"Manrope",sans-serif; font-weight:600; font-size:.87rem;
+    padding:11px 16px; border-radius:12px; border:1px solid var(--glass-border);
+    background:var(--glass-bg-strong);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    color:var(--ink); cursor:pointer;
+    min-height:42px;
+    box-shadow:0 1px 1px rgba(20,22,35,.04), 0 2px 8px -2px rgba(20,22,35,.08);
+    transition:border-color .15s ease, color .15s ease, transform .1s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+  .btn:active{ transform:translateY(0); }
+  .btn.primary{ background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 82%, black)); border-color:transparent; color:var(--accent-ink); box-shadow:var(--shadow-btn); }
+  .btn.primary:hover{ opacity:.94; color:var(--accent-ink); transform:translateY(-1px); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+  .btn.danger:hover{ border-color:var(--bad); color:var(--bad); }
+  .btn.block{ width:100%; }
+
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-family:"IBM Plex Mono",monospace; font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+  .field input, .field select, .field textarea{
+    border:1px solid var(--line); border-radius:11px; padding:10px 11px; background:var(--surface-2); color:var(--ink);
+    min-height:42px;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .field textarea{ resize:vertical; min-height:56px; }
+  .field.wide{ grid-column:1 / -1; }
+
+  .form-section{
+    margin-bottom:18px; padding:16px 16px 14px; border-radius:14px;
+    background:var(--surface-2); border:1px solid var(--line);
+  }
+  .form-section:last-of-type{ margin-bottom:6px; }
+  .form-legend{
+    display:flex; align-items:center; gap:8px; font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.09em; color:var(--accent); padding-bottom:10px; margin-bottom:14px; border-bottom:1px solid var(--line);
+  }
+  .form-legend .legend-icon{ font-size:15px; }
+  .form-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px 16px; }
+
+  .segmented{ display:flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface-2); padding:3px; gap:2px; }
+  .segmented .seg-btn{
+    flex:1; padding:9px 8px; border:none; border-left:none; background:transparent;
+    border-radius:9px;
+    font-family:"Manrope",sans-serif; font-size:.87rem; font-weight:600; color:var(--muted); cursor:pointer; min-height:38px;
+    transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .segmented .seg-btn.active{ background:var(--surface); color:var(--accent); box-shadow:0 1px 2px rgba(20,22,35,.08), 0 4px 10px -4px rgba(20,22,35,.12); }
+
+  .r-preview{
+    display:flex; align-items:center; min-height:42px; padding:10px 11px; box-sizing:border-box;
+    border:1px dashed var(--line); border-radius:11px; background:var(--surface-2);
+    font-size:1rem; font-weight:600; color:var(--muted);
+  }
+  .r-preview.good{ color:var(--good); border-style:solid; border-color:var(--good); background:var(--good-soft); }
+  .r-preview.bad{ color:var(--bad); border-style:solid; border-color:var(--bad); background:var(--bad-soft); }
+
+  .form-actions{ display:flex; justify-content:flex-end; margin-top:18px; }
+  .form-actions .btn{ min-width:160px; }
+  @media (max-width:599px){ .form-actions .btn{ width:100%; } }
+
+  /* ---- Tables ---- */
+  .tbl-scroll{ overflow-x:auto; margin:0 -16px; padding:0 16px; }
+  table{ width:100%; border-collapse:collapse; min-width:640px; }
+  th,td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); font-size:.86rem; vertical-align:top; }
+  th{ font-family:"IBM Plex Mono",monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  td.num{ font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+  td.num.good{ color:var(--good); } td.num.bad{ color:var(--bad); }
+
+  /* ---- Week/day accordion (calendar page) ---- */
+  .week-block{
+    border:1px solid var(--glass-border); border-radius:18px; margin-bottom:10px; overflow:hidden;
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    box-shadow:var(--shadow-card);
+  }
+  .week-header{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:13px 14px; cursor:pointer; user-select:none; }
+  .week-header .w-title{ display:flex; align-items:baseline; gap:9px; min-width:0; }
+  .week-header .w-num{ font-family:"Fraunces",serif; font-weight:500; font-size:1.15rem; color:var(--accent); flex:none; }
+  .week-header .w-theme{ font-size:.87rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .week-header .w-meta{ font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted); white-space:nowrap; }
+  .week-header .chev{ color:var(--muted); transition:transform .2s; flex:none; }
+  .week-block.open .chev{ transform:rotate(90deg); }
+  .week-days{ display:none; }
+  .week-block.open .week-days{ display:block; }
+  .day-row{ display:grid; grid-template-columns:auto 1fr; gap:11px; padding:12px 14px; border-top:1px solid var(--line); }
+  .day-row.today{ background:var(--accent-soft); }
+  .day-row .d-label{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--accent); padding-top:2px; white-space:nowrap; }
+  .day-row .d-body{ display:grid; grid-template-columns:1fr; gap:9px; }
+  .day-row .d-col .k{ font-family:"IBM Plex Mono",monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:block; margin-bottom:2px; }
+  .day-row .d-col .v{ font-size:.85rem; }
+  .day-row.done{ opacity:.5; }
+  input[type="checkbox"]{ margin-top:3px; width:18px; height:18px; accent-color:var(--accent); cursor:pointer; flex:none; }
+
+  .empty-state{ text-align:center; padding:36px 16px; color:var(--muted); }
+  .empty-state .icon-wrap{ display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); margin-bottom:10px; }
+  .empty-state .icon-wrap svg.icon{ color:var(--muted); }
+
+  [hidden]{ display:none !important; }
+
+  /* ============ Desktop layout (≥860px) ============ */
+  @media (min-width:860px){
+    .app{ flex-direction:row; }
+    main{ padding-bottom:0; }
+    .page-inner{ max-width:920px; margin:0 auto; padding:6px 32px 80px; }
+    .topbar{ max-width:920px; margin:0 auto; padding:32px 32px 0; }
+    .topbar h1{ font-size:1.7rem; }
+    .topbar .date{ font-size:12px; }
+
+    .sidebar{
+      position:sticky; top:0; left:auto; right:auto; bottom:auto;
+      width:230px; flex:none; height:100vh;
+      background:var(--nav-bg); color:var(--nav-text);
+      display:flex; flex-direction:column;
+      padding:22px 14px; border-top:none;
+      box-shadow:var(--shadow-nav);
+    }
+    .brand{ display:flex; align-items:center; gap:9px; padding:0 8px 22px; }
+    .brand .mark{ font-family:"Fraunces",serif; font-weight:500; font-size:1.4rem; color:var(--accent); }
+    .brand .name{ font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--nav-muted); line-height:1.3; }
+    nav.side-nav{ flex-direction:column; gap:2px; }
+    nav.side-nav button{
+      flex-direction:row; align-items:center; gap:11px; justify-content:flex-start;
+      text-align:left; padding:10px 11px; border-radius:11px; font-size:.9rem;
+    }
+    nav.side-nav button:hover{ background:rgba(255,255,255,.06); }
+    nav.side-nav button.active{ background:var(--accent-soft); color:#fff; }
+    .side-foot{ display:block; margin-top:auto; padding:10px 8px 0; font-size:10.5px; color:var(--nav-muted); font-family:"IBM Plex Mono",monospace; }
+
+    .grid.cols-4{ grid-template-columns:repeat(4,1fr); }
+    .grid.cols-2{ grid-template-columns:1fr 1fr; }
+    .day-row .d-body{ grid-template-columns:1fr 1fr; }
+    .tbl-scroll{ margin:0; padding:0; }
+
+    .card:hover, .stat-tile:hover, .week-block:hover{ box-shadow:var(--shadow-card-hover); }
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="mark">&#9670;</span><span class="name">Trading<br>Companion</span></div>
+    <nav class="side-nav" id="side-nav">
+      <button data-page="dashboard" class="active">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button data-page="calendar">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/></svg>
+        <span>Calendar</span>
+      </button>
+      <button data-page="journal">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V5.2C4 4 5 3 6.2 3H18a1 1 0 0 1 1 1v14.3"/><path d="M6.2 21H19"/><path d="M4 19.5A2.2 2.2 0 0 0 6.2 21"/><path d="M8 8h8M8 11.5h8M8 15h5"/></svg>
+        <span>Journal</span>
+      </button>
+      <button data-page="plan">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="4" rx="1"/><path d="M7 4H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1"/><path d="M9 12.5l2 2 4-4.5"/></svg>
+        <span>Plan</span>
+      </button>
+      <button data-page="scanner">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span>Scanner</span>
+      </button>
+      <button data-page="lessons">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5 9-4.5z"/><path d="M7 10.5v4.5c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5"/><path d="M21 7.5v6"/></svg>
+        <span>Lessons</span>
+      </button>
+      <button data-page="milestones">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 4h11l-2.5 3.5L16 11H5"/></svg>
+        <span>Milestones</span>
+      </button>
+      <button data-page="brief">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg>
+        <span>Brief</span>
+      </button>
+    </nav>
+    <div class="side-foot" id="conn-status">connecting&hellip;</div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <h1 id="page-title">Dashboard</h1>
+      <span class="date mono" id="today-date"></span>
+    </div>
+
+    <div class="page-inner">
+
+      <section id="page-dashboard" class="page">
+        <p class="lede">Your standing at a glance &mdash; where you are in the plan, how the journal is trending, and this morning's brief.</p>
+
+        <div class="grid cols-4" id="dash-stats" style="margin-bottom:20px;"></div>
+
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Today's focus</h3>
+            <div id="dash-today" style="margin-top:10px;"></div>
+          </div>
+          <div class="card">
+            <h3>Latest brief</h3>
+            <div id="dash-brief" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h3>Plan progress</h3>
+          <div style="margin-top:10px;">
+            <div class="progress-label" id="dash-cal-label">&mdash;</div>
+            <div class="progress-bar"><div id="dash-cal-fill" style="width:0%"></div></div>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="progress-label" id="dash-ms-label">&mdash;</div>
+            <div class="progress-bar"><div id="dash-ms-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-calendar" class="page" hidden>
+        <p class="lede">Twelve weeks, five days each &mdash; 1 hour learning, 1 hour practice. Today's day is highlighted. Synced across your devices.</p>
+        <div class="progress-label" id="cal-progress-label">0 / 60 days complete</div>
+        <div class="progress-bar"><div id="cal-progress-fill"></div></div>
+        <div id="cal-weeks" style="margin-top:16px;"></div>
+      </section>
+
+      <section id="page-journal" class="page" hidden>
+        <p class="lede">Log every trade &mdash; and every no-trade decision worth remembering. The stats below only mean something once this has real entries in it.</p>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <h3>New entry</h3>
+            <div>
+              <input type="file" id="tv-import-input" accept=".csv" hidden>
+              <button type="button" class="btn" id="tv-import-btn">Import from TradingView</button>
+            </div>
+          </div>
+          <p id="tv-import-status" class="mono" style="margin:8px 0 0;font-size:.78rem;color:var(--muted);" hidden></p>
+          <form id="trade-form" style="margin-top:14px;">
+            <div class="form-section">
+              <span class="form-legend">Trade</span>
+              <div class="form-grid">
+                <div class="field"><label>Date</label><input type="date" id="f-date" required></div>
+                <div class="field"><label>Market</label>
+                  <select id="f-market"><option>Futures</option><option>Options</option><option>Stock</option><option>Crypto</option></select>
+                </div>
+                <div class="field wide"><label>Instrument</label><input type="text" id="f-instrument" placeholder="ES, BTCUSD, AAPL…" required></div>
+                <div class="field wide"><label>Strategy</label>
+                  <select id="f-strategy"><option>Trend following</option><option>Range / S-R</option><option>Breakout</option><option>Pullback (first green after pullback)</option><option>Covered call</option><option>Cash-secured put</option><option>Credit spread</option><option>Other</option></select>
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label>Direction</label>
+                <div class="segmented" id="f-direction" data-value="Long">
+                  <button type="button" class="seg-btn active" data-value="Long">Long</button>
+                  <button type="button" class="seg-btn" data-value="Short">Short</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <span class="form-legend">Prices &amp; size</span>
+              <div class="form-grid">
+                <div class="field"><label>Entry price</label><input type="number" step="any" inputmode="decimal" id="f-entry" placeholder="0.00"></div>
+                <div class="field"><label>Stop price</label><input type="number" step="any" inputmode="decimal" id="f-stop" placeholder="0.00"></div>
+                <div class="field"><label>Exit price</label><input type="number" step="any" inputmode="decimal" id="f-exit" placeholder="0.00"></div>
+                <div class="field"><label>Size / qty</label><input type="number" step="any" inputmode="decimal" id="f-size" placeholder="0"></div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <span class="form-legend">Risk &amp; outcome</span>
+              <div class="form-grid">
+                <div class="field"><label>Risk $ (planned)</label><input type="number" step="any" inputmode="decimal" id="f-risk" placeholder="e.g. 20"></div>
+                <div class="field"><label>Result $ (P&amp;L)</label><input type="number" step="any" inputmode="decimal" id="f-result" placeholder="e.g. 45"></div>
+                <div class="field"><label>R-multiple</label><div class="r-preview mono" id="f-rpreview">—</div></div>
+                <div class="field">
+                  <label>Process followed?</label>
+                  <div class="segmented" id="f-process" data-value="true">
+                    <button type="button" class="seg-btn active" data-value="true">Yes</button>
+                    <button type="button" class="seg-btn" data-value="false">No</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="form-section">
+              <span class="form-legend">Setup detail (5 pillars)</span>
+              <div class="form-grid">
+                <div class="field"><label>Stock % gain on day</label><input type="number" step="any" inputmode="decimal" id="f-pctgain" placeholder="e.g. 15"></div>
+                <div class="field"><label>Relative volume (x)</label><input type="number" step="any" inputmode="decimal" id="f-relvol" placeholder="e.g. 6"></div>
+                <div class="field"><label>Float (millions)</label><input type="number" step="any" inputmode="decimal" id="f-float" placeholder="e.g. 8"></div>
+                <div class="field">
+                  <label>News catalyst?</label>
+                  <div class="segmented" id="f-news" data-value="false">
+                    <button type="button" class="seg-btn" data-value="true">Yes</button>
+                    <button type="button" class="seg-btn active" data-value="false">No</button>
+                  </div>
+                </div>
+                <div class="field"><label>Time frame of trade</label>
+                  <select id="f-timeframe"><option>10 sec</option><option>1 min</option><option>5 min</option><option>Longer</option></select>
+                </div>
+                <div class="field"><label>Entry pattern</label>
+                  <select id="f-pattern"><option>Pullback / micro-pullback</option><option>Bull flag breakout</option><option>Flat top breakout</option><option>Other</option></select>
+                </div>
+                <div class="field"><label>Hold time</label>
+                  <div style="display:flex;gap:6px;">
+                    <input type="number" step="any" inputmode="decimal" id="f-holdtime" placeholder="0" style="flex:1;">
+                    <select id="f-holdunit" style="flex:none;width:80px;"><option value="sec">sec</option><option value="min">min</option></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Thesis / notes</label>
+              <textarea id="f-notes" placeholder="Why this trade, what invalidates it, what actually happened"></textarea>
+            </div>
+
+            <div class="field" style="margin-top:12px;">
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="f-tags" placeholder="e.g. gap-and-go, pullback, revenge-trade">
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn primary">Add trade</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="grid cols-4" id="journal-stats" style="margin-bottom:18px;"></div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Equity curve <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(cumulative P&amp;L)</span></h3>
+          <div id="equity-chart" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="grid cols-2" style="margin-bottom:18px;">
+          <div class="card">
+            <h3>By strategy</h3>
+            <div id="stats-by-strategy" class="tbl-scroll" style="margin-top:10px;"></div>
+          </div>
+          <div class="card">
+            <h3>By tag</h3>
+            <div id="stats-by-tag" class="tbl-scroll" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Weekly performance report</h3>
+          <p style="color:var(--muted);font-size:.8rem;margin:2px 0 0;">(last 7 days, mirrors your Warrior Trading weekly reporting sheet)</p>
+          <div id="weekly-report" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <h3>Monthly P&amp;L calendar</h3>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="btn" id="heatmap-prev" style="padding:6px 10px;min-height:32px;">&lsaquo;</button>
+              <span class="mono" id="heatmap-label" style="font-size:.85rem;min-width:110px;text-align:center;"></span>
+              <button class="btn" id="heatmap-next" style="padding:6px 10px;min-height:32px;">&rsaquo;</button>
+            </div>
+          </div>
+          <div id="pnl-heatmap" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Trade Coach</h3>
+          <p style="color:var(--muted);font-size:.8rem;margin:4px 0 0;">Rule-based coaching from your own data &mdash; the AI-powered read is available in the claude.ai version of this app.</p>
+          <div id="coach-rules" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="card">
+          <h3>Trade log</h3>
+          <div class="tbl-scroll" style="margin-top:10px;">
+            <table>
+              <thead><tr><th>Date</th><th>Mkt</th><th>Instrument</th><th>Strategy</th><th>Dir</th><th>Result</th><th>R</th><th>Process</th><th>Pillars</th><th></th></tr></thead>
+              <tbody id="trades-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="trades-empty" hidden>
+            <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V5.2C4 4 5 3 6.2 3H18a1 1 0 0 1 1 1v14.3"/><path d="M6.2 21H19"/><path d="M8 8h8M8 11.5h8M8 15h5"/></svg></div>
+            <div>No trades logged yet &mdash; your first paper trade goes here.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-plan" class="page" hidden>
+        <p class="lede">Warrior Trading's Trading Plan Worksheet, pre-trading checklist, progression goals, and a risk-rules calculator &mdash; all editable and persisted.</p>
+
+        <div class="card" style="margin-bottom:20px;">
+          <h3>Trading Plan Worksheet</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Placeholders show Warrior Trading's own worked example &mdash; write your own answers in each field.</p>
+          <div class="form-section">
+            <span class="form-legend"><span class="legend-icon">&#127919;</span> Your setup</span>
+            <div class="form-grid">
+              <div class="field"><label>Trading Strategy</label><input type="text" id="tp-strategy" placeholder="Small Cap Momentum"></div>
+              <div class="field"><label>Stock price range</label><input type="text" id="tp-pricerange" placeholder="$5–$10"></div>
+              <div class="field"><label>Time of day</label><input type="text" id="tp-timeofday" placeholder="7:00am EST to 11:00am EST"></div>
+              <div class="field"><label>Volume / Float requirements</label><input type="text" id="tp-volfloat" placeholder="Under 20mil in hot market, Under 10mil in cold market"></div>
+              <div class="field wide"><label>Technical / Chart requirements</label><textarea id="tp-technical" placeholder="Focusing on micro-pullbacks and dips on front side of momentum"></textarea></div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <span class="form-legend"><span class="legend-icon">&#9888;&#65039;</span> Risk &amp; exit</span>
+            <div class="form-grid">
+              <div class="field wide"><label>What invalidates the trade? (Exit)</label><textarea id="tp-invalidates" placeholder="MACD crosses signal line, decreasing volume, Jackknife rejection"></textarea></div>
+              <div class="field"><label>Risk / Share size per trade</label><input type="text" id="tp-risksize" placeholder="Approx 5% of my account"></div>
+              <div class="field"><label>Profit Target per trade</label><input type="text" id="tp-profittarget" placeholder="Approx 10% of my account"></div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <span class="form-legend"><span class="legend-icon">&#127749;</span> Daily routine</span>
+            <div class="form-grid">
+              <div class="field"><label>Premarket requirements</label><input type="text" id="tp-premarket" placeholder="Top 5 on Gap scanner, Positive catalyst"></div>
+              <div class="field"><label>Daily Max loss</label><input type="text" id="tp-dailymaxloss" placeholder="10% of my account"></div>
+              <div class="field wide"><label>Daily profit Target</label><input type="text" id="tp-dailyprofittarget" placeholder="Don't stop until momentum cools off"></div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <span class="form-legend"><span class="legend-icon">&#129504;</span> Reflection</span>
+            <div class="form-grid">
+              <div class="field wide"><label>Trading plan goal</label><textarea id="tp-goal" placeholder="Stay disciplined, maximize opportunity when hot & sit tight when it's cold"></textarea></div>
+              <div class="field wide"><label>What is the next step to improve your trading?</label><textarea id="tp-nextstep" placeholder="Cut losses faster, don't hold and hope"></textarea></div>
+            </div>
+          </div>
+          <div class="form-actions"><button class="btn primary" type="button" id="tp-save-btn">&#128190; Save plan</button></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <h3>Pre-Trading Checklist</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Meant to be re-filled each morning before you trade &mdash; this holds only your latest check-in, not a history log.</p>
+          <div class="form-grid">
+            <div class="field"><label>Market strength today (0–10)</label><input type="number" min="0" max="10" step="1" id="ck-marketstrength" placeholder="e.g. 7"></div>
+            <div class="field">
+              <label>Centered, rested, ready to be at your best?</label>
+              <div class="segmented" id="ck-centered" data-value="true">
+                <button type="button" class="seg-btn active" data-value="true">Yes</button>
+                <button type="button" class="seg-btn" data-value="false">No</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Hot cycle or cold cycle?</label>
+              <div class="segmented" id="ck-cycle" data-value="Hot">
+                <button type="button" class="seg-btn active" data-value="Hot">Hot</button>
+                <button type="button" class="seg-btn" data-value="Cold">Cold</button>
+              </div>
+            </div>
+            <div class="field wide"><label>How should I adjust my trading today?</label><input type="text" id="ck-adjust" placeholder="e.g. size down, wait for A+ setups only"></div>
+            <div class="field wide"><label>What is the obvious stock today?</label><input type="text" id="ck-obvious" placeholder="Ticker + why"></div>
+            <div class="field wide"><label>When was the last stock that did a massive squeeze?</label><input type="text" id="ck-squeeze" placeholder="Ticker + date"></div>
+          </div>
+          <div class="form-actions"><button class="btn primary" type="button" id="ck-save-btn">Save today's check-in</button></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <h3>Profit Trifecta Goals</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">The Trading Plan Worksheet's progression table, plus where your own numbers currently land.</p>
+          <div class="tbl-scroll">
+            <table>
+              <thead><tr><th>Goal</th><th>Novice (1st mo)</th><th>Beginner (2nd mo)</th><th>Advanced (4th mo)</th><th>Pro</th></tr></thead>
+              <tbody>
+                <tr><td>Consistency</td><td>1 wk</td><td>2 wks</td><td>3–5 wks</td><td>5+ wks</td></tr>
+                <tr><td>Accuracy</td><td>40–50%</td><td>50–60%</td><td>60–70%</td><td>&gt;70%</td></tr>
+                <tr><td>P/L Ratio</td><td>0.5–1</td><td>1.0–1.5</td><td>1.5–2.0</td><td>&gt;1.0</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="trifecta-callout" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card">
+          <h3>Risk rules calculator</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Based on this trader's own worked example: aim for roughly 75% accuracy with average winners about 2x average losers (a ~2:1 reward:risk). Their first week of a small-account challenge used fixed dollar rules &mdash; risk $50 to make $100, a daily max loss of -$100, and three consecutive losing trades ends the trading day. The percentages below scale that same idea to any account size &mdash; not a mandate, just their worked example.</p>
+          <div class="field" style="max-width:220px;">
+            <label>Account size ($)</label>
+            <input type="number" step="any" inputmode="decimal" id="plan-account-size" placeholder="e.g. 1000">
+          </div>
+          <div id="risk-calc-out" class="grid cols-4" style="margin-top:14px;"></div>
+          <h3 style="margin-top:22px;font-size:.9rem;">Breakeven win-rate reference</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 10px;">The win rate needed to break even, for a given reward:risk ratio &mdash; look up whatever ratio you're actually trading.</p>
+          <div class="tbl-scroll">
+            <table style="min-width:0;">
+              <thead><tr><th>Reward:Risk</th><th>Breakeven win rate</th></tr></thead>
+              <tbody>
+                <tr><td>1:50</td><td class="num">98%</td></tr>
+                <tr><td>1:10</td><td class="num">91%</td></tr>
+                <tr><td>1:5</td><td class="num">83%</td></tr>
+                <tr><td>1:3</td><td class="num">75%</td></tr>
+                <tr><td>1:2</td><td class="num">67%</td></tr>
+                <tr><td>1:1</td><td class="num">50%</td></tr>
+                <tr><td>2:1</td><td class="num">33%</td></tr>
+                <tr><td>3:1</td><td class="num">25%</td></tr>
+                <tr><td>5:1</td><td class="num">17%</td></tr>
+                <tr><td>10:1</td><td class="num">9%</td></tr>
+                <tr><td>50:1</td><td class="num">2%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-scanner" class="page" hidden>
+        <p class="lede">A free momentum scanner built Ross Cameron's way: he scans the <strong>entire market for stocks up &ge;4% on the day</strong>, sorts by <strong>Change % descending</strong>, and only seriously looks at the <strong>top 5&ndash;10 rows</strong> &mdash; "page one," never page two. The formal 5 Pillars (relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $1&ndash;$20 with a $5&ndash;$10 sweet spot, float under 20M/10M preferred) are still what scores the Pillars badge below. Alpha Vantage's free endpoint only gives price, % change and volume &mdash; so <strong>Price and % gain are auto-checked; Volume is real, but relative volume needs an average-volume baseline you enter once per ticker</strong> (enter it in the Rel Vol column and it's saved &mdash; without it, a rough 500k-share liquidity proxy is used instead). <strong>News freshness</strong> is checked for real per ticker &mdash; click "Check news" to pull the latest headline's actual publish time from Alpha Vantage and see it rendered as an age icon (&#128293; under 2h, &#128994; under 4h, &#128993; under 12h, &#128992; under 24h, &#9898; 24h+); that result is cached per ticker per day, and until checked, a manual catalyst-type field is the fallback. That same field also tags <strong>catalyst quality</strong> &mdash; earnings/FDA/clinical/contract catalysts count toward the News pillar, but a merger/buyout/acquisition catalyst is flagged and deliberately does <em>not</em> count, because once a buyout price is set the stock tends to go flat. <strong>Float</strong> is filled in by hand; once entered, <strong>Float Rotation</strong> (today's volume &divide; float) is computed for you. Rows are numbered by rank and the top 3 get a leader highlight, top 10 a subtle tint, mirroring "page one of a search." A real, paid scanner (like Warrior Trading's) would also show 5-min relative volume and Short Interest &mdash; Alpha Vantage's free endpoints have neither, so they're intentionally left out here rather than faked. Data is end-of-run/delayed, not tick-by-tick real-time &mdash; treat this as a watchlist builder, not a live execution feed.</p>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>What makes a catalyst worth trading</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 12px;">This system's real trading window is roughly <strong>7:00&ndash;11:00am EST</strong>, most active in the first 1&ndash;2 hours after the market opens &mdash; that's when a fresh catalyst turns into a real move. A stock with no catalyst at all can still run on a pure technical breakout or short squeeze &mdash; trade those with extra caution.</p>
+          <div class="form-grid">
+            <div class="field">
+              <label><span class="pill good">Good catalysts</span></label>
+              <p style="margin:8px 0 0;font-size:.86rem;line-height:1.6;">Earnings surprises<br>FDA approvals<br>Positive clinical trial results<br>Major new contracts or partnerships</p>
+            </div>
+            <div class="field">
+              <label><span class="pill bad">Weak / avoid</span></label>
+              <p style="margin:8px 0 0;font-size:.86rem;line-height:1.6;">Mergers, acquisitions, buyouts &mdash; once a buyout price is set, the stock's value is fixed and it tends to go flat, losing the volatility that makes it tradeable.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="scanner-setup" style="margin-bottom:18px;">
+          <h3>Data source</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 12px;">Get a free API key at <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener">alphavantage.co</a> (instant, no card). It's stored only in this browser. Free keys are rate-limited (historically ~25 requests/day), so this scanner caches results and only refreshes when you click Refresh.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="field" style="flex:1;min-width:220px;">
+              <label>Alpha Vantage API key</label>
+              <input type="text" id="av-key" placeholder="e.g. ABCD1234EFGH5678">
+            </div>
+            <button class="btn primary" id="scanner-refresh">Refresh scan</button>
+          </div>
+          <p id="scanner-status" class="mono" style="margin:10px 0 0;font-size:.78rem;color:var(--muted);"></p>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Filters</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0;">Defaults roughly match the 5 pillars already; tighten min/max price to $5&ndash;$10 for the worksheet's "sweet spot" if you want a shorter list.</p>
+          <div class="form-grid" style="margin-top:10px;">
+            <div class="field"><label>Min price</label><input type="number" step="any" id="sc-minprice" value="1"></div>
+            <div class="field"><label>Max price</label><input type="number" step="any" id="sc-maxprice" value="20"></div>
+            <div class="field"><label>Min % change</label><input type="number" step="any" id="sc-minpct" value="4"></div>
+            <div class="field"><label>Min volume (liquidity proxy)</label><input type="number" step="any" id="sc-minvol" value="500000"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Watchlist</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 10px;">Star a ticker in either table to save it here. Toggle below to show only your saved tickers across both tables.</p>
+          <div class="segmented" id="sc-watch-filter" data-value="all" style="max-width:280px;">
+            <button type="button" class="seg-btn active" data-value="all">Show: All</button>
+            <button type="button" class="seg-btn" data-value="watch">Watchlist only</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Top gainers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(filtered)</span></h3>
+          <div class="tbl-scroll" style="margin-top:10px;">
+            <table>
+              <thead><tr class="sc-sort-row" data-scope="gainers">
+                <th>#</th>
+                <th data-sort="pct" style="cursor:pointer;">Change %<span class="sc-sort-ind"></span></th>
+                <th data-sort="ticker" style="cursor:pointer;">Symbol / News<span class="sc-sort-ind"></span></th>
+                <th data-sort="price" style="cursor:pointer;">Price<span class="sc-sort-ind"></span></th>
+                <th data-sort="vol" style="cursor:pointer;">Volume<span class="sc-sort-ind"></span></th>
+                <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
+                <th data-sort="float" style="cursor:pointer;">Float (M)<span class="sc-sort-ind"></span></th>
+                <th data-sort="floatrot" style="cursor:pointer;">Float rotation<span class="sc-sort-ind"></span></th>
+                <th data-sort="pillars" style="cursor:pointer;">Pillars<span class="sc-sort-ind"></span></th>
+                <th></th>
+              </tr></thead>
+              <tbody id="scan-gainers-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="scan-gainers-empty" hidden>
+            <div>No results yet &mdash; add your API key and refresh.</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3>Most active <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(filtered)</span></h3>
+          <div class="tbl-scroll" style="margin-top:10px;">
+            <table>
+              <thead><tr class="sc-sort-row" data-scope="active">
+                <th>#</th>
+                <th data-sort="pct" style="cursor:pointer;">Change %<span class="sc-sort-ind"></span></th>
+                <th data-sort="ticker" style="cursor:pointer;">Symbol / News<span class="sc-sort-ind"></span></th>
+                <th data-sort="price" style="cursor:pointer;">Price<span class="sc-sort-ind"></span></th>
+                <th data-sort="vol" style="cursor:pointer;">Volume<span class="sc-sort-ind"></span></th>
+                <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
+                <th data-sort="float" style="cursor:pointer;">Float (M)<span class="sc-sort-ind"></span></th>
+                <th data-sort="floatrot" style="cursor:pointer;">Float rotation<span class="sc-sort-ind"></span></th>
+                <th data-sort="pillars" style="cursor:pointer;">Pillars<span class="sc-sort-ind"></span></th>
+                <th></th>
+              </tr></thead>
+              <tbody id="scan-active-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="scan-active-empty" hidden>
+            <div>No results yet &mdash; add your API key and refresh.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-lessons" class="page" hidden>
+        <p class="lede">Short explainers and quick quizzes covering this trading system's core curriculum &mdash; learn the concepts here instead of just reading a static doc.</p>
+        <div class="progress-label" id="lessons-progress-label">0 / 11 lessons passed</div>
+        <div class="progress-bar"><div id="lessons-progress-fill"></div></div>
+        <div id="lessons-list" style="margin-top:16px;"></div>
+
+        <div class="card" id="candle-drill-card" style="margin-top:20px;">
+          <h3>Candlestick Drill</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Train pattern recognition daily &mdash; unlimited repeats, no pass/fail. Saved in this browser only, not synced.</p>
+          <div class="progress-label" id="candle-drill-stats" style="margin-bottom:12px;"></div>
+          <div id="candle-drill-body"></div>
+        </div>
+      </section>
+
+      <section id="page-milestones" class="page" hidden>
+        <p class="lede">The big checkpoints, independent of the daily calendar. Check these off as you actually earn them.</p>
+        <div class="progress-label" id="ms-progress-label">0 / 11 complete</div>
+        <div class="progress-bar"><div id="ms-progress-fill"></div></div>
+        <div class="card" style="margin-top:16px;padding:6px 8px;" id="ms-list"></div>
+      </section>
+
+      <section id="page-brief" class="page" hidden>
+        <p class="lede">Populated each morning by your scheduled Daily Trading Brief task. If nothing shows up, the brief hasn't run yet or hasn't synced here.</p>
+        <div id="brief-list"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // ---------- Nav ----------
+  const pages = ['dashboard','calendar','journal','plan','scanner','lessons','milestones','brief'];
+  const titles = {dashboard:'Dashboard', calendar:'Calendar', journal:'Trade Journal', plan:'Trading Plan', scanner:'Scanner', lessons:'Lessons', milestones:'Milestones', brief:'Daily Brief'};
+  function showPage(name){
+    pages.forEach(p => { document.getElementById('page-'+p).hidden = (p !== name); });
+    document.querySelectorAll('#side-nav button').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+    document.getElementById('page-title').textContent = titles[name];
+  }
+  document.getElementById('side-nav').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-page]');
+    if(btn) showPage(btn.dataset.page);
+  });
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+
+  // ---------- Week/day plan data (shared by Calendar + Dashboard) ----------
+  const WEEKS = [
+    { theme: "Chart & platform literacy", days: [
+      ["Markets 101 — futures contracts, tick size & tick value, order types (market/limit/stop)", "Create your TradingView account, build an \"Index Futures\" watchlist (ES, NQ, YM, RTY, plus CL and GC)"],
+      ["Candlestick anatomy — open/high/low/close, what body & wick tell you", "Step through 10 random candles on the ES 1H chart and narrate what each shows"],
+      ["Timeframes — how the story changes across 1m/5m/1H/Daily", "Open ES on 4 timeframes side by side; note where the trend agrees or disagrees"],
+      ["Support & resistance — why price \"remembers\" levels", "Draw horizontal S/R lines on 5 futures charts (ES, NQ, CL, GC, 6E), at least 2 levels each"],
+      ["Trend basics — higher highs/lows, moving averages (20/50/200)", "Add your MA template; classify ES, NQ, CL, GC, and RTY as uptrend, downtrend, or range"],
+    ]},
+    { theme: "Tools, alerts & your journal", days: [
+      ["How the Futures Screener works — filter fields, saving presets", "Build and save your first futures screener preset (relative volume, ATR, trend filter)"],
+      ["Bar Replay — why blind drilling beats reading about patterns", "Run 10 blind Bar Replay drills on ES; log your call before revealing each outcome"],
+      ["Alerts — price vs. indicator conditions, delivery options", "Set 5 price alerts on your futures watchlist so you stop staring at charts"],
+      ["What a trading journal needs — the columns that matter", "Log your first entry right here in the Journal tab"],
+      ["Review — what from weeks 1-2 still feels shaky? Also: RTH vs. Globex session hours", "Full dry run of the daily routine on paper, process only, during regular trading hours"],
+    ]},
+    { theme: "Strategy 1: VWAP & trend trading", days: [
+      ["VWAP logic — trading with/against VWAP, anchored VWAP (Section 10: Brian Shannon, Anthony Crudele)", "Connect Paper Trading; watch ES and NQ a full session, log VWAP relationship without trading"],
+      ["Entry rules — the exact checklist for a VWAP reclaim/rejection", "First paper trade, using the checklist in full"],
+      ["Stop-loss placement — structure-based vs. ATR-based, in ticks and dollars", "Second paper trade; write the stop's reasoning (and its $ value) before entry"],
+      ["Position sizing math — turning 1-2% risk into a contract count", "Third paper trade; show your sizing calculation in the journal"],
+      ["Where VWAP trades fail — low-volume, choppy overnight sessions", "Review this week's trades; tag process followed/broken"],
+    ]},
+    { theme: "Reps and risk", days: [
+      ["Multi-timeframe confluence — 5-min vs. daily VWAP", "Two more paper trades, noting the higher-timeframe context"],
+      ["Exit discipline — recognizing an invalidated thesis", "Manage any open position to a rule-based exit"],
+      ["Pattern drill day — engulfing, hammer, doji, plus the Bull Flag Breakout and Flat Top Breakout momentum entries (buy the first candle making a new high / breaking the flat top)", "20-minute Bar Replay drill; one more paper trade if valid"],
+      ["Economic calendar awareness — Fed speakers, CPI/NFP, how they move ES/NQ", "Check the calendar before trading; note any high-impact window in your research journal"],
+      ["Weekly review methodology", "Full weekly review; tally trades toward your 40-trade minimum"],
+    ]},
+    { theme: "VWAP trading toward mastery", days: [
+      ["Position management — scaling out, trailing stops in tick terms", "Paper trade using a trailing-stop exit"],
+      ["Reading volume/delta with trend — confirmation vs. divergence", "One more paper trade; note volume confirmation"],
+      ["Chart pattern set — flags, wedges, triangles", "20-minute Bar Replay drill on this set"],
+      ["Common psychological traps — revenge trading, FOMO", "Paper trade; explicitly check for either trap"],
+      ["Mid-program self-assessment", "Pull your last 15 trades; compute win rate and avg win/loss"],
+    ]},
+    { theme: "Strategy 2: Market Profile & range trading", days: [
+      ["Market Profile logic — value area, balance vs. imbalance (Section 10: Jim Dalton, ShadowTrader)", "Identify 3 futures markets currently in balance; dedicated watchlist"],
+      ["Confirming reversals at value-area edges", "First Market-Profile paper trade, on confirmation only"],
+      ["Where range trades fail — imbalance breaking out of value", "Second trade; predefine the invalidation level"],
+      ["Combining Market Profile context with the daily trend", "Third trade with higher-timeframe trend noted"],
+      ["Review — VWAP-trend vs. Market-Profile-range results so far", "Update your journal's running expectancy per strategy"],
+    ]},
+    { theme: "Range reps + breakout / order flow intro", days: [
+      ["Breakout trading logic — why volume/delta confirmation matters", "Screen for a volume-confirmed breakout; trade if found"],
+      ["False breakouts — the most common trap", "Review 5 historical breakouts via Bar Replay"],
+      ["The 15-minute screener routine, end to end", "Run it live before your session"],
+      ["Risk-of-ruin math, in contract terms", "Paper trade; stop at your daily loss limit if hit"],
+      ["Journaling deeper — grading setup quality", "Re-grade your last 10 trades A/B/C on setup quality"],
+    ]},
+    { theme: "Consolidation & first expectancy checkpoint", days: [
+      ["What \"expectancy\" means and how to calculate it", "Calculate expectancy across all logged trades so far"],
+      ["Which strategy fits you best so far", "Paper trade using whichever strategy your data favors"],
+      ["Sizing up responsibly", "Paper trade; hold size steady regardless of recent wins"],
+      ["Building a personal pre-trade checklist", "Write your final checklist; use it today"],
+      ["Full system review — Phase 1 exit-criteria checkpoint", "Check the Milestones and Journal tabs against your criteria"],
+    ]},
+    { theme: "Research routine, deepened", days: [
+      ["Top-down analysis — macro → sector → instrument", "Write a full top-down research note before trading today"],
+      ["Reading the economic calendar and CME contract specs/rollover dates together", "Check both pre-market; note any high-impact window or front-month rollover to avoid"],
+      ["Sentiment tools — COT report positioning, VIX level", "Check today's COT/VIX reading; note it in your research journal"],
+      ["Sourcing ideas responsibly", "Read 2 TradingView Ideas posts; write your own agree/disagree"],
+      ["Weekly review — is research actually helping?", "Compare weeks with vs. without a written thesis"],
+    ]},
+    { theme: "Options vocabulary & Phase 2 setup", days: [
+      ["Options vocabulary — strike, expiration, premium", "Set up a thinkorswim paperMoney account"],
+      ["The Greeks conceptually — delta, theta, vega", "Explore an option chain; identify delta/theta for 3 strikes"],
+      ["Implied volatility and IV rank", "Check IV rank on Barchart for 2 stocks"],
+      ["Covered calls — mechanics and when they make sense", "Paper-trade your first covered call"],
+      ["Cash-secured puts — mechanics", "Paper-trade your first cash-secured put"],
+    ]},
+    { theme: "Options paper trading reps", days: [
+      ["Vertical credit spreads — defined-risk mechanics", "Paper-trade your first credit spread"],
+      ["Choosing strikes by delta, not gut feel", "Second spread, strikes at ~0.20-0.30 delta"],
+      ["Managing assignment risk", "Review open positions for assignment risk"],
+      ["Broker options approval tiers", "Check your real broker's tier system"],
+      ["Weekly review — options vs. futures trades", "Journal review across both books"],
+    ]},
+    { theme: "System review & live-readiness", days: [
+      ["Iron condors conceptually", "Paper-trade one if comfortable; otherwise another spread"],
+      ["Revisiting the risk framework against real numbers", "Recalculate your 1-2% risk unit for a live $1,000 account"],
+      ["What changes between paper and live", "Write a short \"live trading rules\" page for yourself"],
+      ["Final gap-check on exit criteria", "Honestly mark which criteria are met, which aren't"],
+      ["Plan your first live week", "If criteria are met, place your first live trade; if not, extend"],
+    ]},
+  ];
+  const TOTAL_DAYS = WEEKS.reduce((n,w) => n + w.days.length, 0);
+
+  const MILESTONES = [
+    {t:"Set up TradingView workspace", d:"Layouts, watchlists, screener, paper trading panel configured"},
+    {t:"Can read candlesticks & place all order types", d:"Market, limit, stop, stop-limit — without hesitating"},
+    {t:"Trading journal in active use", d:"Logging entries here in the Journal tab consistently"},
+    {t:"20 futures paper trades logged", d:"VWAP/trend or Market Profile strategy, one position at a time"},
+    {t:"40+ futures paper trades, expectancy checked", d:"Reviewed last 30+ trades for positive/breakeven expectancy"},
+    {t:"Options vocabulary solid", d:"Can explain strike, premium, delta, theta, vega, IV rank unprompted"},
+    {t:"20 options paper trades logged", d:"thinkorswim paperMoney, risk rules intact"},
+    {t:"Risk framework internalized", d:"Can state your 1-2% rule, daily limit, weekly circuit breaker from memory"},
+    {t:"Beta-phase readiness check passed", d:"10 straight trading days, one A-plus (5/5 pillars) setup per day, the whole stretch nets green"},
+    {t:"First live futures trade placed", d:"$1,000 account, 1% max risk, full journal entry"},
+    {t:"First month of live trading reviewed", d:"Monthly journal review completed, sizing reassessed from data"}
+  ];
+
+  // ---------- Data wiring (Supabase, with a localStorage fallback) ----------
+  // This standalone deploy has no window.claude, so it uses Supabase directly
+  // for cross-device sync (mirrors the claude.ai artifact's db capability:
+  // a "calendar" + "milestones" row in `progress`, plus `trades` and `briefs`
+  // tables). If Supabase can't be reached, it falls back to localStorage so
+  // the app still works, just single-browser.
+  const SUPABASE_URL = "https://wcqickazhkxgyofyqnxq.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcWlja2F6aGt4Z3lvZnlxbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5Njc4MjUsImV4cCI6MjEwNDU0MzgyNX0.6o4MmgXZTfuXrvK5sEXYUUJk_wYY64xgE-PnE6IxcVc";
+
+  let sb = null, sample = null;
+  let calState = {}, msState = {}, trades = [], briefs = [];
+  let calLoaded = false, msLoaded = false, tradesLoaded = false, briefsLoaded = false;
+  let planState = {}, checklistState = {};
+  let planLoaded = false, checklistLoaded = false;
+  let lessonsState = {};
+  let lessonsLoaded = false;
+
+  function lsGet(key, fallback){
+    try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; }
+  }
+  function lsSet(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+  }
+
+  const statusEl = document.getElementById('conn-status');
+
+  function tradeFromRow(r){
+    return {
+      id: r.id, date: r.date, market: r.market, instrument: r.instrument, strategy: r.strategy,
+      direction: r.direction, entryPrice: r.entry_price, stopPrice: r.stop_price, exitPrice: r.exit_price,
+      size: r.size, riskAmount: r.risk_amount, resultAmount: r.result_amount, rMultiple: r.r_multiple,
+      processFollowed: r.process_followed, notes: r.notes, source: r.source || 'manual', tags: r.tags || '',
+      pctGainOnDay: r.pct_gain_on_day, relVolume: r.rel_volume, float: r.float, newsCatalyst: r.news_catalyst,
+      timeframe: r.timeframe || '', pattern: r.pattern || '', holdTime: r.hold_time, holdUnit: r.hold_unit || '',
+      meetsPillars: r.meets_pillars, pillarsCount: r.pillars_count,
+      createdAt: r.created_at ? new Date(r.created_at).getTime() : null,
+    };
+  }
+  function briefFromRow(r){
+    return { id: r.id, date: r.date, text: r.text };
+  }
+
+  function localOnlyMode(){
+    statusEl.textContent = 'local-only (this browser)';
+    calState = lsGet('tc-calendar', {});
+    msState = lsGet('tc-milestones', {});
+    trades = lsGet('tc-trades', []);
+    briefs = lsGet('tc-briefs', []);
+    planState = lsGet('tc-tradingplan', {});
+    checklistState = lsGet('tc-checklist', {});
+    lessonsState = lsGet('tc-lessons', {});
+    calLoaded = msLoaded = tradesLoaded = briefsLoaded = planLoaded = checklistLoaded = lessonsLoaded = true;
+    renderAll();
+  }
+
+  (async () => {
+    if(typeof window.supabase === 'undefined'){ localOnlyMode(); return; }
+    try{
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const [progressRes, tradesRes, briefsRes] = await Promise.all([
+        sb.from('progress').select('key,state'),
+        sb.from('trades').select('*').order('date', {ascending:false}).limit(500),
+        sb.from('briefs').select('*').order('created_at', {ascending:false}).limit(10),
+      ]);
+      if(progressRes.error || tradesRes.error || briefsRes.error) throw (progressRes.error || tradesRes.error || briefsRes.error);
+
+      (progressRes.data||[]).forEach(row => {
+        if(row.key === 'calendar') calState = row.state || {};
+        if(row.key === 'milestones') msState = row.state || {};
+        if(row.key === 'tradingplan') planState = row.state || {};
+        if(row.key === 'checklist') checklistState = row.state || {};
+        if(row.key === 'lessons') lessonsState = row.state || {};
+      });
+      trades = (tradesRes.data||[]).map(tradeFromRow);
+      briefs = (briefsRes.data||[]).map(briefFromRow);
+      calLoaded = msLoaded = tradesLoaded = briefsLoaded = planLoaded = checklistLoaded = lessonsLoaded = true;
+      statusEl.textContent = 'synced';
+      renderAll();
+
+      sb.channel('progress-changes').on('postgres_changes', {event:'*', schema:'public', table:'progress'}, payload => {
+        const row = payload.new && Object.keys(payload.new).length ? payload.new : payload.old;
+        if(!row) return;
+        if(row.key === 'calendar') calState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
+        if(row.key === 'milestones') msState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
+        if(row.key === 'tradingplan') planState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
+        if(row.key === 'checklist') checklistState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
+        if(row.key === 'lessons') lessonsState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
+        renderAll();
+      }).subscribe();
+
+      sb.channel('trades-changes').on('postgres_changes', {event:'*', schema:'public', table:'trades'}, () => {
+        sb.from('trades').select('*').order('date', {ascending:false}).limit(500).then(({data}) => {
+          trades = (data||[]).map(tradeFromRow);
+          renderAll();
+        });
+      }).subscribe();
+
+      sb.channel('briefs-changes').on('postgres_changes', {event:'*', schema:'public', table:'briefs'}, () => {
+        sb.from('briefs').select('*').order('created_at', {ascending:false}).limit(10).then(({data}) => {
+          briefs = (data||[]).map(briefFromRow);
+          renderAll();
+        });
+      }).subscribe();
+    }catch(err){
+      sb = null;
+      localOnlyMode();
+    }
+  })();
+
+  // No `sample` (AI reflection) capability outside the claude.ai artifact viewer —
+  // the Trade Coach card here is rule-based only (see buildCoachInsights / renderCoachRules above).
+
+  async function toggleCalDay(key, val){
+    calState = {...calState, [key]: val};
+    renderAll();
+    if(sb){ try{ await sb.from('progress').upsert({key:'calendar', state: calState, updated_at: new Date().toISOString()}); }catch(e){} }
+    else lsSet('tc-calendar', calState);
+  }
+  async function toggleMilestone(idx, val){
+    msState = {...msState, [idx]: val};
+    renderAll();
+    if(sb){ try{ await sb.from('progress').upsert({key:'milestones', state: msState, updated_at: new Date().toISOString()}); }catch(e){} }
+    else lsSet('tc-milestones', msState);
+  }
+  async function savePlan(newPlan){
+    planState = newPlan;
+    if(sb){ try{ await sb.from('progress').upsert({key:'tradingplan', state: planState, updated_at: new Date().toISOString()}); }catch(e){} }
+    else lsSet('tc-tradingplan', planState);
+  }
+  async function saveChecklist(newChecklist){
+    checklistState = newChecklist;
+    if(sb){ try{ await sb.from('progress').upsert({key:'checklist', state: checklistState, updated_at: new Date().toISOString()}); }catch(e){} }
+    else lsSet('tc-checklist', checklistState);
+  }
+  async function saveLessons(newLessons){
+    lessonsState = newLessons;
+    if(sb){ try{ await sb.from('progress').upsert({key:'lessons', state: lessonsState, updated_at: new Date().toISOString()}); }catch(e){} }
+    else lsSet('tc-lessons', lessonsState);
+  }
+
+  // ---------- Calendar rendering ----------
+  let openWeeks = {0:true};
+  function findTodayKey(){
+    for(let wi=0; wi<WEEKS.length; wi++){
+      for(let di=0; di<WEEKS[wi].days.length; di++){
+        if(!calState[`${wi}-${di}`]) return {wi, di};
+      }
+    }
+    return null;
+  }
+
+  function renderCalendar(){
+    const root = document.getElementById('cal-weeks');
+    if(!root) return;
+    root.innerHTML = '';
+    const todayKey = findTodayKey();
+    let dayCounter = 0, totalDone = 0;
+    WEEKS.forEach((week, wi) => {
+      const startDay = dayCounter + 1;
+      const doneInWeek = week.days.filter((_, di) => calState[`${wi}-${di}`]).length;
+      const block = document.createElement('div');
+      block.className = 'week-block' + (openWeeks[wi] ? ' open' : '');
+      block.innerHTML = `
+        <div class="week-header" data-wi="${wi}">
+          <div class="w-title"><span class="w-num">${String(wi+1).padStart(2,'0')}</span><span class="w-theme">${week.theme}</span></div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="w-meta">Days ${startDay}–${startDay+4} &middot; ${doneInWeek}/5</span>
+            <span class="chev">&#9656;</span>
+          </div>
+        </div>
+        <div class="week-days"></div>`;
+      const daysWrap = block.querySelector('.week-days');
+      week.days.forEach((d, di) => {
+        dayCounter++;
+        const key = `${wi}-${di}`;
+        const done = !!calState[key];
+        if(done) totalDone++;
+        const isToday = todayKey && todayKey.wi === wi && todayKey.di === di;
+        const row = document.createElement('label');
+        row.className = 'day-row' + (done ? ' done' : '') + (isToday ? ' today' : '');
+        row.innerHTML = `
+          <input type="checkbox" ${done ? 'checked' : ''} data-key="${key}">
+          <div>
+            <div class="d-label" style="margin-bottom:6px;">DAY ${dayCounter}${isToday ? ' — TODAY' : ''}</div>
+            <div class="d-body">
+              <div class="d-col"><span class="k">Learn (1hr)</span><span class="v">${d[0]}</span></div>
+              <div class="d-col"><span class="k">Practice (1hr)</span><span class="v">${d[1]}</span></div>
+            </div>
+          </div>`;
+        daysWrap.appendChild(row);
+      });
+      root.appendChild(block);
+    });
+    document.getElementById('cal-progress-label').textContent = `${totalDone} / ${TOTAL_DAYS} days complete`;
+    document.getElementById('cal-progress-fill').style.width = (totalDone/TOTAL_DAYS*100) + '%';
+  }
+  document.getElementById('cal-weeks').addEventListener('click', (e) => {
+    const header = e.target.closest('.week-header');
+    if(header){ openWeeks[header.dataset.wi] = !openWeeks[header.dataset.wi]; renderCalendar(); }
+  });
+  document.getElementById('cal-weeks').addEventListener('change', (e) => {
+    if(e.target.matches('input[type="checkbox"]')) toggleCalDay(e.target.dataset.key, e.target.checked);
+  });
+
+  // ---------- Milestones rendering ----------
+  function renderMilestones(){
+    const root = document.getElementById('ms-list');
+    root.innerHTML = '';
+    let done = 0;
+    MILESTONES.forEach((m, i) => {
+      const isDone = !!msState[i];
+      if(isDone) done++;
+      const row = document.createElement('label');
+      row.className = 'day-row' + (isDone ? ' done' : '');
+      row.innerHTML = `<input type="checkbox" ${isDone?'checked':''} data-idx="${i}">
+        <div><strong style="display:block;font-size:.92rem;">${m.t}</strong><span style="font-size:.83rem;color:var(--muted);">${m.d}</span></div>`;
+      root.appendChild(row);
+    });
+    document.getElementById('ms-progress-label').textContent = `${done} / ${MILESTONES.length} complete`;
+    document.getElementById('ms-progress-fill').style.width = (done/MILESTONES.length*100)+'%';
+  }
+  document.getElementById('ms-list').addEventListener('change', (e) => {
+    if(e.target.matches('input[type="checkbox"]')) toggleMilestone(e.target.dataset.idx, e.target.checked);
+  });
+
+  // ---------- Plan (Trading Plan Worksheet, Pre-Trading Checklist, Trifecta Goals, Risk calculator) ----------
+  initSegmented('ck-centered');
+  initSegmented('ck-cycle');
+
+  const TP_FIELD_IDS = {
+    strategy:'tp-strategy', priceRange:'tp-pricerange', timeOfDay:'tp-timeofday', volFloat:'tp-volfloat',
+    technical:'tp-technical', invalidates:'tp-invalidates', riskSize:'tp-risksize', profitTarget:'tp-profittarget',
+    premarket:'tp-premarket', dailyMaxLoss:'tp-dailymaxloss', dailyProfitTarget:'tp-dailyprofittarget',
+    goal:'tp-goal', nextStep:'tp-nextstep',
+  };
+  document.getElementById('tp-save-btn').addEventListener('click', () => {
+    const plan = {};
+    Object.keys(TP_FIELD_IDS).forEach(key => { plan[key] = document.getElementById(TP_FIELD_IDS[key]).value.trim(); });
+    savePlan(plan);
+  });
+  document.getElementById('ck-save-btn').addEventListener('click', () => {
+    const checklist = {
+      marketStrength: document.getElementById('ck-marketstrength').value.trim(),
+      centered: document.getElementById('ck-centered').dataset.value === 'true',
+      cycle: document.getElementById('ck-cycle').dataset.value,
+      adjust: document.getElementById('ck-adjust').value.trim(),
+      obvious: document.getElementById('ck-obvious').value.trim(),
+      squeeze: document.getElementById('ck-squeeze').value.trim(),
+    };
+    saveChecklist(checklist);
+  });
+
+  // Account size for the risk calculator is a lightweight per-browser convenience,
+  // not something that needs cross-device sync — plain localStorage is fine.
+  document.getElementById('plan-account-size').value = lsGet('tc-account-size', '');
+  document.getElementById('plan-account-size').addEventListener('input', (e) => {
+    lsSet('tc-account-size', e.target.value);
+    renderRiskCalc();
+  });
+
+  let planFormFilled = false, checklistFormFilled = false;
+  function fillPlanForm(){
+    if(planFormFilled) return; // don't clobber in-progress typing on a later re-render
+    Object.keys(TP_FIELD_IDS).forEach(key => {
+      const el = document.getElementById(TP_FIELD_IDS[key]);
+      if(planState[key] != null) el.value = planState[key];
+    });
+    planFormFilled = true;
+  }
+  function fillChecklistForm(){
+    if(checklistFormFilled) return;
+    if(checklistState.marketStrength != null) document.getElementById('ck-marketstrength').value = checklistState.marketStrength;
+    if(checklistState.adjust != null) document.getElementById('ck-adjust').value = checklistState.adjust;
+    if(checklistState.obvious != null) document.getElementById('ck-obvious').value = checklistState.obvious;
+    if(checklistState.squeeze != null) document.getElementById('ck-squeeze').value = checklistState.squeeze;
+    if(checklistState.centered != null){
+      const group = document.getElementById('ck-centered');
+      const val = checklistState.centered ? 'true' : 'false';
+      group.dataset.value = val;
+      group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === val));
+    }
+    if(checklistState.cycle != null){
+      const group = document.getElementById('ck-cycle');
+      group.dataset.value = checklistState.cycle;
+      group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === checklistState.cycle));
+    }
+    checklistFormFilled = true;
+  }
+
+  // Profit Trifecta Goals — Warrior Trading's progression table, exact figures.
+  const TRIFECTA = [
+    {tier:'Novice', accMin:0.40, accMax:0.50, plMin:0.5, plMax:1.0},
+    {tier:'Beginner', accMin:0.50, accMax:0.60, plMin:1.0, plMax:1.5},
+    {tier:'Advanced', accMin:0.60, accMax:0.70, plMin:1.5, plMax:2.0},
+    {tier:'Pro', accMin:0.70, accMax:Infinity, plMin:1.0, plMax:Infinity},
+  ];
+  function tierFor(value, key){
+    if(value == null) return null;
+    for(const row of TRIFECTA){ if(value >= row[key+'Min'] && value < row[key+'Max']) return row.tier; }
+    return value >= TRIFECTA[TRIFECTA.length-1][key+'Min'] ? 'Pro' : null;
+  }
+  function renderTrifectaCallout(){
+    const root = document.getElementById('trifecta-callout');
+    if(!root) return;
+    const s = computeStats(trades);
+    const winners = trades.filter(t => (t.resultAmount||0) > 0);
+    const losers = trades.filter(t => (t.resultAmount||0) < 0);
+    const avgWin = winners.length ? winners.reduce((sum,t)=>sum+t.resultAmount,0)/winners.length : null;
+    const avgLoss = losers.length ? losers.reduce((sum,t)=>sum+t.resultAmount,0)/losers.length : null;
+    const plRatio = (avgWin != null && avgLoss) ? avgWin/Math.abs(avgLoss) : null;
+    if(!s.total){
+      root.innerHTML = `<p style="color:var(--muted);font-size:.86rem;margin:0;">Log some trades to see which tier your accuracy and P/L ratio currently fall into.</p>`;
+      return;
+    }
+    const accTier = tierFor(s.winRate, 'acc');
+    const plTier = tierFor(plRatio, 'pl');
+    const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+    const fmtRatio = v => v==null ? '—' : v.toFixed(2);
+    root.innerHTML = `
+      <div class="grid cols-2">
+        <div class="stat-tile"><div class="k">Your accuracy</div><div class="v">${fmtPct(s.winRate)}</div><div style="margin-top:6px;">${accTier ? `<span class="pill neutral">${accTier} tier</span>` : '<span class="pill">—</span>'}</div></div>
+        <div class="stat-tile"><div class="k">Your P/L ratio</div><div class="v">${fmtRatio(plRatio)}</div><div style="margin-top:6px;">${plTier ? `<span class="pill neutral">${plTier} tier</span>` : '<span class="pill">—</span>'}</div></div>
+      </div>`;
+  }
+
+  // Risk rules calculator — % of account, per the Trading Plan Worksheet framing.
+  function renderRiskCalc(){
+    const root = document.getElementById('risk-calc-out');
+    if(!root) return;
+    const size = parseFloat(document.getElementById('plan-account-size').value);
+    if(!size || size <= 0){
+      root.innerHTML = `<div class="empty-state" style="padding:16px;grid-column:1/-1;"><div>Enter an account size above to see suggested $ amounts.</div></div>`;
+      return;
+    }
+    const fmtUsd = v => '$'+v.toFixed(2);
+    root.innerHTML = `
+      <div class="stat-tile"><div class="k">Risk/trade (~5%)</div><div class="v">${fmtUsd(size*0.05)}</div></div>
+      <div class="stat-tile"><div class="k">Profit target/trade (~10%)</div><div class="v good">${fmtUsd(size*0.10)}</div></div>
+      <div class="stat-tile"><div class="k">Daily max loss (~10%)</div><div class="v bad">-${fmtUsd(size*0.10)}</div></div>`;
+  }
+
+  function renderPlan(){
+    fillPlanForm();
+    fillChecklistForm();
+    renderTrifectaCallout();
+    renderRiskCalc();
+  }
+
+  // ---------- Lessons ----------
+  const LESSONS = [
+    {
+      id: 'pillars',
+      title: 'The 5 Pillars',
+      body: "Before you even think about buying, Warrior Trading's Small Account Toolkit asks a stock to clear five checks: it's already up at least 10% on the day (unless it's continuing a big move from a prior day), relative volume is at least 5x its average, there's a real news catalyst behind the move, price sits in the $1–$20 range (sweet spot $5–$10), and float is under 20 million shares (under 10 million is better). A stock that clears all five in your journal shows as a 5/5 pillars badge — that's your highest-quality setup, not just any green stock.",
+      quiz: [
+        { q: 'What relative volume does the Toolkit require?', options: ['At least 2x average', 'At least 5x average', 'At least 10x average', 'No specific number'], correct: 1, explain: "5x average volume is the Toolkit's own bar — anything less and the stock probably won't have the liquidity or attention to keep moving." },
+        { q: 'What float does the Toolkit flag as ideal?', options: ['Under 50M shares', 'Under 20M shares (under 10M preferred)', 'Over 100M shares', "Float doesn't matter"], correct: 1, explain: 'Under 20M is the bar; under 10M is preferred — lower float means bigger % moves on the same dollar volume.' },
+        { q: 'A stock is up 6% on the day with 3x relative volume, a strong news catalyst, priced at $8, float 15M. How many of the 5 pillars does it meet?', options: ['5/5', '4/5', '3/5', '2/5'], correct: 2, explain: "Price, news, and float clear the bar; the gain (6%) is below the 10% threshold and relative volume (3x) is below 5x — so it's 3 of 5, a decent watch, not an A+ setup." },
+      ],
+    },
+    {
+      id: 'worksheet',
+      title: 'The Trading Plan Worksheet',
+      body: "The worksheet turns vague good intentions into a checklist you fill out before the market opens: your strategy, price range, trading window, volume/float rules, technical setup, invalidation/exit, risk and profit target sizing, premarket requirements, and daily loss/profit limits. Warrior Trading's own worked example sizes risk at about 5% of account per trade and profit target at about 10% — a built-in 2:1 reward-to-risk built into the plan itself, before a single trade is placed.",
+      quiz: [
+        { q: 'In the worked example, roughly what fraction of the account is risked per trade?', options: ['1%', '5%', '10%', '25%'], correct: 1, explain: "The worksheet's own example: about 5% risk per trade against a ~10% profit target." },
+        { q: 'What time window does the sample plan use?', options: ['24 hours, any time', '7:00am–11:00am EST', 'After 4pm EST only', 'Weekends only'], correct: 1, explain: 'The sample plan trades the morning momentum window, 7:00am to 11:00am EST.' },
+        { q: 'Why fill out a written plan before the session instead of deciding in the moment?', options: ['It is required by brokers', 'It removes decisions that are easy to get wrong once emotions and P&L are live', 'It guarantees profits', 'It replaces the need for a stop-loss'], correct: 1, explain: 'A plan written calmly beforehand is a lot more reliable than a decision made mid-trade under pressure.' },
+      ],
+    },
+    {
+      id: 'patterns',
+      title: 'Entry patterns',
+      body: 'Three entry patterns run through this whole system: Pullback (buy the first green candle that makes a new high after a dip), Bull Flag Breakout (buy the first candle making a new high after a flag/pullback), and Flat Top Breakout (buy the first candle that breaks a flat resistance top). All three share the same idea — wait for the market to show you it wants to keep going, then get in on strength, not in anticipation of it.',
+      quiz: [
+        { q: 'What do a Bull Flag Breakout and a Flat Top Breakout have in common?', options: ['Both are only used for options', 'Both wait for a new high to actually be made before entering', 'Both require a red candle to trigger entry', 'Both ignore volume completely'], correct: 1, explain: "Both patterns enter on confirmation — a new high being made — rather than anticipating one." },
+        { q: 'Where does the Pullback pattern place a stop, typically?', options: ['At the high of day', 'At the low of the pullback', "At yesterday's close", 'There is no stop'], correct: 1, explain: 'The low of the pullback is the level that, if broken, invalidates the setup.' },
+        { q: 'A stock is coiling below a clear resistance level. Which pattern are you watching for a break of?', options: ['Flat Top Breakout', 'Cash-secured put', 'Iron condor', 'MACD crossover'], correct: 0, explain: 'A flat resistance top breaking is exactly the Flat Top Breakout setup.' },
+      ],
+    },
+    {
+      id: 'rmultiples',
+      title: 'Risk math: R-multiples',
+      body: "An R-multiple measures a trade's result relative to what you risked: risk $50 and make $100, that's +2R; risk $50 and lose $50, that's -1R. This matters because win rate alone can be misleading — a trader who wins 3 out of 10 trades can still be solidly profitable if winners average +2R and losers average -1R. That's the whole logic behind trading a 2:1 (or better) reward-to-risk ratio.",
+      quiz: [
+        { q: 'You risk $40 and the trade nets +$120. What is the R-multiple?', options: ['+1R', '+2R', '+3R', '+4R'], correct: 2, explain: '$120 / $40 = 3, so +3R.' },
+        { q: 'Why can a trader with a 40% win rate still be profitable?', options: ['They cannot — under 50% always loses money', 'If winners are large enough relative to losers (a good R:R), fewer wins still add up to a net gain', 'Win rate never matters', 'It is only possible in options'], correct: 1, explain: 'A strong reward-to-risk ratio can more than offset a win rate under 50%.' },
+        { q: "Rule 3 in the Small Account Toolkit's worked example says what happens after three consecutive losers?", options: ['Double your position size', 'Switch strategies mid-day', 'The trading day ends', 'Nothing — keep trading as normal'], correct: 2, explain: 'Three consecutive losing trades ends the trading day, per the Toolkit.' },
+      ],
+    },
+    {
+      id: 'breakeven',
+      title: 'The breakeven win-rate table',
+      body: "Every reward:risk ratio has a breakeven win rate — the minimum win % needed to not lose money over time. At 1:1 you need 50% just to break even. At 2:1 (risk $1 to make $2) you only need 33%. At 3:1 you need just 25%. The table in your Plan tab has this fully worked out from 50:1 down to 1:50 — the point isn't to memorize it, it's to check your own numbers against it honestly.",
+      quiz: [
+        { q: 'At a 2:1 reward:risk ratio, what win rate do you need to break even?', options: ['25%', '33%', '50%', '67%'], correct: 1, explain: '2:1 needs about 33% to break even — see the Plan tab table.' },
+        { q: 'At a 1:2 reward:risk ratio (risking twice what you are targeting), what win rate is needed to break even?', options: ['17%', '33%', '50%', '67%'], correct: 3, explain: 'A worse ratio needs a much higher win rate — 1:2 needs about 67%.' },
+        { q: 'Why does a trader chasing a very high reward:risk ratio (say 10:1) not need a high win rate?', options: ['Because a single big winner covers many small, defined losses', 'Because 10:1 trades are guaranteed to win', 'Because position sizing does not matter at 10:1', 'It is a myth — 10:1 needs the same win rate as 1:1'], correct: 0, explain: 'At 10:1, breakeven win rate drops to about 9% — one big winner can cover many small losses.' },
+      ],
+    },
+    {
+      id: 'trifecta',
+      title: 'The Profit Trifecta',
+      body: "The Profit Trifecta tracks three things together — consistency (how many weeks in a row you're net green), accuracy (win rate), and P/L ratio (average winner vs average loser) — because chasing any one alone is a trap. Warrior Trading's own tiers: Novice needs just 1 green week, 40–50% accuracy, and a 0.5–1 P/L ratio; by Pro you're looking at 5+ green weeks, over 70% accuracy, and a P/L ratio over 1.0.",
+      quiz: [
+        { q: 'What three things does the Profit Trifecta track together?', options: ['Consistency, accuracy, P/L ratio', 'Just win rate', 'Account size and leverage', 'Number of trades per day'], correct: 0, explain: 'All three together — chasing just one in isolation is the trap.' },
+        { q: 'At the Novice tier, what accuracy range is expected?', options: ['70%+', '60-70%', '50-60%', '40-50%'], correct: 3, explain: 'Novice: 40-50% accuracy, per the exact tier table.' },
+        { q: 'Why track consistency (green weeks in a row) alongside accuracy and P/L ratio?', options: ['It does not matter, only P&L matters', 'One lucky week can hide an unstable process — consistency shows it is repeatable', 'Consistency is only relevant to options traders', 'It is a vanity metric'], correct: 1, explain: 'Consistency is the check that a good result is a repeatable process, not a lucky week.' },
+      ],
+    },
+    {
+      id: 'vwap',
+      title: 'VWAP basics',
+      body: "VWAP (volume-weighted average price) shows the average price paid across the session, weighted by volume — a rough line in the sand between buyers and sellers in control that day. Price holding above VWAP on a pullback and bouncing is a classic 'trading with the flow' signal; price rejecting VWAP from below reinforces a downtrend. Anchored VWAP does the same thing from a specific starting point (a big news candle, a swing high/low) rather than just the session open.",
+      quiz: [
+        { q: 'What does VWAP stand for?', options: ['Value-Weighted Average Price', 'Volume-Weighted Average Price', 'Variable Weighted Average Position', 'Volatility-Weighted Average Price'], correct: 1, explain: 'Volume-Weighted Average Price.' },
+        { q: 'Price pulling back to VWAP and bouncing in an uptrend is generally read as:', options: ['A trend-ending signal', "A 'trading with the flow' continuation signal", 'Irrelevant noise', 'A signal to short immediately'], correct: 1, explain: 'It confirms the uptrend is intact — buyers stepping back in at a fair-value area.' },
+        { q: "What makes 'anchored' VWAP different from standard session VWAP?", options: ['It only works on options', 'It starts from a specific chosen point, not just the session open', 'It ignores volume', 'It is only visible on daily charts'], correct: 1, explain: 'Anchored VWAP is calculated from a chosen point (a news candle, a swing high/low), not the session open.' },
+      ],
+    },
+    {
+      id: 'marketprofile',
+      title: 'Market Profile basics',
+      body: "Market Profile organizes price action by time spent at each price, not just candle shape — the value area is where roughly 70% of the volume traded, and price is 'in balance' when it's rotating comfortably inside that area. Range trading plays reversals at the edges of value; a break out of value on real volume is the imbalance signal that a range trade is about to fail.",
+      quiz: [
+        { q: "What does the 'value area' in Market Profile represent?", options: ['The single highest price of the day', "Where roughly 70% of the day's volume traded", 'The opening range only', "The prior day's close"], correct: 1, explain: 'Value area = where about 70% of the volume traded.' },
+        { q: 'Price rotating comfortably inside the value area is described as:', options: ['Imbalanced', 'In balance', 'Breaking out', 'Undefined'], correct: 1, explain: "That's the definition of being 'in balance.'" },
+        { q: 'What confirms a real breakout out of value, rather than a fakeout?', options: ['Time of day alone', 'Real volume backing the move', 'A round-number price', 'News headlines only'], correct: 1, explain: 'Volume confirmation is what separates a real imbalance from a fakeout.' },
+      ],
+    },
+    {
+      id: 'process',
+      title: 'Process over P&L',
+      body: "A trade can be a technical 'A+' setup that still loses money, and a sloppy trade can still make money by luck — that's exactly why the journal tracks 'process followed' separately from the dollar result. Grading yourself on whether you followed your own rules, not just whether you made money, is what actually compounds skill over time; P&L on any single trade is mostly noise.",
+      quiz: [
+        { q: "Why track 'process followed' as its own field, separate from P&L?", options: ['It is required by brokers', 'A good process can still lose on any single trade, and a bad process can still win by luck — P&L alone does not show which happened', 'It is the same thing as P&L', 'It does not matter'], correct: 1, explain: 'Process and outcome are different things — a single trade cannot tell you which one happened.' },
+        { q: 'Over many trades, what should matter more for judging your trading?', options: ["Any single trade's result", 'Consistent process adherence and expectancy across a sample', 'Your best single day', "Your broker's account balance chart"], correct: 1, explain: 'A large enough sample is what actually reveals whether your process works.' },
+      ],
+    },
+    {
+      id: 'alphabeta',
+      title: 'Alpha → Beta → Live',
+      body: 'Before real money, this system asks for two proving grounds. Alpha is high-volume simulator reps — no real-money pressure, just building pattern recognition and mechanical execution. Beta is trading small real size, but capped to one truly A+ setup a day for 10 straight trading days, and the whole stretch has to net green to graduate. Only after that does Live start — and even then, expect the very first live trade to lose; the point of Beta was proving the process works over a sample, not that any one trade wins.',
+      quiz: [
+        { q: 'What is the goal of the Alpha stage?', options: ['Make as much money as possible', 'Build pattern recognition and mechanical execution with no real-money pressure', 'Trade full size immediately', 'Skip straight to live trading'], correct: 1, explain: 'Alpha is purely about building skill in the simulator, no real-money pressure.' },
+        { q: 'What does the Beta stage require to graduate?', options: ['A single winning trade', '10 straight trading days, one A+ setup/day, the whole stretch nets green', 'One month of any trading', 'Passing a written exam only'], correct: 1, explain: 'Ten straight days, one A+ setup a day, net green across the whole stretch.' },
+        { q: 'What should a trader expect from their very first live trade?', options: ['A guaranteed win', 'It might well lose — that is expected, not a sign anything is wrong', 'It should be their biggest size ever', 'To skip it and start on trade two'], correct: 1, explain: 'A losing first live trade is expected — Beta proved the process, not that any one trade wins.' },
+      ],
+    },
+    {
+      id: 'chartpatterns',
+      title: 'Chart pattern catalog',
+      body: "Beyond the Pullback, Bull Flag, and Flat Top setups you already know, a few more chart patterns come up constantly: a Flat Bottom Breakdown (the bearish mirror of a Flat Top — sell/short the first candle that breaks a flat support floor), an ABCD pattern (price swings from A down to B, retraces up to C, then pushes to a new extreme at D — the C-to-D leg is the tradeable move), a Double Top (two peaks near the same round-dollar price, often only breaking through on a third attempt), Head and Shoulders (a peak, a higher peak, then a lower peak — a classic reversal), and two traps worth knowing by name: a Bull Trap (a breakout that looks real but quickly reverses, trapping buyers who bought the false move) and a Bear Trap (the same idea to the downside). One more reversal signal: after 5+ consecutive candles moving one direction, the first candle to make a new high (or low) against that run is a classic exhaustion/reversal signal.",
+      quiz: [
+        { q: 'In a Flat Top Breakout, when do you buy?', options: ['The first candle that breaks above the flat resistance top', 'At the very bottom of the flag', 'On the first red candle', 'Only after 3 closes below support'], correct: 0, explain: 'You buy confirmation of the break, not in anticipation of it.' },
+        { q: 'A stock forms two peaks near the same round-dollar price and only breaks through on a third attempt. What is this pattern called?', options: ['Double Top', 'Head and Shoulders', 'ABCD Flag', 'Bear Trap'], correct: 0, explain: 'Two peaks at the same level, broken on the third try, is the classic Double Top setup.' },
+        { q: "What is a 'Bull Trap'?", options: ['A breakout that looks real but quickly reverses, trapping buyers who bought the false move', 'A guaranteed winning setup', 'Another name for a Bull Flag', 'A pattern that only happens after hours'], correct: 0, explain: 'The breakout fails almost immediately, leaving late buyers stuck.' },
+        { q: 'In the ABCD pattern, what does the C-to-D leg represent?', options: ['A new leg up, pushing from point C toward a new extreme at point D', 'The initial move down before any pattern begins', 'A random consolidation with no trading significance', 'The point where you must exit for a loss'], correct: 0, explain: 'C to D is the leg that actually gets traded, after A-to-B sets up the swing.' },
+        { q: 'After 5+ consecutive candles moving in one direction, what is the classic reversal signal?', options: ['The first candle to make a new high (or low) against that run', 'Another candle in the same direction', 'A gap in the same direction', 'Doubling your position size'], correct: 0, explain: 'The first candle to break the run is read as early exhaustion of that move.' },
+      ],
+    },
+  ];
+
+  // In-progress (unsaved) quiz answers per lesson: lessonId -> array of chosen option indices.
+  let lessonAnswers = {};
+  // Whether the current in-progress attempt for a lesson has been submitted (shows feedback).
+  let lessonSubmitted = {};
+
+  function lessonPassThreshold(total){
+    // 2-question quiz needs 2/2, 3-question quiz needs 2/3 (fixed 67%+ threshold, rounded).
+    return Math.ceil(total * 2 / 3);
+  }
+
+  function selectLessonAnswer(lessonId, qIdx, optIdx){
+    if(!lessonAnswers[lessonId]) lessonAnswers[lessonId] = [];
+    lessonAnswers[lessonId][qIdx] = optIdx;
+    lessonSubmitted[lessonId] = false;
+    renderLessons();
+  }
+
+  function submitLessonQuiz(lessonId){
+    const lesson = LESSONS.find(l => l.id === lessonId);
+    if(!lesson) return;
+    const answers = lessonAnswers[lessonId] || [];
+    let correctCount = 0;
+    lesson.quiz.forEach((q, qi) => { if(answers[qi] === q.correct) correctCount++; });
+    const needed = lessonPassThreshold(lesson.quiz.length);
+    const passed = correctCount >= needed;
+    const prev = lessonsState[lessonId] || {};
+    const newState = {
+      ...lessonsState,
+      [lessonId]: {
+        passed,
+        bestScore: Math.max(prev.bestScore || 0, correctCount),
+        lastAnswers: answers.slice(),
+      },
+    };
+    lessonSubmitted[lessonId] = true;
+    saveLessons(newState);
+    renderLessons();
+  }
+
+  function renderLessonCard(lesson){
+    const state = lessonsState[lesson.id] || {};
+    if(!lessonAnswers[lesson.id]) lessonAnswers[lesson.id] = state.lastAnswers ? state.lastAnswers.slice() : [];
+    if(lessonSubmitted[lesson.id] == null) lessonSubmitted[lesson.id] = !!state.lastAnswers;
+    const answers = lessonAnswers[lesson.id];
+    const submitted = lessonSubmitted[lesson.id];
+    let correctCount = 0;
+    if(submitted) lesson.quiz.forEach((q, qi) => { if(answers[qi] === q.correct) correctCount++; });
+
+    const questionsHtml = lesson.quiz.map((q, qi) => {
+      const optionsHtml = q.options.map((opt, oi) => {
+        const isSelected = answers[qi] === oi;
+        let style = 'display:block;width:100%;text-align:left;margin-bottom:6px;';
+        if(submitted){
+          if(oi === q.correct) style += 'border-color:var(--good);background:var(--good-soft);color:var(--good);';
+          else if(isSelected) style += 'border-color:var(--bad);background:var(--bad-soft);color:var(--bad);';
+        } else if(isSelected){
+          style += 'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);';
+        }
+        return `<button type="button" class="btn" style="${style}" data-lesson="${lesson.id}" data-qidx="${qi}" data-oidx="${oi}">${opt}</button>`;
+      }).join('');
+      const feedback = submitted
+        ? `<div style="margin-top:4px;">${answers[qi] === q.correct ? '<span class="pill good">correct</span>' : '<span class="pill bad">incorrect</span>'}
+            <p style="color:var(--muted);font-size:.83rem;margin:6px 0 0;">${q.explain}</p></div>`
+        : '';
+      return `<div style="margin-top:14px;">
+          <div style="font-size:.86rem;font-weight:600;margin-bottom:8px;">${qi+1}. ${q.q}</div>
+          ${optionsHtml}
+          ${feedback}
+        </div>`;
+    }).join('');
+
+    const summaryHtml = submitted
+      ? `<div style="margin-top:14px;">${correctCount >= lessonPassThreshold(lesson.quiz.length) ? '<span class="pill good">' : '<span class="pill bad">'}You got ${correctCount} / ${lesson.quiz.length} correct</span></div>`
+      : '';
+
+    return `<div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <h3 style="margin-bottom:0;">${lesson.title}</h3>
+          ${state.passed ? '<span class="pill good">passed</span>' : ''}
+        </div>
+        <p style="color:var(--muted);font-size:.86rem;margin:10px 0 0;">${lesson.body}</p>
+        ${questionsHtml}
+        <div class="form-actions"><button class="btn primary" type="button" data-action="submit-quiz" data-lesson="${lesson.id}">Check answers</button></div>
+        ${summaryHtml}
+      </div>`;
+  }
+
+  function renderLessons(){
+    const root = document.getElementById('lessons-list');
+    if(!root) return;
+    root.innerHTML = LESSONS.map(lesson => renderLessonCard(lesson)).join('');
+    const passedCount = LESSONS.filter(l => (lessonsState[l.id]||{}).passed).length;
+    document.getElementById('lessons-progress-label').textContent = `${passedCount} / ${LESSONS.length} lessons passed`;
+    document.getElementById('lessons-progress-fill').style.width = (passedCount/LESSONS.length*100)+'%';
+  }
+  document.getElementById('lessons-list').addEventListener('click', (e) => {
+    const optBtn = e.target.closest('button[data-lesson][data-oidx]');
+    if(optBtn){ selectLessonAnswer(optBtn.dataset.lesson, parseInt(optBtn.dataset.qidx,10), parseInt(optBtn.dataset.oidx,10)); return; }
+    const submitBtn = e.target.closest('button[data-action="submit-quiz"]');
+    if(submitBtn){ submitLessonQuiz(submitBtn.dataset.lesson); }
+  });
+
+  // ---------- Candlestick Drill (per-browser practice, not synced) ----------
+  const CANDLE_PATTERNS = [
+    { name: 'Hammer', cls: 'bullish', type: 'single', candles: [{color:'g',bodyTop:15,bodyBottom:30,wickTop:10,wickBottom:95}] },
+    { name: 'Inverted Hammer', cls: 'bullish', type: 'single', candles: [{color:'g',bodyTop:68,bodyBottom:83,wickTop:8,wickBottom:85}] },
+    { name: 'Dragonfly Doji', cls: 'bullish', type: 'single', candles: [{color:'g',bodyTop:14,bodyBottom:16,wickTop:10,wickBottom:95}] },
+    { name: 'Bullish Spinning Top', cls: 'bullish', type: 'single', candles: [{color:'g',bodyTop:40,bodyBottom:58,wickTop:12,wickBottom:88}] },
+    { name: 'Bullish Engulfing', cls: 'bullish', type: 'double', candles: [{color:'r',bodyTop:40,bodyBottom:58,wickTop:35,wickBottom:62},{color:'g',bodyTop:22,bodyBottom:72,wickTop:18,wickBottom:76}] },
+    { name: 'Tweezer Bottom', cls: 'bullish', type: 'double', candles: [{color:'r',bodyTop:30,bodyBottom:60,wickTop:25,wickBottom:88},{color:'g',bodyTop:32,bodyBottom:58,wickTop:28,wickBottom:88}] },
+    { name: 'Morning Doji Star', cls: 'bullish', type: 'triple', candles: [{color:'r',bodyTop:20,bodyBottom:55,wickTop:15,wickBottom:58},{color:'n',bodyTop:68,bodyBottom:71,wickTop:60,wickBottom:80},{color:'g',bodyTop:25,bodyBottom:60,wickTop:20,wickBottom:64}] },
+    { name: 'Three White Soldiers', cls: 'bullish', type: 'triple', candles: [{color:'g',bodyTop:70,bodyBottom:90,wickTop:66,wickBottom:92},{color:'g',bodyTop:50,bodyBottom:72,wickTop:46,wickBottom:74},{color:'g',bodyTop:30,bodyBottom:54,wickTop:26,wickBottom:56}] },
+    { name: 'Morning Star', cls: 'bullish', type: 'triple', candles: [{color:'r',bodyTop:20,bodyBottom:55,wickTop:15,wickBottom:58},{color:'r',bodyTop:66,bodyBottom:76,wickTop:60,wickBottom:80},{color:'g',bodyTop:25,bodyBottom:60,wickTop:20,wickBottom:64}] },
+    { name: 'Rising Three Methods', cls: 'bullish', type: 'triple', candles: [{color:'g',bodyTop:15,bodyBottom:55,wickTop:10,wickBottom:58},{color:'r',bodyTop:35,bodyBottom:45,wickTop:30,wickBottom:50},{color:'g',bodyTop:10,bodyBottom:52,wickTop:6,wickBottom:55}] },
+    { name: 'Hanging Man', cls: 'bearish', type: 'single', candles: [{color:'r',bodyTop:15,bodyBottom:30,wickTop:10,wickBottom:95}] },
+    { name: 'Shooting Star', cls: 'bearish', type: 'single', candles: [{color:'r',bodyTop:68,bodyBottom:83,wickTop:8,wickBottom:85}] },
+    { name: 'Gravestone Doji', cls: 'bearish', type: 'single', candles: [{color:'r',bodyTop:83,bodyBottom:86,wickTop:8,wickBottom:86}] },
+    { name: 'Bearish Spinning Top', cls: 'bearish', type: 'single', candles: [{color:'r',bodyTop:40,bodyBottom:58,wickTop:12,wickBottom:88}] },
+    { name: 'Bearish Engulfing', cls: 'bearish', type: 'double', candles: [{color:'g',bodyTop:42,bodyBottom:60,wickTop:38,wickBottom:64},{color:'r',bodyTop:20,bodyBottom:70,wickTop:16,wickBottom:74}] },
+    { name: 'Tweezer Tops', cls: 'bearish', type: 'double', candles: [{color:'g',bodyTop:32,bodyBottom:60,wickTop:10,wickBottom:64},{color:'r',bodyTop:30,bodyBottom:58,wickTop:10,wickBottom:66}] },
+    { name: 'Evening Doji Star', cls: 'bearish', type: 'triple', candles: [{color:'g',bodyTop:45,bodyBottom:80,wickTop:42,wickBottom:84},{color:'n',bodyTop:28,bodyBottom:31,wickTop:20,wickBottom:42},{color:'r',bodyTop:40,bodyBottom:75,wickTop:36,wickBottom:78}] },
+    { name: 'Three Black Crows', cls: 'bearish', type: 'triple', candles: [{color:'r',bodyTop:10,bodyBottom:30,wickTop:6,wickBottom:32},{color:'r',bodyTop:28,bodyBottom:50,wickTop:24,wickBottom:52},{color:'r',bodyTop:46,bodyBottom:68,wickTop:42,wickBottom:70}] },
+    { name: 'Evening Star', cls: 'bearish', type: 'triple', candles: [{color:'g',bodyTop:45,bodyBottom:80,wickTop:42,wickBottom:84},{color:'g',bodyTop:24,bodyBottom:34,wickTop:20,wickBottom:42},{color:'r',bodyTop:40,bodyBottom:75,wickTop:36,wickBottom:78}] },
+    { name: 'Falling Three Methods', cls: 'bearish', type: 'triple', candles: [{color:'r',bodyTop:45,bodyBottom:85,wickTop:40,wickBottom:88},{color:'g',bodyTop:55,bodyBottom:65,wickTop:50,wickBottom:70},{color:'r',bodyTop:48,bodyBottom:90,wickTop:44,wickBottom:92}] },
+    { name: 'Doji', cls: 'neutral', type: 'single', candles: [{color:'n',bodyTop:48,bodyBottom:52,wickTop:8,wickBottom:92}] },
+  ];
+
+  function renderCandleSVG(candles){
+    const colW = 40, gap = 10;
+    const totalW = candles.length * colW + (candles.length - 1) * gap;
+    const colorVar = c => c === 'g' ? 'var(--good)' : c === 'r' ? 'var(--bad)' : 'var(--muted)';
+    const parts = candles.map((c, i) => {
+      const x = i * (colW + gap);
+      const cx = x + colW / 2;
+      const col = colorVar(c.color);
+      const bodyY = Math.min(c.bodyTop, c.bodyBottom);
+      const bodyH = Math.max(1, Math.abs(c.bodyBottom - c.bodyTop));
+      return `<line x1="${cx}" y1="${c.wickTop}" x2="${cx}" y2="${c.wickBottom}" stroke="${col}" stroke-width="2"/>`
+        + `<rect x="${x}" y="${bodyY}" width="${colW}" height="${bodyH}" fill="${col}" stroke="${col}"/>`;
+    }).join('');
+    return `<svg viewBox="0 0 ${totalW} 100" style="width:100%;max-width:220px;height:160px;display:block;margin:0 auto;">${parts}</svg>`;
+  }
+
+  function candleTodayStr(){ return new Date().toISOString().slice(0,10); }
+  function loadCandleDrillStats(){
+    let s = null;
+    try{ s = JSON.parse(localStorage.getItem('tc-candle-drill-stats') || 'null'); }catch(e){ s = null; }
+    if(!s || typeof s !== 'object') s = { today: candleTodayStr(), attempts:0, correct:0, bestStreak:0, currentStreak:0 };
+    if(s.today !== candleTodayStr()){ s.today = candleTodayStr(); s.attempts = 0; s.correct = 0; s.currentStreak = 0; }
+    if(typeof s.bestStreak !== 'number') s.bestStreak = 0;
+    return s;
+  }
+  function saveCandleDrillStats(s){
+    try{ localStorage.setItem('tc-candle-drill-stats', JSON.stringify(s)); }catch(e){}
+  }
+  let candleDrillStats = loadCandleDrillStats();
+
+  function pickCandleRound(){
+    const idx = Math.floor(Math.random() * CANDLE_PATTERNS.length);
+    const pattern = CANDLE_PATTERNS[idx];
+    const rest = CANDLE_PATTERNS.filter((_, i) => i !== idx);
+    for(let i = rest.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+    const options = [pattern.name, ...rest.slice(0, 3).map(p => p.name)];
+    for(let i = options.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [options[i], options[j]] = [options[j], options[i]]; }
+    return { pattern, options };
+  }
+
+  let candleDrillRound = pickCandleRound();
+  let candleDrillAnswered = null;
+
+  function renderCandleDrill(){
+    const body = document.getElementById('candle-drill-body');
+    const statsEl = document.getElementById('candle-drill-stats');
+    if(!body || !statsEl) return;
+    const { pattern, options } = candleDrillRound;
+    const answered = candleDrillAnswered;
+    const optionsHtml = options.map(name => {
+      let style = 'display:block;width:100%;text-align:left;margin-bottom:6px;';
+      if(answered){
+        if(name === pattern.name) style += 'border-color:var(--good);background:var(--good-soft);color:var(--good);';
+        else if(name === answered) style += 'border-color:var(--bad);background:var(--bad-soft);color:var(--bad);';
+      }
+      return `<button type="button" class="btn" style="${style}" data-candle-opt="${name}" ${answered ? 'disabled' : ''}>${name}</button>`;
+    }).join('');
+    const feedback = answered
+      ? `<div style="margin-top:10px;">${answered === pattern.name ? '<span class="pill good">correct</span>' : '<span class="pill bad">incorrect</span>'}
+          <p style="color:var(--muted);font-size:.83rem;margin:6px 0 0;">${pattern.name} &mdash; ${pattern.cls}, ${pattern.type}-candle pattern.</p></div>
+         <div class="form-actions"><button class="btn primary" type="button" data-action="candle-next">Next</button></div>`
+      : '';
+    body.innerHTML = `<div style="text-align:center;margin-bottom:10px;">${renderCandleSVG(pattern.candles)}</div>${optionsHtml}${feedback}`;
+    statsEl.textContent = `Today: ${candleDrillStats.correct}/${candleDrillStats.attempts} correct · best streak ${candleDrillStats.bestStreak}`;
+  }
+
+  document.getElementById('candle-drill-body').addEventListener('click', (e) => {
+    const optBtn = e.target.closest('button[data-candle-opt]');
+    if(optBtn && !candleDrillAnswered){
+      const chosen = optBtn.dataset.candleOpt;
+      candleDrillAnswered = chosen;
+      candleDrillStats = loadCandleDrillStats();
+      candleDrillStats.attempts++;
+      if(chosen === candleDrillRound.pattern.name){
+        candleDrillStats.correct++;
+        candleDrillStats.currentStreak++;
+        candleDrillStats.bestStreak = Math.max(candleDrillStats.bestStreak, candleDrillStats.currentStreak);
+      } else {
+        candleDrillStats.currentStreak = 0;
+      }
+      saveCandleDrillStats(candleDrillStats);
+      renderCandleDrill();
+      return;
+    }
+    const nextBtn = e.target.closest('button[data-action="candle-next"]');
+    if(nextBtn){
+      candleDrillRound = pickCandleRound();
+      candleDrillAnswered = null;
+      renderCandleDrill();
+    }
+  });
+  renderCandleDrill();
+
+
+  // ---------- Journal ----------
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+
+  // Segmented controls (Direction, Process followed) — click to select, track value on the group.
+  function initSegmented(id){
+    const group = document.getElementById(id);
+    group.addEventListener('click', (e) => {
+      const btn = e.target.closest('.seg-btn');
+      if(!btn) return;
+      group.dataset.value = btn.dataset.value;
+      group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  }
+  initSegmented('f-direction');
+  initSegmented('f-process');
+  initSegmented('f-news');
+
+  // Live R-multiple preview as risk/result are filled in.
+  function updateRPreview(){
+    const risk = parseFloat(document.getElementById('f-risk').value) || 0;
+    const result = parseFloat(document.getElementById('f-result').value) || 0;
+    const out = document.getElementById('f-rpreview');
+    if(risk > 0){
+      const r = result / risk;
+      out.textContent = (r>=0?'+':'') + r.toFixed(2) + 'R';
+      out.classList.toggle('good', r > 0);
+      out.classList.toggle('bad', r < 0);
+    } else {
+      out.textContent = '—';
+      out.classList.remove('good','bad');
+    }
+  }
+  document.getElementById('f-risk').addEventListener('input', updateRPreview);
+  document.getElementById('f-result').addEventListener('input', updateRPreview);
+
+  function resetTradeForm(){
+    document.getElementById('trade-form').reset();
+    document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-tags').value = '';
+    ['f-direction','f-process','f-news'].forEach(id => {
+      const group = document.getElementById(id);
+      const defaultVal = id === 'f-direction' ? 'Long' : (id === 'f-process' ? 'true' : 'false');
+      group.dataset.value = defaultVal;
+      group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === defaultVal));
+    });
+    updateRPreview();
+  }
+
+  // The 5 Pillars, per the Small Account Toolkit / Trading Plan Worksheet:
+  // rel volume >=5x, up >=10% on the day, has a news catalyst, price $1-$20, float <20M shares.
+  // Each pillar only counts when its underlying value is actually present.
+  function computePillars(entryPrice, pctGainOnDay, relVolume, newsCatalyst, floatM){
+    const priceOk = entryPrice != null && entryPrice >= 1 && entryPrice <= 20;
+    const gainOk = pctGainOnDay != null && pctGainOnDay >= 10;
+    const relVolOk = relVolume != null && relVolume >= 5;
+    const newsOk = newsCatalyst === true;
+    const floatOk = floatM != null && floatM < 20;
+    const pillarsCount = [priceOk, gainOk, relVolOk, newsOk, floatOk].filter(Boolean).length;
+    const meetsPillars = priceOk && gainOk && relVolOk && newsOk && floatOk;
+    return {meetsPillars, pillarsCount};
+  }
+
+  document.getElementById('trade-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const risk = parseFloat(document.getElementById('f-risk').value) || 0;
+    const result = parseFloat(document.getElementById('f-result').value) || 0;
+    const entryPrice = parseFloat(document.getElementById('f-entry').value) || null;
+    const pctGainOnDay = parseFloat(document.getElementById('f-pctgain').value);
+    const relVolume = parseFloat(document.getElementById('f-relvol').value);
+    const floatM = parseFloat(document.getElementById('f-float').value);
+    const newsCatalyst = document.getElementById('f-news').dataset.value === 'true';
+    const holdTime = parseFloat(document.getElementById('f-holdtime').value);
+    const {meetsPillars, pillarsCount} = computePillars(
+      entryPrice,
+      isNaN(pctGainOnDay) ? null : pctGainOnDay,
+      isNaN(relVolume) ? null : relVolume,
+      newsCatalyst,
+      isNaN(floatM) ? null : floatM
+    );
+    const entry = {
+      date: document.getElementById('f-date').value,
+      market: document.getElementById('f-market').value,
+      instrument: document.getElementById('f-instrument').value.trim() || '—',
+      strategy: document.getElementById('f-strategy').value,
+      direction: document.getElementById('f-direction').dataset.value,
+      entryPrice: entryPrice,
+      stopPrice: parseFloat(document.getElementById('f-stop').value) || null,
+      exitPrice: parseFloat(document.getElementById('f-exit').value) || null,
+      size: parseFloat(document.getElementById('f-size').value) || null,
+      riskAmount: risk,
+      resultAmount: result,
+      rMultiple: risk > 0 ? (result / risk) : null,
+      processFollowed: document.getElementById('f-process').dataset.value === 'true',
+      pctGainOnDay: isNaN(pctGainOnDay) ? null : pctGainOnDay,
+      relVolume: isNaN(relVolume) ? null : relVolume,
+      float: isNaN(floatM) ? null : floatM,
+      newsCatalyst: newsCatalyst,
+      timeframe: document.getElementById('f-timeframe').value,
+      pattern: document.getElementById('f-pattern').value,
+      holdTime: isNaN(holdTime) ? null : holdTime,
+      holdUnit: document.getElementById('f-holdunit').value,
+      meetsPillars: meetsPillars,
+      pillarsCount: pillarsCount,
+      notes: document.getElementById('f-notes').value.trim(),
+      tags: document.getElementById('f-tags').value.trim(),
+      source: 'manual',
+      createdAt: Date.now(),
+    };
+    if(sb){
+      const row = {
+        date: entry.date, market: entry.market, instrument: entry.instrument, strategy: entry.strategy,
+        direction: entry.direction, entry_price: entry.entryPrice, stop_price: entry.stopPrice,
+        exit_price: entry.exitPrice, size: entry.size, risk_amount: entry.riskAmount,
+        result_amount: entry.resultAmount, r_multiple: entry.rMultiple,
+        process_followed: entry.processFollowed, notes: entry.notes, source: entry.source, tags: entry.tags,
+        pct_gain_on_day: entry.pctGainOnDay, rel_volume: entry.relVolume, float: entry.float,
+        news_catalyst: entry.newsCatalyst, timeframe: entry.timeframe, pattern: entry.pattern,
+        hold_time: entry.holdTime, hold_unit: entry.holdUnit,
+        meets_pillars: entry.meetsPillars, pillars_count: entry.pillarsCount,
+      };
+      const {error} = await sb.from('trades').insert(row);
+      if(error){ alert('Could not save — try again.'); return; }
+      const {data} = await sb.from('trades').select('*').order('date', {ascending:false}).limit(500);
+      trades = (data||[]).map(tradeFromRow);
+    } else {
+      entry.id = 'local-'+Date.now();
+      trades.unshift(entry);
+      lsSet('tc-trades', trades);
+    }
+    resetTradeForm();
+    renderAll();
+  });
+
+  async function deleteTrade(id){
+    if(!confirm('Delete this trade entry?')) return;
+    if(sb){
+      try{ await sb.from('trades').delete().eq('id', id); }catch(e){}
+      const {data} = await sb.from('trades').select('*').order('date', {ascending:false}).limit(500);
+      trades = (data||[]).map(tradeFromRow);
+      renderAll();
+    }
+    else { trades = trades.filter(t => t.id !== id); lsSet('tc-trades', trades); renderAll(); }
+  }
+  window.__deleteTrade = deleteTrade;
+
+  // ---------- Import from TradingView (Strategy Tester "List of Trades" CSV) ----------
+  // TradingView has no API for reading trade history, and webhooks only fire from
+  // Pine strategy alerts — never manual clicks. This covers the one export TradingView
+  // DOES produce: Strategy Tester → List of Trades → Export. Each trade is 2 rows
+  // (Entry + Exit) sharing a "Trade #"; we pair them into one journal entry each.
+  function parseCSV(text){
+    const rows = []; let cur = '', row = [], inQuotes = false;
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else inQuotes = false; }
+        else cur += c;
+      } else {
+        if(c === '"') inQuotes = true;
+        else if(c === ','){ row.push(cur); cur = ''; }
+        else if(c === '\n' || c === '\r'){
+          if(c === '\r' && text[i+1] === '\n') i++;
+          row.push(cur); cur = '';
+          if(row.some(v => v !== '')) rows.push(row);
+          row = [];
+        } else cur += c;
+      }
+    }
+    if(cur !== '' || row.length){ row.push(cur); rows.push(row); }
+    return rows;
+  }
+
+  function parseTVStrategyExport(text, instrument, strategyName){
+    const rows = parseCSV(text);
+    if(rows.length < 2) throw new Error('empty');
+    const header = rows[0].map(h => h.trim().toLowerCase());
+    const idx = (test) => header.findIndex(h => test(h));
+    const iTrade = idx(h => h.startsWith('trade'));
+    const iType = idx(h => h === 'type');
+    const iDate = idx(h => h.includes('date'));
+    const iPrice = idx(h => h.startsWith('price'));
+    const iContracts = idx(h => h.includes('contract'));
+    const iProfit = idx(h => h.startsWith('profit'));
+    if([iTrade,iType,iDate,iPrice].some(i => i < 0)) throw new Error('bad-format');
+
+    const byTrade = {};
+    for(let r = 1; r < rows.length; r++){
+      const row = rows[r];
+      if(!row[iTrade]) continue;
+      const num = row[iTrade];
+      (byTrade[num] = byTrade[num] || []).push(row);
+    }
+    const entries = [];
+    Object.keys(byTrade).forEach(num => {
+      const rowsForTrade = byTrade[num];
+      const entryRow = rowsForTrade.find(r => (r[iType]||'').toLowerCase().includes('entry'));
+      const exitRow = rowsForTrade.find(r => (r[iType]||'').toLowerCase().includes('exit'));
+      if(!entryRow) return;
+      const typeStr = (entryRow[iType]||'').toLowerCase();
+      const cleanNum = v => parseFloat(String(v||'').replace(/[^0-9.\-]/g,'')) || null;
+      entries.push({
+        date: (entryRow[iDate]||'').split(' ')[0] || '',
+        market: 'Futures',
+        instrument: instrument || '—',
+        strategy: strategyName || 'Other',
+        direction: typeStr.includes('short') ? 'Short' : 'Long',
+        entryPrice: cleanNum(entryRow[iPrice]),
+        stopPrice: null,
+        exitPrice: exitRow ? cleanNum(exitRow[iPrice]) : null,
+        size: iContracts >= 0 ? cleanNum(entryRow[iContracts]) : null,
+        riskAmount: 0,
+        resultAmount: exitRow && iProfit >= 0 ? cleanNum(exitRow[iProfit]) : null,
+        rMultiple: null,
+        processFollowed: true,
+        notes: `Imported from TradingView Strategy Tester — Trade #${num}`,
+        source: 'tradingview',
+        tags: '',
+        createdAt: Date.now(),
+      });
+    });
+    return entries;
+  }
+
+  async function importTradesFromCSV(entries){
+    if(sb){
+      const rows = entries.map(e => ({
+        date: e.date, market: e.market, instrument: e.instrument, strategy: e.strategy,
+        direction: e.direction, entry_price: e.entryPrice, stop_price: e.stopPrice, exit_price: e.exitPrice,
+        size: e.size, risk_amount: e.riskAmount, result_amount: e.resultAmount, r_multiple: e.rMultiple,
+        process_followed: e.processFollowed, notes: e.notes, source: e.source, tags: e.tags || '',
+      }));
+      const {error} = await sb.from('trades').insert(rows);
+      if(error){ throw error; }
+      const {data} = await sb.from('trades').select('*').order('date', {ascending:false}).limit(500);
+      trades = (data||[]).map(tradeFromRow);
+    } else {
+      entries.forEach(e => { e.id = 'local-'+Date.now()+'-'+Math.random().toString(36).slice(2); trades.unshift(e); });
+      lsSet('tc-trades', trades);
+    }
+    renderAll();
+  }
+
+  document.getElementById('tv-import-btn').addEventListener('click', () => {
+    document.getElementById('tv-import-input').click();
+  });
+  document.getElementById('tv-import-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const statusEl = document.getElementById('tv-import-status');
+    statusEl.hidden = false;
+    statusEl.textContent = 'Reading file…';
+    try{
+      const text = await file.text();
+      const instrument = window.prompt('Instrument for this import (e.g. ES1!, MNQ1!):', '') || '—';
+      const strategyName = window.prompt('Strategy name for this import (optional):', 'Other') || 'Other';
+      const entries = parseTVStrategyExport(text, instrument, strategyName);
+      if(entries.length === 0){ statusEl.textContent = 'No trades found in that file.'; return; }
+      statusEl.textContent = `Importing ${entries.length} trade${entries.length===1?'':'s'}…`;
+      await importTradesFromCSV(entries);
+      statusEl.textContent = `Imported ${entries.length} trade${entries.length===1?'':'s'} from TradingView.`;
+    }catch(err){
+      statusEl.textContent = 'Could not read that file — export "List of Trades" from the Strategy Tester as CSV and try again.';
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  // ---------- Scanner (Alpha Vantage TOP_GAINERS_LOSERS, free-tier, cached) ----------
+  const AV_CACHE_KEY = 'tc-scanner-cache';
+  document.getElementById('av-key').value = lsGet('tc-av-key', '');
+  document.getElementById('av-key').addEventListener('change', (e) => lsSet('tc-av-key', e.target.value.trim()));
+  ['sc-minprice','sc-maxprice','sc-minpct','sc-minvol'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderScannerTables);
+  });
+
+  function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
+
+  async function refreshScanner(){
+    const key = document.getElementById('av-key').value.trim();
+    if(!key){ scannerStatus('Add your free Alpha Vantage API key above first.'); return; }
+    scannerStatus('Fetching top gainers / most active from Alpha Vantage…');
+    try{
+      const res = await fetch(`https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=${encodeURIComponent(key)}`);
+      const data = await res.json();
+      if(data.Note || data.Information){
+        scannerStatus((data.Note || data.Information) + ' Showing last cached scan if available.');
+        renderScannerTables();
+        return;
+      }
+      lsSet(AV_CACHE_KEY, { fetchedAt: Date.now(), top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
+      scannerStatus(`Scan updated ${new Date().toLocaleTimeString()}. Data is delayed/end-of-run, not live tick data.`);
+      renderScannerTables();
+    }catch(err){
+      scannerStatus('Could not reach Alpha Vantage — check your key and connection.');
+    }
+  }
+  document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
+
+  function scannerFilterRow(row){
+    const price = parseFloat(row.price);
+    const pct = parseFloat((row.change_percentage||'0').replace('%',''));
+    const vol = parseFloat(row.volume);
+    const minP = parseFloat(document.getElementById('sc-minprice').value) || 0;
+    const maxP = parseFloat(document.getElementById('sc-maxprice').value) || Infinity;
+    const minPct = parseFloat(document.getElementById('sc-minpct').value) || 0;
+    const minVol = parseFloat(document.getElementById('sc-minvol').value) || 0;
+    return price >= minP && price <= maxP && Math.abs(pct) >= minPct && vol >= minVol;
+  }
+  // Manual per-ticker News/Float entries — Alpha Vantage's free TOP_GAINERS_LOSERS
+  // endpoint has no float or true relative-volume data, so those 2 pillars are
+  // filled in by hand and kept in localStorage (session-durable, not synced).
+  // News now also has a REAL per-ticker freshness check (see NEWS_CACHE_KEY below);
+  // the manual checkbox here is the fallback for tickers not checked today.
+  const SCANNER_MANUAL_KEY = 'tc-scanner-manual';
+  function getScannerManual(){ return lsGet(SCANNER_MANUAL_KEY, {}); }
+  function setScannerManualField(ticker, field, value){
+    const manual = getScannerManual();
+    manual[ticker] = {...(manual[ticker]||{}), [field]: value};
+    lsSet(SCANNER_MANUAL_KEY, manual);
+  }
+  const SCANNER_VOL_PILLAR_MIN = 500000; // rough liquidity proxy, NOT true relative volume
+  const SCANNER_RELVOL_PILLAR_MIN = 5; // the Toolkit's real bar: relative volume >=5x average
+
+  // Catalyst types a trader can tag a row with by hand. "merger" is deliberately
+  // excluded from ever counting as a good catalyst — per the Small Account
+  // Toolkit and Ross Cameron's own scanning routine, a fixed buyout price kills
+  // the volatility that makes a stock worth day-trading.
+  const CATALYST_TYPES = {
+    earnings: { label: 'Earnings', good: true },
+    fda: { label: 'FDA approval', good: true },
+    clinical: { label: 'Clinical trial results', good: true },
+    contract: { label: 'New contract / partnership', good: true },
+    other: { label: 'Other catalyst', good: true },
+    merger: { label: 'Merger / buyout / acquisition', good: false },
+  };
+  function scannerCatalystBadgeHtml(catalystType){
+    const info = CATALYST_TYPES[catalystType];
+    if(!info) return '';
+    return info.good
+      ? `<span class="pill good" title="Counts toward the News pillar">${info.label}</span>`
+      : `<span class="pill bad" title="Buyout/merger catalysts don't count — the stock's value is fixed once a deal price is set">&#9888; ${info.label}</span>`;
+  }
+  // News pillar is true only when there's real fresh news (checked today, <=24h
+  // old) or a manually-tagged good catalyst — and NEVER true for a merger/buyout
+  // catalyst, even if news was found, since that kind of "catalyst" kills the
+  // volatility this whole system is built to trade.
+  function scannerNewsOk(newsEntry, catalystType){
+    if(catalystType === 'merger') return false;
+    if(newsEntry) return newsEntry.hoursOld != null && newsEntry.hoursOld <= 24;
+    return !!catalystType;
+  }
+
+  function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
+    const priceOk = price >= 1 && price <= 20;
+    const gainOk = Math.abs(pct) >= 10;
+    // Real relative volume (user-entered avg volume) takes priority; falls back
+    // to the crude liquidity-proxy threshold when no average volume is on file.
+    const volOk = relVol != null ? relVol >= SCANNER_RELVOL_PILLAR_MIN : vol >= SCANNER_VOL_PILLAR_MIN;
+    const floatOk = floatM != null && floatM < 20;
+    const count = [priceOk, gainOk, volOk, newsOk, floatOk].filter(Boolean).length;
+    return count;
+  }
+
+  // ---------- Scanner: real news freshness (Alpha Vantage NEWS_SENTIMENT, cached per ticker per day) ----------
+  // Free-tier keys are tightly rate-limited, so this is NEVER auto-fetched for
+  // rows on render — only an explicit "Check news" click calls the endpoint,
+  // and the result is cached per ticker+date so revisiting/re-rendering the
+  // page the same day never re-calls it.
+  const NEWS_CACHE_KEY = 'tc-scanner-news-cache';
+  function scannerTodayStr(){ return new Date().toISOString().slice(0,10); }
+  function getScannerNewsCache(){ return lsGet(NEWS_CACHE_KEY, {}); }
+  function setScannerNewsCacheEntry(ticker, entry){
+    const cache = getScannerNewsCache();
+    cache[`${ticker}|${scannerTodayStr()}`] = entry;
+    lsSet(NEWS_CACHE_KEY, cache);
+  }
+  function getScannerNewsToday(ticker){
+    return getScannerNewsCache()[`${ticker}|${scannerTodayStr()}`] || null;
+  }
+  // Alpha Vantage time_published is "YYYYMMDDTHHMMSS" in UTC, no separators —
+  // Date.parse() does not reliably handle this format, so parse it by hand.
+  function parseAvNewsTimestamp(ts){
+    if(!ts || typeof ts !== 'string' || ts.length < 15) return null;
+    const y = +ts.slice(0,4), mo = +ts.slice(4,6) - 1, d = +ts.slice(6,8);
+    const h = +ts.slice(9,11), mi = +ts.slice(11,13), s = +ts.slice(13,15);
+    const ms = Date.UTC(y, mo, d, h, mi, s);
+    return isNaN(ms) ? null : ms;
+  }
+  // Freshness buckets, per Ross Cameron's "news comes out at the top and
+  // bottom of every hour" routine — an icon-first read so a whole row of
+  // tickers can be scanned for "which of these is actually fresh" at a glance.
+  function scannerFreshnessBucket(h){
+    if(h < 2) return { icon: '&#128293;', label: '<2h', cls: 'good' };   // 🔥 breaking
+    if(h < 4) return { icon: '&#128994;', label: '<4h', cls: 'good' };   // 🟢 fresh
+    if(h < 12) return { icon: '&#128993;', label: '<12h', cls: 'neutral' }; // 🟡
+    if(h < 24) return { icon: '&#128992;', label: '<24h', cls: '' };     // 🟠
+    return { icon: '&#9898;', label: `${Math.floor(h/24)}d+`, cls: '' }; // ⚪ stale
+  }
+  function scannerNewsBadgeHtml(entry){
+    if(!entry) return '';
+    if(entry.hoursOld == null) return `<span class="pill" title="No recent articles from Alpha Vantage's news feed">no news found</span>`;
+    const b = scannerFreshnessBucket(entry.hoursOld);
+    const title = entry.headline ? entry.headline.replace(/"/g,'&quot;') : '';
+    return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old</span>`;
+  }
+  async function checkScannerNews(ticker){
+    const key = document.getElementById('av-key').value.trim();
+    if(!key){ scannerStatus('Add your free Alpha Vantage API key above first.'); return; }
+    scannerStatus(`Checking news freshness for ${ticker}…`);
+    try{
+      const res = await fetch(`https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${encodeURIComponent(ticker)}&apikey=${encodeURIComponent(key)}&limit=3&sort=LATEST`);
+      const data = await res.json();
+      if(data.Note || data.Information){
+        scannerStatus((data.Note || data.Information) + ` News check for ${ticker} not completed.`);
+        return;
+      }
+      const feed = Array.isArray(data.feed) ? data.feed : [];
+      if(feed.length === 0){
+        setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: null, headline: null, url: null });
+        scannerStatus(`No recent news found for ${ticker} (checked just now, cached for today).`);
+      } else {
+        const latest = feed[0];
+        const ts = parseAvNewsTimestamp(latest.time_published);
+        const hoursOld = ts != null ? (Date.now() - ts) / 3600000 : null;
+        setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld, headline: latest.title || null, url: latest.url || null });
+        scannerStatus(hoursOld != null
+          ? `${ticker}: latest news is ~${hoursOld.toFixed(1)}h old (checked just now, cached for today).`
+          : `${ticker}: found news but couldn't parse its timestamp (checked just now, cached for today).`);
+      }
+      renderScannerTables();
+    }catch(err){
+      scannerStatus(`Could not reach Alpha Vantage for ${ticker}'s news.`);
+    }
+  }
+
+  // ---------- Scanner: watchlist (localStorage, ticker array) ----------
+  const SCANNER_WATCHLIST_KEY = 'tc-scanner-watchlist';
+  function getScannerWatchlist(){ return lsGet(SCANNER_WATCHLIST_KEY, []); }
+  function isScannerWatched(ticker){ return getScannerWatchlist().includes(ticker); }
+  function toggleScannerWatch(ticker){
+    const list = getScannerWatchlist();
+    const idx = list.indexOf(ticker);
+    if(idx >= 0) list.splice(idx, 1); else list.push(ticker);
+    lsSet(SCANNER_WATCHLIST_KEY, list);
+  }
+  initSegmented('sc-watch-filter');
+  document.getElementById('sc-watch-filter').addEventListener('click', () => renderScannerTables());
+
+  // ---------- Scanner: sortable columns (in-memory only, resets on refresh) ----------
+  // Default sort: Change % descending, so the leading gainer of the day is row one.
+  const scannerSortState = { gainers: {key:'pct', dir:-1}, active: {key:'pct', dir:-1} };
+  document.querySelectorAll('.sc-sort-row').forEach(headRow => {
+    headRow.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-sort]');
+      if(!th) return;
+      const scope = headRow.dataset.scope;
+      const state = scannerSortState[scope];
+      if(state.key === th.dataset.sort){ state.dir *= -1; } else { state.key = th.dataset.sort; state.dir = 1; }
+      renderScannerTables();
+    });
+  });
+  function scannerUpdateSortIndicators(){
+    document.querySelectorAll('.sc-sort-row').forEach(headRow => {
+      const state = scannerSortState[headRow.dataset.scope];
+      headRow.querySelectorAll('th[data-sort]').forEach(th => {
+        const ind = th.querySelector('.sc-sort-ind');
+        if(!ind) return;
+        ind.textContent = state.key === th.dataset.sort ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
+      });
+    });
+  }
+  function scannerSortRows(rows, scope){
+    const state = scannerSortState[scope];
+    if(!state.key) return rows;
+    const sorted = rows.slice().sort((a,b) => {
+      if(state.key === 'ticker') return state.dir * a.ticker.localeCompare(b.ticker);
+      // Rows with no manual float yet sort as -Infinity so they fall to the
+      // bottom on a descending sort rather than breaking the comparator.
+      const pick = (d) => {
+        switch(state.key){
+          case 'price': return d.price;
+          case 'pct': return d.pct;
+          case 'vol': return d.vol;
+          case 'relvol': return d.relVol != null ? d.relVol : -Infinity;
+          case 'float': return d.floatM != null ? d.floatM : -Infinity;
+          case 'floatrot': return d.floatRotation != null ? d.floatRotation : -Infinity;
+          default: return d.pillarCount;
+        }
+      };
+      return state.dir * (pick(a) - pick(b));
+    });
+    return sorted;
+  }
+
+  // Computes all derived per-row fields once so filtering/sorting/rendering share it.
+  function scannerRowData(row){
+    const price = parseFloat(row.price);
+    const pct = parseFloat((row.change_percentage||'0').replace('%',''));
+    const vol = Number(row.volume);
+    const manual = getScannerManual()[row.ticker] || {};
+    const newsEntry = getScannerNewsToday(row.ticker);
+    const catalystType = manual.catalystType || '';
+    const newsOk = scannerNewsOk(newsEntry, catalystType);
+    const floatM = manual.float != null && manual.float !== '' ? parseFloat(manual.float) : null;
+    const avgVolM = manual.avgVol != null && manual.avgVol !== '' ? parseFloat(manual.avgVol) : null;
+    // Relative volume = today's volume / the ticker's own average daily volume,
+    // the real "5x average" the Toolkit means — computable only once you enter
+    // an average volume by hand (Alpha Vantage's free tier doesn't supply it).
+    const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
+    const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
+    // Float rotation = today's volume / float. A stock trading multiples of
+    // its own float (rotation well above 1x) is the classic sign of a real
+    // supply/demand imbalance. Only computable once a manual float is entered.
+    const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
+    return { row, ticker: row.ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched: isScannerWatched(row.ticker) };
+  }
+
+  const CATALYST_OPTIONS_HTML = '<option value="">News? (pick a catalyst)</option>' +
+    Object.entries(CATALYST_TYPES).map(([val, info]) => `<option value="${val}">${info.good ? '' : '⚠ '}${info.label}</option>`).join('');
+
+  function scannerRowHtml(data, rank){
+    const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched } = data;
+    const newsCellHtml = newsEntry ? scannerNewsBadgeHtml(newsEntry) : '';
+    const catalystBadge = scannerCatalystBadgeHtml(catalystType);
+    const rankBadge = rank === 1 ? '&#127942;' : (rank <= 3 ? '&#129352;' : '');
+    const rowTint = rank <= 3 ? 'background:var(--good-soft);' : (rank <= 10 ? 'background:var(--accent-soft);' : '');
+    return `<tr data-ticker="${ticker}" style="${rowTint}">
+      <td class="mono num" style="font-weight:700;">${rankBadge} ${rank}</td>
+      <td class="num ${pct>=0?'good':'bad'}" style="font-weight:700;">${pct>=0?'+':''}${pct.toFixed(2)}%</td>
+      <td>
+        <div class="mono" style="font-weight:700;">${ticker}${watched ? ' <span class="pill neutral">watching</span>' : ''}</div>
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+          ${newsCellHtml}${catalystBadge}
+          <button type="button" class="btn sc-check-news" data-ticker="${ticker}" style="padding:2px 6px;font-size:10px;">Check news</button>
+        </div>
+        <select class="sc-catalyst-select" data-ticker="${ticker}" style="margin-top:4px;font-size:11px;padding:3px 4px;border-radius:6px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);max-width:190px;">
+          ${CATALYST_OPTIONS_HTML.replace(`value="${catalystType}"`, `value="${catalystType}" selected`)}
+        </select>
+      </td>
+      <td class="num">$${price.toFixed(2)}</td>
+      <td class="num">${vol.toLocaleString()}</td>
+      <td>
+        <input type="number" step="any" class="sc-avgvol-input" data-ticker="${ticker}" value="${avgVolM!=null?avgVolM:''}" placeholder="avg vol (M)" style="width:80px;min-height:32px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);">
+        <div class="num" style="font-size:11px;margin-top:2px;${relVol!=null && relVol>=5 ? 'color:var(--good);font-weight:700;' : ''}">${relVol!=null ? relVol.toFixed(1)+'x' : '—'}</div>
+      </td>
+      <td><input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8" style="width:70px;min-height:32px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);"></td>
+      <td class="num">${floatRotation!=null ? floatRotation.toFixed(1)+'x' : '—'}</td>
+      <td><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></td>
+      <td style="display:flex;flex-direction:column;gap:4px;">
+        <button type="button" class="btn sc-watch-toggle" data-ticker="${ticker}" style="padding:4px 8px;font-size:11px;">${watched ? '★ Watching' : '☆ Watch'}</button>
+        <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__logScannerTrade('${ticker}', ${price}, ${pct})">Log trade</button>
+      </td>
+    </tr>`;
+  }
+  function renderScannerTables(){
+    const cache = lsGet(AV_CACHE_KEY, null);
+    const gainersBody = document.getElementById('scan-gainers-tbody');
+    const activeBody = document.getElementById('scan-active-tbody');
+    const gainersEmpty = document.getElementById('scan-gainers-empty');
+    const activeEmpty = document.getElementById('scan-active-empty');
+    if(!cache){ gainersBody.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); return; }
+    const watchOnly = document.getElementById('sc-watch-filter').dataset.value === 'watch';
+    let gainers = (cache.top_gainers||[]).filter(scannerFilterRow).map(scannerRowData);
+    let active = (cache.most_actively_traded||[]).filter(scannerFilterRow).map(scannerRowData);
+    if(watchOnly){ gainers = gainers.filter(d => d.watched); active = active.filter(d => d.watched); }
+    gainers = scannerSortRows(gainers, 'gainers');
+    active = scannerSortRows(active, 'active');
+    gainersBody.innerHTML = gainers.map((d,i) => scannerRowHtml(d, i+1)).join('');
+    activeBody.innerHTML = active.map((d,i) => scannerRowHtml(d, i+1)).join('');
+    gainersEmpty.hidden = gainers.length > 0;
+    activeEmpty.hidden = active.length > 0;
+    scannerUpdateSortIndicators();
+    if(!document.getElementById('scanner-status').textContent){
+      scannerStatus(`Showing cached scan from ${new Date(cache.fetchedAt).toLocaleString()}.`);
+    }
+  }
+  // Catalyst select / Float input / Avg-vol input / Check news / Watch buttons
+  // are re-created on every render, so wire them via delegated listeners on
+  // the tbody rather than per-element.
+  ['scan-gainers-tbody','scan-active-tbody'].forEach(id => {
+    const tbody = document.getElementById(id);
+    tbody.addEventListener('change', (e) => {
+      if(e.target.matches('.sc-catalyst-select')){
+        setScannerManualField(e.target.dataset.ticker, 'catalystType', e.target.value || null);
+        renderScannerTables();
+      } else if(e.target.matches('.sc-float-input')){
+        const v = e.target.value.trim();
+        setScannerManualField(e.target.dataset.ticker, 'float', v === '' ? null : parseFloat(v));
+        renderScannerTables();
+      } else if(e.target.matches('.sc-avgvol-input')){
+        const v = e.target.value.trim();
+        setScannerManualField(e.target.dataset.ticker, 'avgVol', v === '' ? null : parseFloat(v));
+        renderScannerTables();
+      }
+    });
+    tbody.addEventListener('click', (e) => {
+      const checkBtn = e.target.closest('.sc-check-news');
+      if(checkBtn){ checkScannerNews(checkBtn.dataset.ticker); return; }
+      const watchBtn = e.target.closest('.sc-watch-toggle');
+      if(watchBtn){ toggleScannerWatch(watchBtn.dataset.ticker); renderScannerTables(); return; }
+    });
+  });
+  window.__logScannerTrade = function(ticker, price, pctGain){
+    showPage('journal');
+    document.getElementById('f-instrument').value = ticker;
+    document.getElementById('f-tags').value = 'from-scanner';
+    if(pctGain != null && !isNaN(pctGain)) document.getElementById('f-pctgain').value = Math.abs(pctGain);
+    const manual = getScannerManual()[ticker] || {};
+    const newsToday = getScannerNewsToday(ticker);
+    const newsIsFresh = scannerNewsOk(newsToday, manual.catalystType || '');
+    if(newsIsFresh){
+      const group = document.getElementById('f-news');
+      group.dataset.value = 'true';
+      group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === 'true'));
+    }
+    if(manual.float != null) document.getElementById('f-float').value = manual.float;
+    document.getElementById('f-instrument').scrollIntoView({behavior:'smooth', block:'center'});
+  };
+  renderScannerTables();
+
+  function computeStats(list){
+    const total = list.length;
+    const withR = list.filter(t => typeof t.rMultiple === 'number' && !isNaN(t.rMultiple));
+    const wins = list.filter(t => (t.resultAmount||0) > 0).length;
+    const winRate = total ? wins/total : 0;
+    const avgR = withR.length ? withR.reduce((s,t)=>s+t.rMultiple,0)/withR.length : null;
+    const processCount = list.filter(t => t.processFollowed).length;
+    const processRate = total ? processCount/total : 0;
+    const totalPnl = list.reduce((s,t)=>s+(t.resultAmount||0),0);
+    return {total, winRate, avgR, processRate, totalPnl};
+  }
+
+  function renderJournalStats(){
+    const s = computeStats(trades);
+    const root = document.getElementById('journal-stats');
+    const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+    const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
+    const fmtUsd = v => (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
+    root.innerHTML = `
+      <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
+      <div class="stat-tile"><div class="k">Win rate</div><div class="v ${s.winRate>=0.5?'good':(s.total?'bad':'')}">${fmtPct(s.winRate)}</div></div>
+      <div class="stat-tile"><div class="k">Avg R-multiple</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>
+      <div class="stat-tile"><div class="k">Process adherence</div><div class="v ${s.processRate>=0.8?'good':''}">${fmtPct(s.processRate)}</div></div>`;
+  }
+
+  // ---------- Trade Coach (rule-based insights from real journal/plan data) ----------
+  function parsePercent(str){
+    if(!str) return null;
+    const m = String(str).match(/(\d+(?:\.\d+)?)\s*%/);
+    return m ? parseFloat(m[1]) : null;
+  }
+  function groupsByStrategy(list){
+    const groups = {};
+    list.forEach(t => { const k = t.strategy; if(!k) return; (groups[k] = groups[k]||[]).push(t); });
+    return groups;
+  }
+  function groupsByTagFlat(list){
+    const groups = {};
+    list.forEach(t => {
+      (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(tag => { (groups[tag] = groups[tag]||[]).push(t); });
+    });
+    return groups;
+  }
+  function buildCoachInsights(list, plan){
+    const trades = list || [];
+    const fmtUsd = v => (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
+    if(trades.length < 5){
+      return [{type:'tip', text:'Log a few more trades — insights need at least 5 to say anything reliable.'}];
+    }
+    const insights = [];
+
+    // 1. Pillars discipline over the most recent trades that actually carry pillar data
+    const withPillars = trades.filter(t => typeof t.pillarsCount === 'number').slice(0, 10);
+    if(withPillars.length >= 5){
+      const low = withPillars.filter(t => t.pillarsCount <= 2).length;
+      const frac = low / withPillars.length;
+      if(frac > 0.4){
+        insights.push({type:'watchout', text:`${low} of your last ${withPillars.length} trades scored 2/5 pillars or lower — you're trading outside your own setup criteria ${frac>=0.5?'more than half':'a lot of'} the time.`});
+      }
+    }
+
+    // 2. Entries outside the plan's stated stock price range
+    if(plan && plan.priceRange){
+      const nums = String(plan.priceRange).match(/\d+(?:\.\d+)?/g);
+      if(nums && nums.length >= 2){
+        const lo = parseFloat(nums[0]), hi = parseFloat(nums[1]);
+        if(hi > lo){
+          const priced = trades.filter(t => typeof t.entryPrice === 'number' && !isNaN(t.entryPrice));
+          if(priced.length >= 5){
+            const outside = priced.filter(t => t.entryPrice < lo || t.entryPrice > hi).length;
+            const frac = outside / priced.length;
+            if(frac > 0.3){
+              insights.push({type:'watchout', text:`${outside} of ${priced.length} priced trades fell outside your plan's stock price range (${plan.priceRange}) — ${Math.round(frac*100)}% of the time you're sizing up names your own plan rules out.`});
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Actual win rate vs. what the plan's stated risk/reward requires to break even
+    const riskPct = parsePercent(plan && plan.riskSize);
+    const targetPct = parsePercent(plan && plan.profitTarget);
+    if(riskPct > 0 && targetPct > 0){
+      const rr = targetPct / riskPct;
+      const breakeven = 1 / (1 + rr);
+      const stats = computeStats(trades);
+      if(stats.winRate < breakeven - 0.05){
+        insights.push({type:'watchout', text:`Your plan's ${plan.profitTarget} target against ${plan.riskSize} risk implies roughly a ${rr.toFixed(1)}:1 reward:risk, needing about ${Math.round(breakeven*100)}% win rate to break even — your actual win rate is ${Math.round(stats.winRate*100)}%.`});
+      }
+    }
+
+    // 4. Active losing streak where process wasn't consistently followed
+    {
+      let streak = 0, brokeProcess = false;
+      for(const t of trades){
+        if((t.resultAmount||0) < 0){
+          streak++;
+          if(!t.processFollowed) brokeProcess = true;
+        } else break;
+      }
+      if(streak >= 3 && brokeProcess){
+        insights.push({type:'tip', text:`You're on a ${streak}-trade losing streak that includes trades where process wasn't followed — Rule 3 says three losers in a row ends the trading day. Worth sitting out until tomorrow.`});
+      }
+    }
+
+    // 5. Worst and best strategy/tag by total P&L (min 3 trades each)
+    {
+      const candidates = [];
+      const byStrat = groupsByStrategy(trades);
+      Object.keys(byStrat).forEach(k => { if(k !== 'Other') candidates.push({label:k, kind:'strategy', list:byStrat[k]}); });
+      const byTag = groupsByTagFlat(trades);
+      Object.keys(byTag).forEach(k => candidates.push({label:k, kind:'tag', list:byTag[k]}));
+      const scored = candidates.filter(c => c.list.length >= 3).map(c => ({...c, s: computeStats(c.list)}));
+
+      const worst = scored.filter(c => c.s.totalPnl < 0).sort((a,b) => a.s.totalPnl - b.s.totalPnl)[0];
+      if(worst){
+        const isRevenge = worst.kind === 'tag' && /revenge/i.test(worst.label);
+        const name = worst.kind === 'tag' ? `'${worst.label}'-tagged` : `your '${worst.label}'`;
+        const extra = isRevenge ? ' — consider a hard rule against re-entering within a set cool-down window after a loss.' : ' — worth a hard look before taking that setup again.';
+        insights.push({type:'watchout', text:`${name} trades are down ${fmtUsd(worst.s.totalPnl)} across ${worst.list.length} trades${extra}`});
+      }
+
+      const best = scored.filter(c => c.s.totalPnl > 0).sort((a,b) => b.s.totalPnl - a.s.totalPnl)[0];
+      if(best){
+        const name = best.kind === 'tag' ? `'${best.label}'-tagged` : `your '${best.label}'`;
+        insights.push({type:'strength', text:`${name} trades are up ${fmtUsd(best.s.totalPnl)} across ${best.list.length} trades — a genuine edge worth leaning into.`});
+      }
+    }
+
+    // 6. General process-adherence strength
+    {
+      const stats = computeStats(trades);
+      if(stats.processRate >= 0.8){
+        insights.push({type:'strength', text:`You followed your process on ${Math.round(stats.processRate*100)}% of trades — that discipline is exactly what turns a plan into results.`});
+      }
+    }
+
+    const watchouts = insights.filter(i => i.type === 'watchout');
+    const rest = insights.filter(i => i.type !== 'watchout');
+    return [...watchouts, ...rest].slice(0, 6);
+  }
+  function coachInsightMeta(type){
+    if(type === 'watchout') return {cls:'bad', label:'watch out'};
+    if(type === 'strength') return {cls:'good', label:'strength'};
+    return {cls:'neutral', label:'tip'};
+  }
+  function renderCoachRules(){
+    const root = document.getElementById('coach-rules');
+    if(!root) return;
+    const insights = buildCoachInsights(trades, planState);
+    root.innerHTML = insights.map((i, idx) => {
+      const meta = coachInsightMeta(i.type);
+      const border = idx < insights.length - 1 ? 'border-bottom:1px solid var(--line);' : '';
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;${border}">
+        <span class="pill ${meta.cls}" style="flex-shrink:0;white-space:nowrap;">${meta.label}</span>
+        <span style="font-size:.88rem;line-height:1.4;">${i.text}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- Performance breakdowns (by strategy / by tag) ----------
+  function statsTableHtml(groups){
+    const rows = Object.keys(groups).map(key => {
+      const list = groups[key];
+      const s = computeStats(list);
+      return {key, s};
+    }).sort((a,b) => b.s.totalPnl - a.s.totalPnl);
+    if(rows.length === 0){
+      return `<div class="empty-state" style="padding:16px;"><div>Not enough trades yet.</div></div>`;
+    }
+    const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+    const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
+    const fmtUsd = v => (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
+    return `<table style="min-width:0;"><thead><tr><th>Name</th><th>#</th><th>Win%</th><th>Avg R</th><th>Total P&amp;L</th></tr></thead><tbody>
+      ${rows.map(r => `<tr>
+        <td>${r.key}</td>
+        <td class="num">${r.s.total}</td>
+        <td class="num">${fmtPct(r.s.winRate)}</td>
+        <td class="num">${fmtR(r.s.avgR)}</td>
+        <td class="num ${r.s.totalPnl>0?'good':(r.s.totalPnl<0?'bad':'')}">${fmtUsd(r.s.totalPnl)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
+  function renderStatsByStrategy(){
+    const groups = {};
+    trades.forEach(t => { const k = t.strategy || 'Other'; (groups[k] = groups[k]||[]).push(t); });
+    document.getElementById('stats-by-strategy').innerHTML = statsTableHtml(groups);
+  }
+  function renderStatsByTag(){
+    const groups = {};
+    trades.forEach(t => {
+      const tags = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
+      if(tags.length === 0){ (groups['(untagged)'] = groups['(untagged)']||[]).push(t); }
+      tags.forEach(tag => { (groups[tag] = groups[tag]||[]).push(t); });
+    });
+    document.getElementById('stats-by-tag').innerHTML = statsTableHtml(groups);
+  }
+
+  // ---------- Monthly P&L calendar heatmap ----------
+  let heatmapMonth = new Date(); heatmapMonth.setDate(1);
+  function renderPnlHeatmap(){
+    const y = heatmapMonth.getFullYear(), m = heatmapMonth.getMonth();
+    document.getElementById('heatmap-label').textContent = heatmapMonth.toLocaleDateString(undefined, {month:'long', year:'numeric'});
+    const byDay = {};
+    trades.forEach(t => {
+      if(!t.date) return;
+      const d = new Date(t.date+'T00:00:00');
+      if(d.getFullYear()===y && d.getMonth()===m){
+        byDay[t.date] = (byDay[t.date]||0) + (t.resultAmount||0);
+      }
+    });
+    const vals = Object.values(byDay).map(Math.abs);
+    const maxAbs = vals.length ? Math.max(...vals) : 1;
+    const firstDow = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    let cells = '';
+    for(let i=0;i<firstDow;i++) cells += `<div></div>`;
+    for(let day=1; day<=daysInMonth; day++){
+      const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const pnl = byDay[dateStr];
+      let bg = 'var(--surface-2)', color = 'var(--muted)';
+      if(pnl != null && pnl !== 0){
+        const intensity = Math.min(1, Math.abs(pnl)/maxAbs);
+        if(pnl > 0){ bg = `color-mix(in srgb, var(--good) ${20+intensity*60}%, var(--surface-2))`; color = 'var(--ink)'; }
+        else { bg = `color-mix(in srgb, var(--bad) ${20+intensity*60}%, var(--surface-2))`; color = 'var(--ink)'; }
+      }
+      cells += `<div style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;border:1px solid var(--line);">
+        <span class="mono" style="font-size:.65rem;opacity:.7;">${day}</span>
+        ${pnl!=null ? `<span class="mono" style="font-weight:600;">${(pnl>=0?'+':'')}${Math.round(pnl)}</span>` : ''}
+      </div>`;
+    }
+    document.getElementById('pnl-heatmap').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;">
+        ${['S','M','T','W','T','F','S'].map(d=>`<div class="mono" style="text-align:center;font-size:.7rem;color:var(--muted);">${d}</div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${cells}</div>`;
+  }
+  document.getElementById('heatmap-prev').addEventListener('click', () => { heatmapMonth.setMonth(heatmapMonth.getMonth()-1); renderPnlHeatmap(); });
+  document.getElementById('heatmap-next').addEventListener('click', () => { heatmapMonth.setMonth(heatmapMonth.getMonth()+1); renderPnlHeatmap(); });
+
+  function renderEquityChart(){
+    const root = document.getElementById('equity-chart');
+    const list = [...trades].filter(t=>t.date).sort((a,b)=> a.date.localeCompare(b.date) || (a.createdAt||0)-(b.createdAt||0));
+    if(list.length < 2){
+      root.innerHTML = `<div class="empty-state" style="padding:20px;">
+        <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19h16M4 19V5M4 15l4-5 4 3 5-7"/></svg></div>
+        <div>Log at least 2 trades to see your equity curve.</div></div>`;
+      return;
+    }
+    let cum = 0;
+    const pts = list.map(t => (cum += (t.resultAmount||0)));
+    const w = 820, h = 180, pad = 34;
+    const minV = Math.min(0, ...pts), maxV = Math.max(0, ...pts);
+    const range = (maxV - minV) || 1;
+    const x = i => pad + (i/(pts.length-1)) * (w - pad*2);
+    const y = v => h - pad - ((v - minV)/range) * (h - pad*2);
+    const zeroY = y(0);
+    const path = pts.map((v,i) => `${i===0?'M':'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const last = pts[pts.length-1];
+    const lineColor = last >= 0 ? 'var(--good)' : 'var(--bad)';
+    root.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;font-family:'IBM Plex Mono',monospace;">
+      <line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="var(--line)" stroke-width="1" />
+      <text x="${pad}" y="${zeroY-6}" font-size="10" fill="var(--muted)">$0</text>
+      <text x="${w-pad}" y="16" font-size="10" fill="var(--muted)" text-anchor="end">max ${maxV.toFixed(0)}</text>
+      <text x="${w-pad}" y="${h-8}" font-size="10" fill="var(--muted)" text-anchor="end">min ${minV.toFixed(0)}</text>
+      <path d="${path}" fill="none" stroke="${lineColor}" stroke-width="2" />
+      <circle cx="${x(pts.length-1)}" cy="${y(last)}" r="3.5" fill="${lineColor}" />
+      <text x="${x(pts.length-1)}" y="${y(last)-8}" font-size="11" fill="${lineColor}" text-anchor="end">${last>=0?'+':''}$${last.toFixed(2)}</text>
+    </svg>`;
+  }
+
+  // ---------- Weekly performance report (mirrors the Warrior Trading weekly reporting sheet) ----------
+  function renderWeeklyReport(){
+    const root = document.getElementById('weekly-report');
+    if(!root) return;
+    const now = new Date();
+    const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6); // last 7 days incl. today
+    const inWindow = trades.filter(t => {
+      if(!t.date) return false;
+      const d = new Date(t.date+'T00:00:00');
+      return d >= cutoff;
+    });
+    if(inWindow.length === 0){
+      root.innerHTML = `<div class="empty-state" style="padding:16px;"><div>No trades in the last 7 days yet.</div></div>`;
+      return;
+    }
+    const winners = inWindow.filter(t => (t.resultAmount||0) > 0);
+    const losers = inWindow.filter(t => (t.resultAmount||0) < 0);
+    const avg = (list, fn) => list.length ? list.reduce((s,t)=>s+fn(t),0)/list.length : null;
+    const centsPerShare = t => (t.size && t.size > 0) ? (t.resultAmount/t.size)*100 : null;
+    const avgWinners = avg(winners, t => t.resultAmount);
+    const winnersWithSize = winners.filter(t => t.size && t.size > 0);
+    const avgWinnerCents = winnersWithSize.length ? avg(winnersWithSize, centsPerShare) : null;
+    const avgLosers = avg(losers, t => t.resultAmount);
+    const losersWithSize = losers.filter(t => t.size && t.size > 0);
+    const avgLoserCents = losersWithSize.length ? avg(losersWithSize, centsPerShare) : null;
+    const accuracy = inWindow.length ? winners.length/inWindow.length : null;
+    const totalPnl = inWindow.reduce((s,t)=>s+(t.resultAmount||0),0);
+    const fmtUsd = v => v==null ? '—' : (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
+    const fmtCents = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(1)+'¢';
+    const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+    root.innerHTML = `
+      <div class="grid cols-4">
+        <div class="stat-tile"><div class="k">Avg winners ($)</div><div class="v good">${fmtUsd(avgWinners)}</div></div>
+        <div class="stat-tile"><div class="k">Avg winner (¢/sh)</div><div class="v good">${fmtCents(avgWinnerCents)}</div></div>
+        <div class="stat-tile"><div class="k">Avg losers ($)</div><div class="v bad">${fmtUsd(avgLosers)}</div></div>
+        <div class="stat-tile"><div class="k">Avg loser (¢/sh)</div><div class="v bad">${fmtCents(avgLoserCents)}</div></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:12px;">
+        <div class="stat-tile"><div class="k">Total accuracy</div><div class="v ${accuracy>=0.5?'good':'bad'}">${fmtPct(accuracy)}</div></div>
+        <div class="stat-tile"><div class="k">Total P&amp;L (7d)</div><div class="v ${totalPnl>=0?'good':'bad'}">${fmtUsd(totalPnl)}</div></div>
+      </div>`;
+  }
+
+  function renderTradesTable(){
+    const tbody = document.getElementById('trades-tbody');
+    const emptyEl = document.getElementById('trades-empty');
+    tbody.innerHTML = '';
+    emptyEl.hidden = trades.length > 0;
+    trades.forEach(t => {
+      const tr = document.createElement('tr');
+      const resultClass = (t.resultAmount||0) > 0 ? 'good' : ((t.resultAmount||0) < 0 ? 'bad' : '');
+      tr.innerHTML = `
+        <td class="num">${t.date||'—'}</td>
+        <td>${t.market||'—'}</td>
+        <td>${t.instrument||'—'}${t.source==='tradingview' ? ' <span class="pill neutral" title="Imported from TradingView">TV</span>' : ''}</td>
+        <td>${t.strategy||'—'}${(t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(tag=>` <span class="pill neutral">${tag}</span>`).join('')}</td>
+        <td>${t.direction||'—'}</td>
+        <td class="num"><span class="pill ${resultClass||'neutral'}">${t.resultAmount!=null ? ((t.resultAmount>=0?'+$':'-$')+Math.abs(t.resultAmount).toFixed(2)) : '—'}</span></td>
+        <td class="num">${typeof t.rMultiple==='number' ? t.rMultiple.toFixed(2)+'R' : '—'}</td>
+        <td>${t.processFollowed ? '<span class="pill good">yes</span>' : '<span class="pill bad">no</span>'}</td>
+        <td>${(() => { const pc = t.pillarsCount ?? null; if(!pc) return '<span class="pill">—</span>'; return `<span class="pill ${pc===5?'good':'neutral'}">${pc}/5</span>`; })()}</td>
+        <td><button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${t.id}')">delete</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+
+  // ---------- Brief ----------
+  function renderBrief(){
+    const listEl = document.getElementById('brief-list');
+    const dashEl = document.getElementById('dash-brief');
+    if(briefs.length === 0){
+      listEl.innerHTML = `<div class="empty-state">
+        <div class="icon-wrap"><svg class="icon" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg></div>
+        <div>No brief has synced here yet. It arrives each morning once the scheduled task runs.</div></div>`;
+      dashEl.innerHTML = `<p style="color:var(--muted);font-size:.9rem;margin:0;">No brief yet — check back after your scheduled morning run.</p>`;
+      return;
+    }
+    listEl.innerHTML = briefs.map(b => `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+          <strong class="mono" style="font-size:.85rem;color:var(--accent);">${b.date||b.id}</strong>
+        </div>
+        <div style="white-space:pre-wrap;font-size:.9rem;">${(b.text||'').replace(/</g,'&lt;')}</div>
+      </div>`).join('');
+    const latest = briefs[0];
+    const snippet = (latest.text||'').slice(0,220);
+    dashEl.innerHTML = `<div class="mono" style="font-size:.8rem;color:var(--accent);margin-bottom:6px;">${latest.date||latest.id}</div>
+      <p style="margin:0 0 10px;font-size:.88rem;color:var(--muted);white-space:pre-wrap;">${snippet.replace(/</g,'&lt;')}${(latest.text||'').length>220?'…':''}</p>
+      <button class="btn" onclick="document.querySelector('[data-page=brief]').click()">Read full brief</button>`;
+  }
+
+  // ---------- Dashboard ----------
+  function renderDashboard(){
+    const totalDoneDays = Object.values(calState).filter(Boolean).length;
+    const doneMs = Object.values(msState).filter(Boolean).length;
+    const s = computeStats(trades);
+    const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+    const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
+
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat-tile"><div class="k">Day</div><div class="v">${Math.min(totalDoneDays+1, TOTAL_DAYS)}<span style="font-size:.9rem;color:var(--muted);">/${TOTAL_DAYS}</span></div></div>
+      <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
+      <div class="stat-tile"><div class="k">Win rate</div><div class="v ${s.total? (s.winRate>=0.5?'good':'bad'):''}">${fmtPct(s.winRate)}</div></div>
+      <div class="stat-tile"><div class="k">Avg R</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>`;
+
+    const todayKey = findTodayKey();
+    const todayEl = document.getElementById('dash-today');
+    if(!todayKey){
+      todayEl.innerHTML = `<p style="color:var(--good);font-size:.92rem;margin:0;">All ${TOTAL_DAYS} days checked off — repeat the Week 9–12 rhythm until your exit criteria are genuinely met.</p>`;
+    } else {
+      const dayNum = WEEKS.slice(0, todayKey.wi).reduce((n,w)=>n+w.days.length,0) + todayKey.di + 1;
+      const [learn, practice] = WEEKS[todayKey.wi].days[todayKey.di];
+      todayEl.innerHTML = `
+        <div class="mono" style="font-size:.8rem;color:var(--accent);margin-bottom:8px;">DAY ${dayNum} &middot; WEEK ${todayKey.wi+1}: ${WEEKS[todayKey.wi].theme}</div>
+        <div style="margin-bottom:8px;"><span class="k mono" style="font-size:10px;text-transform:uppercase;color:var(--muted);">Learn (1hr)</span><div style="font-size:.9rem;">${learn}</div></div>
+        <div><span class="k mono" style="font-size:10px;text-transform:uppercase;color:var(--muted);">Practice (1hr)</span><div style="font-size:.9rem;">${practice}</div></div>
+        <button class="btn" style="margin-top:12px;" onclick="document.querySelector('[data-page=calendar]').click()">Open calendar</button>`;
+    }
+
+    document.getElementById('dash-cal-label').textContent = `Day-by-day calendar: ${totalDoneDays} / ${TOTAL_DAYS}`;
+    document.getElementById('dash-cal-fill').style.width = (totalDoneDays/TOTAL_DAYS*100)+'%';
+    document.getElementById('dash-ms-label').textContent = `Milestones: ${doneMs} / ${MILESTONES.length}`;
+    document.getElementById('dash-ms-fill').style.width = (doneMs/MILESTONES.length*100)+'%';
+
+    renderBrief();
+  }
+
+  function renderAll(){
+    if(!(calLoaded && msLoaded && tradesLoaded && briefsLoaded && planLoaded && checklistLoaded && lessonsLoaded)) return;
+    renderCalendar();
+    renderMilestones();
+    renderJournalStats();
+    renderEquityChart();
+    renderStatsByStrategy();
+    renderStatsByTag();
+    renderCoachRules();
+    renderWeeklyReport();
+    renderPnlHeatmap();
+    renderTradesTable();
+    renderPlan();
+    renderLessons();
+    renderDashboard();
+  }
+</script>
+</body>
+</html>
