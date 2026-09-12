@@ -84,6 +84,26 @@ column position, so if Finviz ever reorders columns or you customize
 `FINVIZ_COLUMNS` (a Vercel env var), it keeps working without a code
 change.
 
+## Also added: short interest + server-side strategy filters + auto news
+
+- **Short Float % and Short Ratio** (Finviz columns 30/31, verified live)
+  — the exact data point Ross Cameron's video names as what a real paid
+  scanner shows that a free one usually can't. High short interest on a
+  low-float mover is a classic squeeze setup. Shown as its own sortable
+  column in both Scanner tables.
+- **Server-side filters** (`FINVIZ_FILTERS` env var, override the
+  default): `sh_float_u20` (float under 20M) and `sh_relvol_o2`
+  (relative volume over 2x) added on top of the existing price/change
+  filters, so Finviz only returns candidates already matching the
+  strategy's float/volume requirements instead of the scanner relying
+  entirely on client-side Pillars scoring after the fact. Verified live:
+  cuts a ~356-row unfiltered result down to ~37 qualified rows.
+- **Auto news-check for the top 8 gainers** on every refresh (Finnhub
+  free tier, 60 calls/min, has plenty of headroom) — the 🔥 freshness
+  badge now appears without a manual "Check news" click. Requires
+  `FINNHUB_API_KEY` to be set; silently no-ops otherwise rather than
+  firing doomed requests.
+
 ## The architecture change this required
 
 Paid API keys can't ship in client-side code (unlike Alpha Vantage's
