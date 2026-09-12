@@ -215,6 +215,12 @@
   /* ---- Scanner: card grid (replaces the horizontally-scrolling table) ---- */
   .sc-card-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
   .sc-stock-card{
+    /* min-width:0 overrides the grid-item default of min-width:auto — without
+       it, this card's own inner 4-column .sc-card-stats grid (min ~360px)
+       forces the card wider than its 1fr track, blowing out the whole page
+       to a horizontal scroll on narrow/mobile screens. Verified live at a
+       390px viewport: card rendered at 425px before this fix. */
+    min-width:0;
     border:1px solid var(--line); border-radius:14px; padding:14px;
     background:var(--surface); transition:box-shadow .15s ease;
   }
