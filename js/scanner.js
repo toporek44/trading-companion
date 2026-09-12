@@ -29,6 +29,7 @@ async function refreshScanner(){
     lsSet(SCANNER_CACHE_KEY, { fetchedAt: data.fetchedAt, top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
     scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`);
     renderScannerTables();
+    checkScannerPillarAlerts(data.top_gainers||[]);
     autoCheckTopNews((data.top_gainers||[]).map(r => r.ticker)); // fire-and-forget, updates the fire-icon badges as results come in
   }catch(err){
     scannerStatus('Could not reach the scanner endpoint. Showing last cached scan if available.');
@@ -133,6 +134,7 @@ async function checkScannerNews(ticker, {silent} = {}){
     if(data.configured === false){ if(!silent) scannerStatus('News check not configured — FINHUB_API_KEY is not set on the server.'); return; }
     if(data.error){ if(!silent) scannerStatus(`${data.error} News check for ${ticker} not completed.`); return; }
     setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: data.hoursOld, headline: data.headline, url: null });
+    checkScannerNewsFreshnessAlert(ticker, data);
     if(!silent){
       scannerStatus(data.hoursOld != null
         ? `${ticker}: latest news is ~${data.hoursOld.toFixed(1)}h old (checked just now, cached for today).`
@@ -158,6 +160,115 @@ async function autoCheckTopNews(tickers){
   }
   if(checkedAny) renderScannerTables();
 }
+
+// ---------- Scanner: proactive browser-notification alerts ----------
+// Opt-in (user gesture required for Notification.requestPermission — can't
+// auto-request on load). Fires when a ticker newly hits 5/5 Pillars, or a
+// tracked ticker's news freshness newly lands in the 🔥 <2h tier — each
+// ticker+condition alerts once per calendar day so a still-qualifying
+// ticker doesn't re-alert on every 60s refresh.
+//
+// Hard limitation (also stated in the UI): the browser Notification API
+// only fires while this tab is open (it can be backgrounded/minimized and
+// still work in most browsers) — it will NOT fire if the browser or tab is
+// fully closed. There's no service worker / push-server behind this.
+const ALERTS_ENABLED_KEY = 'tc-scanner-alerts-enabled';
+const ALERTS_FIRED_KEY = 'tc-scanner-alerts-fired-today';
+
+function scannerAlertsSupported(){ return typeof Notification !== 'undefined'; }
+function scannerAlertsEnabled(){ return lsGet(ALERTS_ENABLED_KEY, false); }
+function setScannerAlertsEnabled(v){ lsSet(ALERTS_ENABLED_KEY, !!v); }
+
+function getScannerAlertsFiredToday(){
+  const stored = lsGet(ALERTS_FIRED_KEY, null);
+  if(!stored || stored.date !== scannerTodayStr()) return {};
+  return stored.fired || {};
+}
+function hasScannerAlertFired(ticker, cond){
+  return !!getScannerAlertsFiredToday()[`${ticker}|${cond}`];
+}
+function markScannerAlertFired(ticker, cond){
+  const fired = getScannerAlertsFiredToday();
+  fired[`${ticker}|${cond}`] = true;
+  lsSet(ALERTS_FIRED_KEY, { date: scannerTodayStr(), fired });
+}
+
+function scannerAlertsActive(){
+  return scannerAlertsSupported() && Notification.permission === 'granted' && scannerAlertsEnabled();
+}
+function fireScannerAlert(title, body){
+  if(!scannerAlertsActive()) return;
+  try{ new Notification(title, { body }); }catch(err){ /* notification creation can throw in some contexts; alerts are best-effort */ }
+}
+function findScannerCachedRow(ticker){
+  const cache = lsGet(SCANNER_CACHE_KEY, null);
+  if(!cache) return null;
+  return (cache.top_gainers||[]).find(r => r.ticker === ticker) || (cache.most_actively_traded||[]).find(r => r.ticker === ticker) || null;
+}
+function scannerAlertLine(row){
+  return `${row.ticker} ${row.pct>=0?'+':''}${row.pct.toFixed(2)}% at $${row.price.toFixed(2)}`;
+}
+// Trigger 1: a ticker newly appears in top_gainers with a full 5/5 pillar
+// score that wasn't already alerted today.
+function checkScannerPillarAlerts(rawGainers){
+  if(!scannerAlertsActive()) return;
+  rawGainers.forEach(row => {
+    if(row.price == null || row.pct == null) return;
+    const d = scannerRowData(row);
+    if(d.pillarCount === 5 && !hasScannerAlertFired(d.ticker, 'pillars5')){
+      markScannerAlertFired(d.ticker, 'pillars5');
+      fireScannerAlert(`${d.ticker} — 5/5 Pillars`, `${scannerAlertLine(d)} — 5/5 pillars`);
+    }
+  });
+}
+// Trigger 2: a tracked ticker's news check newly lands in the 🔥 <2h tier
+// for the first time today. `data` is the raw /api/scanner-news response.
+function checkScannerNewsFreshnessAlert(ticker, data){
+  if(!scannerAlertsActive()) return;
+  if(data.hoursOld == null || data.hoursOld >= 2) return;
+  if(hasScannerAlertFired(ticker, 'freshnews')) return;
+  markScannerAlertFired(ticker, 'freshnews');
+  const row = findScannerCachedRow(ticker);
+  const prefix = row ? scannerAlertLine(row) : ticker;
+  const headline = data.headline ? `: ${data.headline}` : '';
+  fireScannerAlert(`${ticker} — fresh news (<2h)`, `${prefix} — fresh news${headline}`);
+}
+
+function updateScannerAlertsUI(){
+  const btn = document.getElementById('scanner-alerts-toggle');
+  const state = document.getElementById('scanner-alerts-state');
+  if(!btn || !state) return;
+  if(!scannerAlertsSupported()){
+    btn.disabled = true;
+    state.textContent = 'Notifications are not supported in this browser.';
+    return;
+  }
+  const perm = Notification.permission; // 'default' | 'granted' | 'denied'
+  if(perm === 'denied'){
+    state.textContent = 'Alerts: blocked — check your browser\'s site settings.';
+    btn.textContent = 'Enable alerts';
+  } else if(perm === 'granted' && scannerAlertsEnabled()){
+    state.textContent = 'Alerts: on';
+    btn.textContent = 'Disable alerts';
+  } else {
+    state.textContent = 'Alerts: off (click to enable)';
+    btn.textContent = 'Enable alerts';
+  }
+}
+document.getElementById('scanner-alerts-toggle').addEventListener('click', async () => {
+  if(!scannerAlertsSupported()) return;
+  const perm = Notification.permission;
+  if(perm === 'granted' && scannerAlertsEnabled()){
+    setScannerAlertsEnabled(false); // currently on — turn off
+    updateScannerAlertsUI();
+    return;
+  }
+  if(perm === 'denied'){ updateScannerAlertsUI(); return; } // browser won't re-prompt; nothing we can do here
+  const result = perm === 'granted' ? 'granted' : await Notification.requestPermission();
+  setScannerAlertsEnabled(result === 'granted');
+  updateScannerAlertsUI();
+});
+updateScannerAlertsUI();
 
 // ---------- Scanner: watchlist (localStorage, ticker array) ----------
 const SCANNER_WATCHLIST_KEY = 'tc-scanner-watchlist';
