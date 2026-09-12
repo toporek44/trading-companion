@@ -259,6 +259,10 @@
     display:flex; flex-direction:column; gap:4px; font-family:"IBM Plex Mono",monospace;
     font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:10px;
   }
+  .sc-note-textarea{
+    font-family:"Manrope",sans-serif; font-size:13px; resize:vertical; min-height:80px;
+    border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--surface); color:var(--ink);
+  }
   .sc-detail-field select, .sc-detail-field input{
     font-family:"Manrope",sans-serif; text-transform:none; letter-spacing:normal; font-size:13px;
     border:1px solid var(--line); border-radius:8px; padding:7px 9px; background:var(--surface); color:var(--ink);

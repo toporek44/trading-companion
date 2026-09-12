@@ -489,6 +489,20 @@ function toggleScannerWatch(ticker){
   if(idx >= 0) list.splice(idx, 1); else list.push(ticker);
   lsSet(SCANNER_WATCHLIST_KEY, list);
 }
+
+// Per-ticker free-text notes — TC2000's watchlist context menu lets you
+// write notes per ticker (entry plan, why you're watching it); this is the
+// text-only version of that (no charting surface here to attach a snapshot
+// to). Kept in localStorage alongside the watchlist itself, not synced to
+// Supabase — matches the watchlist's own persistence tier rather than
+// introducing an inconsistent "notes sync but watchlist doesn't" split.
+const SCANNER_NOTES_KEY = 'tc-scanner-notes';
+function getScannerNote(ticker){ return lsGet(SCANNER_NOTES_KEY, {})[ticker] || ''; }
+function setScannerNote(ticker, text){
+  const notes = lsGet(SCANNER_NOTES_KEY, {});
+  if(text) notes[ticker] = text; else delete notes[ticker];
+  lsSet(SCANNER_NOTES_KEY, notes);
+}
 initSegmented('sc-watch-filter');
 document.getElementById('sc-watch-filter').addEventListener('click', () => renderScannerTables());
 
@@ -648,7 +662,7 @@ function scannerRowHtml(data, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${catalystBadge}
+          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getScannerNote(ticker) ? '<span title="You have a note on this ticker">&#128221;</span>' : ''}${catalystBadge}
         </div>
         <div class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
       </div>
@@ -695,8 +709,11 @@ function scannerRowHtml(data, rank){
             <span title="${shortTitle}">Short float: <strong>${shortFloatPct!=null ? shortFloatPct.toFixed(1)+'%' : '—'}</strong></span>
           </div>
         </div>
-        <div class="sc-detail-col" style="justify-content:flex-end;">
-          <button class="btn primary" style="padding:8px 14px;font-size:12px;" onclick="__logScannerTrade('${ticker.replace(/'/g,"\\'")}', ${price}, ${pct})">Log this trade &rarr;</button>
+        <div class="sc-detail-col">
+          <h4>Your notes</h4>
+          <textarea class="sc-note-textarea" data-ticker="${ticker}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getScannerNote(ticker))}</textarea>
+          <div style="flex:1;"></div>
+          <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:10px;" onclick="__logScannerTrade('${ticker.replace(/'/g,"\\'")}', ${price}, ${pct})">Log this trade &rarr;</button>
         </div>
       </div>
     </div>
@@ -823,6 +840,11 @@ document.getElementById('scanner-export-csv').addEventListener('click', exportSc
     } else if(e.target.matches('.sc-avgvol-input')){
       const v = e.target.value.trim();
       setScannerManualField(e.target.dataset.ticker, 'avgVol', v === '' ? null : parseFloat(v));
+      renderScannerTables();
+    } else if(e.target.matches('.sc-note-textarea')){
+      // 'change' (not 'input') so this only fires on blur — re-rendering
+      // mid-keystroke would replace the textarea's innerHTML and steal focus.
+      setScannerNote(e.target.dataset.ticker, e.target.value.trim());
       renderScannerTables();
     }
   });
