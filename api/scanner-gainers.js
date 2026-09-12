@@ -15,17 +15,38 @@
 //
 // Server-side filters (FINVIZ_FILTERS) pre-qualify candidates against the
 // strategy's hard requirements before they ever reach the client: price
-// $1-$20, up >=4% (a broad "catch it moving" net — the Pillars badge
-// still requires >=10% for full credit), float under 20M, and relative
-// volume over 2x (again a broad net; the Pillars badge requires >=5x).
-// Confirmed live: `sh_float_u20` and `sh_relvol_o2` correctly cut a
-// ~356-row unfiltered result down to ~37 float/volume-qualified rows.
+// range (see below), up >=4% (a broad "catch it moving" net — the
+// Pillars badge still requires >=10% for full credit), float under 20M,
+// and relative volume over 2x (again a broad net; the Pillars badge
+// requires >=5x). Confirmed live: `sh_float_u20` and `sh_relvol_o2`
+// correctly cut a ~356-row unfiltered result down to ~37 qualified rows.
+//
+// Price range is NOT a fixed constant — it's read from Supabase (same
+// 'scanner-price-range' row the Scanner tab's Min/Max price fields write
+// to via persistProgress in js/scanner.js), so editing it once in the app
+// changes what this live fetch pulls too, not just a client-side display
+// filter. Falls back to $2-$20 (Ross Cameron's stated range) if unset.
+// Set FINVIZ_FILTERS env var to bypass this entirely with a fixed string.
+
+const SUPABASE_URL = "https://wcqickazhkxgyofyqnxq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcWlja2F6aGt4Z3lvZnlxbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5Njc4MjUsImV4cCI6MjEwNDU0MzgyNX0.6o4MmgXZTfuXrvK5sEXYUUJk_wYY64xgE-PnE6IxcVc";
 
 const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float, Short Float, Short Ratio
-// Price $1-$20, up >=4% on the day — mirrors this app's own default
-// Scanner filters (see the Filters card in the Scanner tab).
-const DEFAULT_FILTERS = 'sh_price_o1,sh_price_u20,ta_change_u4,sh_float_u20,sh_relvol_o2';
+const OTHER_FILTERS = 'ta_change_u4,sh_float_u20,sh_relvol_o2';
 const ROW_LIMIT = 30;
+
+async function getPriceRange(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.scanner-price-range&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const s = Array.isArray(rows) && rows[0] && rows[0].state;
+    return { min: (s && s.min != null) ? s.min : 2, max: (s && s.max != null) ? s.max : 20 };
+  }catch(e){
+    return { min: 2, max: 20 };
+  }
+}
 
 function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
@@ -92,7 +113,15 @@ export default async function handler(req, res){
   if(!apiKey){ res.status(200).json({ configured: false }); return; }
 
   const columns = process.env.FINVIZ_COLUMNS || DEFAULT_COLUMNS;
-  const filters = process.env.FINVIZ_FILTERS || DEFAULT_FILTERS;
+  let filters = process.env.FINVIZ_FILTERS;
+  if(!filters){
+    const { min, max } = await getPriceRange();
+    // Finviz's price filter is a single "NtoM" range token (whole dollars),
+    // NOT separate "_oN"/"_uN" over/under tokens like sh_float/sh_relvol
+    // use — verified live: sh_price_oN/_uN are silently ignored (no error,
+    // just no filtering), while sh_price_NtoM correctly bounds results.
+    filters = `sh_price_${Math.round(min)}to${Math.round(max)},${OTHER_FILTERS}`;
+  }
 
   try{
     const url = `https://elite.finviz.com/export.ashx?v=152&f=${filters}&ft=4&c=${columns}&auth=${apiKey}`;

@@ -22,9 +22,27 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const FINVIZ_BASE = 'https://elite.finviz.com';
 const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31';
-const DEFAULT_FILTERS = 'sh_price_o1,sh_price_u20,ta_change_u4,sh_float_u20,sh_relvol_o2';
+const OTHER_FILTERS = 'ta_change_u4,sh_float_u20,sh_relvol_o2';
 const NEWS_CHECK_LIMIT = 15; // bound Finnhub calls per run to the top N candidates by change%
 const SCANNER_RELVOL_PILLAR_MIN = 5;
+
+// Same 'scanner-price-range' Supabase row the Scanner tab's Min/Max price
+// fields write to (see js/scanner.js) — one source of truth so editing
+// the range in the app also changes what this server-side alert check
+// fetches and scores, not just the browser's own display filter. Falls
+// back to $2-$20 (Ross Cameron's stated range) if never set.
+async function getPriceRange(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.scanner-price-range&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const s = Array.isArray(rows) && rows[0] && rows[0].state;
+    return { min: (s && s.min != null) ? s.min : 2, max: (s && s.max != null) ? s.max : 20 };
+  }catch(e){
+    return { min: 2, max: 20 };
+  }
+}
 
 function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
@@ -67,8 +85,8 @@ function shapeRow(row){
   };
 }
 
-async function fetchFinvizGainers(apiKey){
-  const url = `${FINVIZ_BASE}/export.ashx?v=152&f=${DEFAULT_FILTERS}&ft=4&c=${DEFAULT_COLUMNS}&auth=${apiKey}`;
+async function fetchFinvizGainers(apiKey, filters){
+  const url = `${FINVIZ_BASE}/export.ashx?v=152&f=${filters}&ft=4&c=${DEFAULT_COLUMNS}&auth=${apiKey}`;
   const r = await fetch(url);
   const text = await r.text();
   if(!r.ok || /<html/i.test(text)) throw new Error('Unexpected response from Finviz');
@@ -191,7 +209,12 @@ export default async function handler(req, res){
   }
 
   try{
-    const gainers = await fetchFinvizGainers(finvizKey);
+    const priceRange = await getPriceRange();
+    // Finviz's price filter is a single "NtoM" range token (whole dollars),
+    // not separate "_oN"/"_uN" tokens — verified live against the real
+    // export endpoint (see api/scanner-gainers.js for the full story).
+    const filters = `sh_price_${Math.round(priceRange.min)}to${Math.round(priceRange.max)},${OTHER_FILTERS}`;
+    const gainers = await fetchFinvizGainers(finvizKey, filters);
     // Sort by |change%| descending and only spend Finnhub calls checking
     // the top candidates — matches the Scanner tab's own "top 8" budget,
     // slightly wider here since this runs on a timer, not a click.
@@ -203,7 +226,7 @@ export default async function handler(req, res){
     for(const row of candidates){
       const freshness = await fetchFinnhubFreshness(row.ticker, finhubKey);
       const newsOk = freshness.hoursOld != null && freshness.hoursOld <= 24;
-      const priceOk = row.price >= 1 && row.price <= 20;
+      const priceOk = row.price >= priceRange.min && row.price <= priceRange.max;
       const gainOk = Math.abs(row.pct) >= 10;
       const relVol = (row.avgVolMAuto != null && row.avgVolMAuto > 0) ? (row.vol / (row.avgVolMAuto * 1e6)) : null;
       const volOk = relVol != null && relVol >= SCANNER_RELVOL_PILLAR_MIN;

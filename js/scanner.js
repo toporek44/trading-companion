@@ -1,4 +1,4 @@
-import { lsGet, lsSet } from './state.js';
+import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY } from './state.js';
 import { initSegmented } from './journal.js';
 import { showPage } from './nav.js';
 
@@ -10,9 +10,36 @@ import { showPage } from './nav.js';
 const SCANNER_CACHE_KEY = 'tc-scanner-cache';
 const AUTO_REFRESH_MS = 60000; // 60s — frequent enough to catch a fresh mover quickly without hammering the API; also the cadence alerts will piggyback on.
 
+// Price range is edited once here (Min/Max price fields below) and synced
+// to Supabase under key 'scanner-price-range' so the server-side Telegram
+// alert function (api/check-alerts.js, which has no browser/localStorage)
+// and the live-fetch filter (api/scanner-gainers.js) both read the same
+// value — one source of truth instead of separately hardcoded copies.
+// $2-$20 matches Ross Cameron's own stated range in the reference video.
+const PRICE_RANGE_KEY = 'scanner-price-range';
+async function loadPriceRangeSetting(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.${PRICE_RANGE_KEY}&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const s = Array.isArray(rows) && rows[0] && rows[0].state;
+    if(s && s.min != null) document.getElementById('sc-minprice').value = s.min;
+    if(s && s.max != null) document.getElementById('sc-maxprice').value = s.max;
+  }catch(e){ /* keep the HTML defaults */ }
+}
+function savePriceRangeSetting(){
+  const min = parseFloat(document.getElementById('sc-minprice').value);
+  const max = parseFloat(document.getElementById('sc-maxprice').value);
+  persistProgress(PRICE_RANGE_KEY, { min: isNaN(min)?null:min, max: isNaN(max)?null:max });
+}
+loadPriceRangeSetting();
+
 ['sc-minprice','sc-maxprice','sc-minpct','sc-minvol'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderScannerTables);
 });
+document.getElementById('sc-minprice').addEventListener('change', savePriceRangeSetting);
+document.getElementById('sc-maxprice').addEventListener('change', savePriceRangeSetting);
 
 function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
 
@@ -88,8 +115,17 @@ function scannerNewsOk(newsEntry, catalystType){
   return !!catalystType;
 }
 
+// Default $2-$20 matches Ross Cameron's own stated range in the reference
+// video; overridden live by the Min/Max price fields (see
+// loadPriceRangeSetting/savePriceRangeSetting above).
+function scannerPriceRange(){
+  const min = parseFloat(document.getElementById('sc-minprice').value);
+  const max = parseFloat(document.getElementById('sc-maxprice').value);
+  return { min: isNaN(min) ? 2 : min, max: isNaN(max) ? 20 : max };
+}
 function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
-  const priceOk = price >= 1 && price <= 20;
+  const { min, max } = scannerPriceRange();
+  const priceOk = price >= min && price <= max;
   const gainOk = Math.abs(pct) >= 10;
   const volOk = relVol != null ? relVol >= SCANNER_RELVOL_PILLAR_MIN : vol >= SCANNER_VOL_PILLAR_MIN;
   const floatOk = floatM != null && floatM < 20;

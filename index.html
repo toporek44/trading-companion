@@ -380,7 +380,7 @@
       <section id="page-scanner" class="page" hidden>
         <p class="lede">A momentum scanner built Ross Cameron's way: scans for stocks up &ge;4% on the day, sorted by <strong>Change % descending</strong>, highlighting the <strong>top 5&ndash;10 rows</strong> &mdash; "page one," never page two.</p>
         <ul class="lede-list">
-          <li><strong>5 Pillars scoring</strong> &mdash; relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $1&ndash;$20 ($5&ndash;$10 sweet spot), float under 20M (10M preferred). This is what scores the Pillars badge below.</li>
+          <li><strong>5 Pillars scoring</strong> &mdash; relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $2&ndash;$20 ($5&ndash;$10 sweet spot), float under 20M (10M preferred). Editable in the Filters card below (Min/Max price) &mdash; it's synced everywhere, including the Telegram alert check. This is what scores the Pillars badge below.</li>
           <li><strong>Live data, auto-refreshing every 60 seconds</strong> &mdash; relative volume and float are computed for real from Finviz Elite, no manual entry or API key needed here. A manual override per ticker is still available if you have better data for a specific symbol.</li>
           <li><strong>News freshness, checked automatically for the top rows</strong> &mdash; the top gainers are auto-checked for fresh news right after each refresh, no click needed; everything else still has a manual "Check news" button. Pulls the latest real headline's publish time from Finnhub, shown as an age icon: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Cached per ticker per day; a manual catalyst-type field is the fallback until checked.</li>
           <li><strong>Catalyst quality</strong> &mdash; earnings, FDA approvals, clinical results, and new contracts count toward the News pillar. A merger/buyout/acquisition catalyst is flagged and deliberately excluded &mdash; once a buyout price is set, the stock tends to go flat.</li>
@@ -427,7 +427,7 @@
           <h3>Filters</h3>
           <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0;">Defaults roughly match the 5 pillars already; tighten min/max price to $5&ndash;$10 for the worksheet's "sweet spot" if you want a shorter list.</p>
           <div class="form-grid" style="margin-top:10px;">
-            <div class="field"><label for="sc-minprice">Min price</label><input type="number" step="any" id="sc-minprice" value="1"></div>
+            <div class="field"><label for="sc-minprice">Min price</label><input type="number" step="any" id="sc-minprice" value="2"></div>
             <div class="field"><label for="sc-maxprice">Max price</label><input type="number" step="any" id="sc-maxprice" value="20"></div>
             <div class="field"><label for="sc-minpct">Min % change</label><input type="number" step="any" id="sc-minpct" value="4"></div>
             <div class="field"><label for="sc-minvol">Min volume (liquidity proxy)</label><input type="number" step="any" id="sc-minvol" value="500000"></div>
