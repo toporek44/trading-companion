@@ -1,5 +1,16 @@
 # Scanner upgrade: Alpha Vantage (free) → Finviz Elite (paid)
 
+**⚠️ Historical/superseded.** This document records the original
+Alpha Vantage → Finviz Elite migration decision and is kept for that
+context, but is now stale in several ways: the Alpha Vantage fallback
+described below was **removed entirely** later the same session (no
+fallback exists anymore — `configured: false` is shown instead), the
+Scanner gained a Crypto and Futures tab, auto-refreshes every 60s (not
+"on click"), and picked up many more features (Setup Grade, Today's
+Top Picks, presets, notes, heatmap view, Telegram/Discord alerts). **For
+the current Scanner architecture, see the "Scanner" section in
+`CLAUDE.md`** — this file is not maintained going forward.
+
 Status: **implemented and verified live against real Finviz Elite data
 (2026-09-12).** `api/scanner-gainers.js` calls Finviz Elite's screener
 export; `js/scanner.js` tries it first and falls back to the Alpha
