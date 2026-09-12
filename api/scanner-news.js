@@ -18,13 +18,30 @@ export default async function handler(req, res){
     const r = await fetch(url);
     const data = await r.json();
     if(!Array.isArray(data) || data.length === 0){
-      res.status(200).json({ configured: true, headline: null, hoursOld: null });
+      res.status(200).json({ configured: true, headline: null, hoursOld: null, items: [] });
       return;
     }
-    // Finnhub's order isn't guaranteed newest-first — pick the max datetime explicitly.
-    const latest = data.reduce((a, b) => (b && b.datetime > (a && a.datetime || 0) ? b : a), null);
-    const hoursOld = latest && latest.datetime ? (Date.now() / 1000 - latest.datetime) / 3600 : null;
-    res.status(200).json({ configured: true, headline: (latest && latest.headline) || null, hoursOld });
+    // Finnhub's order isn't guaranteed newest-first — sort explicitly, then
+    // take the 3 most recent so the client can show a short history per
+    // ticker, not just a single "latest" headline.
+    const items = data
+      .filter(a => a && a.datetime)
+      .sort((a, b) => b.datetime - a.datetime)
+      .slice(0, 3)
+      .map(a => ({
+        headline: a.headline || null,
+        url: a.url || null,
+        source: a.source || null,
+        datetime: a.datetime, // unix seconds, exact — client renders local date/time from this
+        hoursOld: (Date.now() / 1000 - a.datetime) / 3600,
+      }));
+    const latest = items[0] || null;
+    res.status(200).json({
+      configured: true,
+      items,
+      headline: latest ? latest.headline : null,
+      hoursOld: latest ? latest.hoursOld : null,
+    });
   }catch(err){
     res.status(502).json({ configured: true, error: 'Could not reach Finnhub.' });
   }

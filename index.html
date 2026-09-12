@@ -382,8 +382,9 @@
         <ul class="lede-list">
           <li><strong>5 Pillars scoring</strong> &mdash; relative volume &ge;5x, up &ge;10% on the day, a real news catalyst, price $2&ndash;$20 ($5&ndash;$10 sweet spot), float under 20M (10M preferred). Editable in the Filters card below (Min/Max price) &mdash; it's synced everywhere, including the Telegram alert check. This is what scores the Pillars badge below.</li>
           <li><strong>Live data, auto-refreshing every 60 seconds</strong> &mdash; relative volume and float are computed for real from Finviz Elite, no manual entry or API key needed here. A manual override per ticker is still available if you have better data for a specific symbol.</li>
-          <li><strong>News freshness, checked automatically for the top rows</strong> &mdash; the top gainers are auto-checked for fresh news right after each refresh, no click needed; everything else still has a manual "Check news" button. Pulls the latest real headline's publish time from Finnhub, shown as an age icon: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Cached per ticker per day; a manual catalyst-type field is the fallback until checked.</li>
+          <li><strong>News freshness, checked automatically for the top rows</strong> &mdash; the top gainers are auto-checked for fresh news right after each refresh, no click needed; everything else still has a manual "Check news" button. Pulls the latest real headline's publish time from Finnhub, shown as an age icon: &#128293;&nbsp;&lt;2h &middot; &#128994;&nbsp;&lt;4h &middot; &#128993;&nbsp;&lt;12h &middot; &#128992;&nbsp;&lt;24h &middot; &#9898;&nbsp;24h+. Click the badge to expand the last 3 articles with exact date/time and a link to the source &mdash; the evidence trail behind the icon. Sortable via the "News" sub-header (freshest first). Cached per ticker per day; a manual catalyst-type field is the fallback until checked.</li>
           <li><strong>Catalyst quality</strong> &mdash; earnings, FDA approvals, clinical results, and new contracts count toward the News pillar. A merger/buyout/acquisition catalyst is flagged and deliberately excluded &mdash; once a buyout price is set, the stock tends to go flat.</li>
+          <li><strong>"Why did this score X/5?"</strong> &mdash; click the Pillars badge on any row to expand a pass/fail breakdown with the exact number behind each of the 5 checks (price, gain %, relative volume, news, float) instead of just the bare count.</li>
           <li><strong>Short %</strong> &mdash; short float and short ratio (days to cover). High short interest on a low-float mover is exactly the setup that produces a short squeeze — this is the one data point Ross Cameron says a real paid scanner shows that a free one usually can't.</li>
           <li><strong>Ranking</strong> &mdash; rows are numbered by rank; the top 3 get a leader highlight, the top 10 a subtle tint, mirroring "page one of a search."</li>
         </ul>
@@ -450,7 +451,7 @@
               <thead><tr class="sc-sort-row" data-scope="gainers">
                 <th>#</th>
                 <th data-sort="pct" style="cursor:pointer;">Change %<span class="sc-sort-ind"></span></th>
-                <th data-sort="ticker" style="cursor:pointer;">Symbol / News<span class="sc-sort-ind"></span></th>
+                <th style="cursor:pointer;white-space:nowrap;"><span data-sort="ticker">Symbol<span class="sc-sort-ind"></span></span> / <span data-sort="news">News<span class="sc-sort-ind"></span></span></th>
                 <th data-sort="price" style="cursor:pointer;">Price<span class="sc-sort-ind"></span></th>
                 <th data-sort="vol" style="cursor:pointer;">Volume<span class="sc-sort-ind"></span></th>
                 <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>
@@ -475,7 +476,7 @@
               <thead><tr class="sc-sort-row" data-scope="active">
                 <th>#</th>
                 <th data-sort="pct" style="cursor:pointer;">Change %<span class="sc-sort-ind"></span></th>
-                <th data-sort="ticker" style="cursor:pointer;">Symbol / News<span class="sc-sort-ind"></span></th>
+                <th style="cursor:pointer;white-space:nowrap;"><span data-sort="ticker">Symbol<span class="sc-sort-ind"></span></span> / <span data-sort="news">News<span class="sc-sort-ind"></span></span></th>
                 <th data-sort="price" style="cursor:pointer;">Price<span class="sc-sort-ind"></span></th>
                 <th data-sort="vol" style="cursor:pointer;">Volume<span class="sc-sort-ind"></span></th>
                 <th data-sort="relvol" style="cursor:pointer;">Rel Vol<span class="sc-sort-ind"></span></th>

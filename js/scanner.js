@@ -123,6 +123,26 @@ function scannerPriceRange(){
   const max = parseFloat(document.getElementById('sc-maxprice').value);
   return { min: isNaN(min) ? 2 : min, max: isNaN(max) ? 20 : max };
 }
+// Returns each pillar's pass/fail plus the concrete number that decided it,
+// so the UI can show *why* a ticker scored what it scored instead of just
+// the bare count.
+function scannerPillarBreakdown(price, pct, vol, newsOk, floatM, relVol, newsEntry){
+  const { min, max } = scannerPriceRange();
+  const priceOk = price >= min && price <= max;
+  const gainOk = Math.abs(pct) >= 10;
+  const volOk = relVol != null ? relVol >= SCANNER_RELVOL_PILLAR_MIN : vol >= SCANNER_VOL_PILLAR_MIN;
+  const floatOk = floatM != null && floatM < 20;
+  const newsDetail = newsEntry && newsEntry.hoursOld != null
+    ? `${newsEntry.hoursOld.toFixed(1)}h old`
+    : (newsOk ? 'manual catalyst tagged' : 'no fresh news / catalyst');
+  return [
+    { key: 'price', label: 'Price in range', ok: priceOk, detail: `$${price.toFixed(2)} (need $${min}-$${max})` },
+    { key: 'gain', label: 'Up ≥10% today', ok: gainOk, detail: `${pct>=0?'+':''}${pct.toFixed(2)}%` },
+    { key: 'relvol', label: 'Rel. volume ≥5x', ok: volOk, detail: relVol != null ? `${relVol.toFixed(1)}x avg` : `${vol.toLocaleString()} shares (no avg vol yet)` },
+    { key: 'news', label: 'Fresh news/catalyst', ok: newsOk, detail: newsDetail },
+    { key: 'float', label: 'Float <20M', ok: floatOk, detail: floatM != null ? `${floatM.toFixed(1)}M` : 'unknown (enter float)' },
+  ];
+}
 function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
   const { min, max } = scannerPriceRange();
   const priceOk = price >= min && price <= max;
@@ -160,7 +180,32 @@ function scannerNewsBadgeHtml(entry){
   if(entry.hoursOld == null) return `<span class="pill" title="No recent articles found">no news found</span>`;
   const b = scannerFreshnessBucket(entry.hoursOld);
   const title = entry.headline ? entry.headline.replace(/"/g,'&quot;') : '';
-  return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old</span>`;
+  const count = (entry.items && entry.items.length > 1) ? ` (${entry.items.length})` : '';
+  return `<span class="pill ${b.cls}" title="${title}">${b.icon} ${b.label} old${count}</span>`;
+}
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+// Last-3-news panel: exact local date/time (not just a relative bucket) so
+// results can be trusted and cross-checked, plus a direct link to the
+// source article — this is the "why did this fire" evidence trail.
+function scannerNewsPanelHtml(ticker, entry){
+  if(!entry){
+    return `<div class="sc-news-empty" style="font-size:11px;color:var(--muted);padding:4px 0;">Not checked yet — click "Check news".</div>`;
+  }
+  if(!entry.items || entry.items.length === 0){
+    return `<div class="sc-news-empty" style="font-size:11px;color:var(--muted);padding:4px 0;">Checked — no articles found in the last 3 days.</div>`;
+  }
+  return `<div class="sc-news-list" style="display:flex;flex-direction:column;gap:6px;padding:6px 0 2px;">${entry.items.map(item => {
+    const b = scannerFreshnessBucket(item.hoursOld);
+    const when = item.datetime ? new Date(item.datetime * 1000).toLocaleString() : '';
+    const headline = escapeHtml(item.headline || '(no headline)');
+    const source = item.source ? ` &middot; ${escapeHtml(item.source)}` : '';
+    const body = `<span class="pill ${b.cls}" style="flex-shrink:0;">${b.icon} ${b.label}</span> <span style="font-size:12px;">${headline}</span><div style="font-size:10px;color:var(--muted);margin-top:2px;">${when}${source}</div>`;
+    return item.url
+      ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" style="display:flex;gap:6px;align-items:flex-start;text-decoration:none;color:inherit;">${body}</a>`
+      : `<div style="display:flex;gap:6px;align-items:flex-start;">${body}</div>`;
+  }).join('')}</div>`;
 }
 async function checkScannerNews(ticker, {silent} = {}){
   if(!silent) scannerStatus(`Checking news freshness for ${ticker}…`);
@@ -169,7 +214,7 @@ async function checkScannerNews(ticker, {silent} = {}){
     const data = await res.json();
     if(data.configured === false){ if(!silent) scannerStatus('News check not configured — FINHUB_API_KEY is not set on the server.'); return; }
     if(data.error){ if(!silent) scannerStatus(`${data.error} News check for ${ticker} not completed.`); return; }
-    setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: data.hoursOld, headline: data.headline, url: null });
+    setScannerNewsCacheEntry(ticker, { checkedAt: Date.now(), hoursOld: data.hoursOld, headline: data.headline, items: data.items || [] });
     checkScannerNewsFreshnessAlert(ticker, data);
     if(!silent){
       scannerStatus(data.hoursOld != null
@@ -324,21 +369,21 @@ document.getElementById('sc-watch-filter').addEventListener('click', () => rende
 const scannerSortState = { gainers: {key:'pct', dir:-1}, active: {key:'pct', dir:-1} };
 document.querySelectorAll('.sc-sort-row').forEach(headRow => {
   headRow.addEventListener('click', (e) => {
-    const th = e.target.closest('th[data-sort]');
-    if(!th) return;
+    const el = e.target.closest('[data-sort]');
+    if(!el) return;
     const scope = headRow.dataset.scope;
     const state = scannerSortState[scope];
-    if(state.key === th.dataset.sort){ state.dir *= -1; } else { state.key = th.dataset.sort; state.dir = 1; }
+    if(state.key === el.dataset.sort){ state.dir *= -1; } else { state.key = el.dataset.sort; state.dir = 1; }
     renderScannerTables();
   });
 });
 function scannerUpdateSortIndicators(){
   document.querySelectorAll('.sc-sort-row').forEach(headRow => {
     const state = scannerSortState[headRow.dataset.scope];
-    headRow.querySelectorAll('th[data-sort]').forEach(th => {
-      const ind = th.querySelector('.sc-sort-ind');
+    headRow.querySelectorAll('[data-sort]').forEach(el => {
+      const ind = el.querySelector('.sc-sort-ind');
       if(!ind) return;
-      ind.textContent = state.key === th.dataset.sort ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
+      ind.textContent = state.key === el.dataset.sort ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
     });
   });
 }
@@ -358,6 +403,7 @@ function scannerSortRows(rows, scope){
         case 'float': return d.floatM != null ? d.floatM : -Infinity;
         case 'floatrot': return d.floatRotation != null ? d.floatRotation : -Infinity;
         case 'shortpct': return d.shortFloatPct != null ? d.shortFloatPct : -Infinity;
+        case 'news': return d.newsHours != null ? d.newsHours : Infinity; // ascending click = freshest (lowest hours) first, unchecked sorts last
         default: return d.pillarCount;
       }
     };
@@ -383,21 +429,28 @@ function scannerRowData(row){
   // the real "5x average" the Toolkit means.
   const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
   const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
+  const pillarBreakdown = scannerPillarBreakdown(price, pct, vol, newsOk, floatM, relVol, newsEntry);
   // Float rotation = today's volume / float. A stock trading multiples of
   // its own float (rotation well above 1x) is the classic sign of a real
   // supply/demand imbalance.
   const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
-  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
+  const newsHours = newsEntry && newsEntry.hoursOld != null ? newsEntry.hoursOld : null;
+  return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, newsHours, shortFloatPct: row.shortFloatPct, shortRatio: row.shortRatio, watched: isScannerWatched(ticker) };
 }
 
 const CATALYST_OPTIONS_HTML = '<option value="">News? (pick a catalyst)</option>' +
   Object.entries(CATALYST_TYPES).map(([val, info]) => `<option value="${val}">${info.good ? '' : '⚠ '}${info.label}</option>`).join('');
 
 function scannerRowHtml(data, rank){
-  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, shortFloatPct, shortRatio, watched } = data;
+  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, shortFloatPct, shortRatio, watched } = data;
   const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
-  const newsCellHtml = newsEntry ? scannerNewsBadgeHtml(newsEntry) : '';
+  const newsCellHtml = newsEntry ? scannerNewsBadgeHtml(newsEntry) : '<span class="pill" style="opacity:.6;">not checked</span>';
   const catalystBadge = scannerCatalystBadgeHtml(catalystType);
+  const pillarBreakdownHtml = pillarBreakdown.map(p =>
+    `<li style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;font-size:11px;">
+      <span>${p.ok ? '&#9989;' : '&#10060;'} ${p.label}</span>
+      <span style="color:var(--muted);white-space:nowrap;">${escapeHtml(p.detail)}</span>
+    </li>`).join('');
   const rankBadge = rank === 1 ? '&#127942;' : (rank <= 3 ? '&#129352;' : '');
   const rowTint = rank <= 3 ? 'background:var(--good-soft);' : (rank <= 10 ? 'background:var(--accent-soft);' : '');
   return `<tr data-ticker="${ticker}" style="${rowTint}">
@@ -405,8 +458,12 @@ function scannerRowHtml(data, rank){
     <td class="num ${pct>=0?'good':'bad'}" style="font-weight:700;">${pct>=0?'+':''}${pct.toFixed(2)}%</td>
     <td>
       <div class="mono" style="font-weight:700;">${ticker}${watched ? ' <span class="pill neutral">watching</span>' : ''}</div>
+      <details class="sc-news-details" style="margin-top:4px;">
+        <summary style="cursor:pointer;">${newsCellHtml}</summary>
+        ${scannerNewsPanelHtml(ticker, newsEntry)}
+      </details>
       <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-        ${newsCellHtml}${catalystBadge}
+        ${catalystBadge}
         <button type="button" class="btn sc-check-news" data-ticker="${ticker}" style="padding:2px 6px;font-size:10px;">Check news</button>
       </div>
       <select class="sc-catalyst-select" data-ticker="${ticker}" style="margin-top:4px;font-size:11px;padding:3px 4px;border-radius:6px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);max-width:190px;">
@@ -422,7 +479,12 @@ function scannerRowHtml(data, rank){
     <td><input type="number" step="any" class="sc-float-input" data-ticker="${ticker}" value="${floatM!=null?floatM:''}" placeholder="e.g. 8" style="width:70px;min-height:32px;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:var(--surface-2);color:var(--ink);"></td>
     <td class="num">${floatRotation!=null ? floatRotation.toFixed(1)+'x' : '—'}</td>
     <td class="num" title="${shortTitle}">${shortFloatPct!=null ? shortFloatPct.toFixed(1)+'%' : '—'}</td>
-    <td><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></td>
+    <td>
+      <details class="sc-pillars-details">
+        <summary style="cursor:pointer;list-style:none;"><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></summary>
+        <ul style="margin:6px 0 0;padding:0;list-style:none;min-width:170px;">${pillarBreakdownHtml}</ul>
+      </details>
+    </td>
     <td style="display:flex;flex-direction:column;gap:4px;">
       <button type="button" class="btn sc-watch-toggle" data-ticker="${ticker}" style="padding:4px 8px;font-size:11px;">${watched ? '★ Watching' : '☆ Watch'}</button>
       <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__logScannerTrade('${ticker}', ${price}, ${pct})">Log trade</button>

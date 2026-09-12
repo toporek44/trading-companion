@@ -183,6 +183,14 @@
   .pill.bad{ background:var(--bad-soft); color:var(--bad); }
   .pill.neutral{ background:var(--accent-soft); color:var(--accent); }
 
+  /* ---- Scanner: news/pillars expandable "why" panels ---- */
+  .sc-news-details summary, .sc-pillars-details summary{ list-style:none; }
+  .sc-news-details summary::-webkit-details-marker, .sc-pillars-details summary::-webkit-details-marker{ display:none; }
+  .sc-news-details[open] summary, .sc-pillars-details[open] summary{ margin-bottom:2px; }
+  .sc-news-list a:hover, .sc-news-list div:hover{ opacity:.85; }
+  .sc-pillars-details ul li{ border-bottom:1px solid var(--line); }
+  .sc-pillars-details ul li:last-child{ border-bottom:none; }
+
   /* ---- Buttons / forms ---- */
   .btn{
     font-family:"Manrope",sans-serif; font-weight:600; font-size:.87rem;

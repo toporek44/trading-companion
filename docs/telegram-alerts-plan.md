@@ -1,6 +1,7 @@
 # Telegram phone alerts
 
-Status: **implemented, pending Telegram bot credentials + external scheduler.**
+Status: **fully live.** Runs automatically every 2 minutes via Supabase
+`pg_cron`+`pg_net` (not an external service) — no browser needed at all.
 
 ## Why this exists
 
@@ -15,8 +16,41 @@ any client.
 Vercel's Hobby (free) plan caps Cron Jobs at **once per day** — far too
 infrequent to catch an intraday mover within minutes. Vercel Pro removes
 that cap but costs $20/mo on top of Finviz Elite's $39.50/mo. Instead,
-this uses a **free external scheduler** hitting a normal Vercel serverless
-function — same result, no extra Vercel cost.
+this uses **Supabase's `pg_cron` + `pg_net`** (already-provisioned
+infrastructure, free tier, 1-minute granularity) to call the normal
+Vercel serverless function on a schedule — same result, no extra cost,
+no third-party scheduler account needed.
+
+## Scheduler (implemented)
+
+Set up directly via the Supabase MCP integration on project
+`wcqickazhkxgyofyqnxq`:
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+select cron.schedule(
+  'trading-companion-alerts',
+  '*/2 * * * *',
+  $$
+  select net.http_get(
+    url := 'https://trading-companion-ashen.vercel.app/api/check-alerts',
+    timeout_milliseconds := 25000
+  ) as request_id;
+  $$
+);
+```
+
+Note: `pg_net`'s default timeout is 5000ms, which is too short for
+`check-alerts.js` (sequential Finviz fetch + up to 15 Finnhub freshness
+checks) — bumped to 25000ms, confirmed no more timeouts.
+
+Verified live: `cron.job_run_details` shows `succeeded` every 2 minutes;
+`net._http_response` shows `status_code: 200` with body
+`{"ok":true,"checked":15,"alertsSent":0}` (0 because no ticker has hit the
+alert conditions yet — the request/response plumbing itself is confirmed
+working end to end).
 
 ## Architecture
 
@@ -62,24 +96,15 @@ partially running.
 - Finviz/Finnhub fetch logic is copied from the already-verified
   `api/scanner-gainers.js` / `api/scanner-news.js`.
 
-**Not yet verified**: an actual Telegram message being sent and received
-on a real phone — needs the real bot token + chat ID.
+**All verified**: real Telegram message received on a real phone
+(`preview=1` test mode + a real 5/5-pillar fire), Supabase dedup confirmed
+(no repeat alerts on subsequent 2-min runs), and now the scheduler itself
+confirmed firing unattended.
 
-## Remaining steps
+## Remaining / optional
 
-1. User creates a Telegram bot via BotFather, gets the token, messages
-   the bot once, retrieves their chat ID.
-2. Add both as Vercel env vars (`vercel env add TELEGRAM_BOT_TOKEN` /
-   `TELEGRAM_CHAT_ID`), redeploy.
-3. Verify: hit `/api/check-alerts` manually, confirm a real Telegram
-   message arrives when a qualifying stock exists (may need to wait for
-   market hours / a genuine mover, or temporarily lower the pillar bar
-   for a one-off test — don't leave test-mode thresholds in committed code).
-4. Sign up for a free account at cron-job.org (or similar), add a job
-   hitting the endpoint every 1-5 minutes.
-5. Consider: should `/api/check-alerts` also skip running entirely
-   outside the 7am-11am ET trading window (this system's real trading
-   window per the Scanner's own copy) to avoid pointless calls the rest
-   of the day? Not implemented yet — worth adding once the happy path is
-   confirmed working, as a simple time-of-day guard at the top of the
-   handler.
+- Consider a time-of-day guard (skip running outside ~7am-11am ET, this
+  system's real trading window) purely to cut pointless calls the rest of
+  the day — not a correctness issue, `alertsSent` is already 0 when
+  nothing qualifies. Not implemented; low priority now that everything
+  else works.
