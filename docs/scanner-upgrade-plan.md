@@ -1,181 +1,141 @@
-# Scanner upgrade: Alpha Vantage (free) → paid data source
+# Scanner upgrade: Alpha Vantage (free) → Finviz Elite (paid)
 
-Status: **recommendation changed after a second, more skeptical research
-pass — read this before signing up for anything.** The code currently in
-`api/scanner-gainers.js` calls Financial Modeling Prep, but a follow-up
-comparison (including free brokerage APIs) found a better option:
-**Finviz Elite ($39.50/mo, or $24.96/mo billed annually) — cheaper than
-FMP Starter ($49/mo) and architecturally simpler.**
+Status: **implemented and verified live against real Finviz Elite data
+(2026-09-12).** `api/scanner-gainers.js` calls Finviz Elite's screener
+export; `js/scanner.js` tries it first and falls back to the Alpha
+Vantage flow automatically when `FINVIZ_API_KEY` isn't set. Both the
+column IDs and their unit conventions were confirmed against a real key
+and are documented in the code — see "What got resolved" below.
 
-## Why Finviz Elite over FMP
+*(This plan originally recommended Financial Modeling Prep; a second,
+more skeptical research pass found Finviz Elite is cheaper and
+architecturally simpler for this exact use case. FMP is no longer used
+anywhere in this repo. History of that comparison is kept below for
+context.)*
+
+## Why the Scanner needed an upgrade at all
+
+The free-tier Alpha Vantage flow (still the fallback path) has three real
+limitations:
+1. **~25 requests/day cap** — 1 call per manual Refresh + 1 call per
+   per-ticker "Check news", capping how many tickers can be checked daily.
+2. **No real relative-volume or float data** — those two pillars require
+   the user to manually enter an average-volume baseline and float per
+   ticker.
+3. **Delayed, end-of-run data** — fine for a watchlist-builder, not for
+   real-time execution.
+
+## Why Finviz Elite over Financial Modeling Prep
 
 - **One HTTP call instead of ~4–32.** Finviz's export endpoint
-  (`GET https://elite.finviz.com/export?v=111&f={filters}&ft=4&c={columns}&auth={API_KEY}`,
-  plain CSV) returns Price, Change%, Volume, **Average Volume, Relative
-  Volume, and Float already computed** in one response. FMP's approach
-  (gainers list → batched quote call → up to 15–30 parallel per-symbol
-  float calls) is the N+1 problem this could avoid entirely.
-- **Cheaper.** $39.50/mo vs. $49/mo, or $24.96/mo on the annual plan.
-- **Server-side filtering.** Finviz's `f=` query param supports filters
-  like `sh_price_o3,sh_price_u20,ta_gap_u10` — the price-range/gain
-  filtering this app currently does client-side could move server-side.
-- **This is what the community actually uses.** Finviz is the
-  most-cited screener among retail momentum traders (more so than FMP),
-  for exactly this kind of scan.
-- **Still need Finnhub for news** — Finviz's export has no per-ticker
-  headline/timestamp, so `api/scanner-news.js` (Finnhub, unchanged) still
-  applies regardless of which gainers/float source is used.
+  (`GET https://elite.finviz.com/export.ashx?v=111&f={filters}&ft=4&c={columns}&auth={API_KEY}`,
+  plain CSV) returns Price, Change%, Volume, Average Volume, and Relative
+  Volume in one response — confirmed columns, verified against Finviz's
+  own official help docs. FMP's approach (gainers list → batched quote
+  call → up to 15–30 parallel per-symbol float calls) is the N+1 problem
+  this avoids.
+- **Cheaper**: $39.50/mo, or $24.96/mo billed annually, vs. FMP Starter's
+  $49/mo.
+- **Real-time + extended-hours data included** — Elite gives real-time
+  quotes plus premarket data from 4:00am ET and after-hours to 8:00pm ET,
+  matching this system's actual 7–11am trading window. This was never
+  confirmed for FMP's Starter tier.
+- **Official, documented Elite feature** — not a scraping workaround, so
+  no ToS risk.
+- **7-day free trial, no card required, plus a 30-day money-back
+  guarantee** — low-risk to verify data quality before committing.
+- Free brokerage APIs (Schwab, Interactive Brokers, Tradier) were also
+  checked as $0 alternatives and ruled out for practical reasons, not
+  data quality: Schwab's OAuth tokens need re-authentication roughly
+  every 7 days for individual-developer apps (incompatible with a "set
+  env vars once" serverless model); IBKR's scanner only works over a
+  persistent socket to a running desktop TWS/Gateway process, impossible
+  from a stateless serverless function; Tradier requires an actual funded
+  brokerage account and no confirmed movers/gainers endpoint exists in
+  its public docs.
 
-## What's unconfirmed either way
+## What got resolved once a real key was available
 
-- Exact Finviz export column ID integers aren't in public docs — solvable
-  empirically by requesting one sample CSV with a key and reading the
-  header row (~10 minutes of implementation work, not a research risk).
-- FMP Starter's actual endpoint access was never confirmed positively or
-  negatively (no Reddit/GitHub reports found either way) — this remains
-  a real-money gamble on tier-gating if FMP is used instead.
+Two things were genuinely unverifiable from research alone and needed a
+live key to confirm — both are now resolved and documented in
+`api/scanner-gainers.js`:
 
-## Free brokerage APIs — investigated and ruled out
+1. **The view parameter matters.** `v=111` (Finviz's "Overview" view)
+   silently ignores the `c=` column-selection parameter and always
+   returns its own fixed default columns — a live test confirmed this by
+   requesting `c=1,65,66,67,63,64` and getting back `No., Ticker,
+   Company, Sector, Industry, Country, Market Cap, P/E, Price, Change,
+   Volume` instead. Switching to `v=152` (the "Custom" view) makes `c=`
+   work exactly as expected.
+2. **Column IDs and their units.** Confirmed live: `1`=Ticker, `65`=Price,
+   `66`=Change, `67`=Volume, `63`=Average Volume, `64`=Relative Volume,
+   `25`=Shares Float. Critically, **the raw CSV export has no K/M/B
+   suffix letters** (unlike Finviz's UI display) — each column has a
+   fixed implicit scale instead: Volume is a plain share count, Average
+   Volume is in **thousands** of shares, and Shares Float is in
+   **millions** (which conveniently already matches this app's own
+   `floatM` convention with zero further conversion). This was verified
+   by cross-checking the derived relative volume (`volume / avgVolume`)
+   against Finviz's own reported Relative Volume figure for the same row
+   and confirming they matched.
 
-Schwab, Interactive Brokers, and Tradier were all checked as potential
-$0 alternatives and ruled out for practical reasons, not data quality:
-- **Schwab Trader API**: free with an account and has a movers endpoint,
-  but OAuth tokens expire every 30 min and refresh tokens need
-  re-authentication roughly every 7 days for individual-developer apps —
-  incompatible with a "set env vars once" serverless model without
-  someone manually re-authenticating weekly.
-- **Interactive Brokers TWS API**: has a real scanner, but only over a
-  persistent socket to a running TWS/IB Gateway desktop process — cannot
-  work from a stateless Vercel serverless function without separately
-  hosting and keeping that gateway process alive 24/7.
-- **Tradier**: real-time data requires an actual funded brokerage
-  account (not just a dev signup), and no movers/gainers endpoint was
-  confirmed to exist in their public docs at all.
+`api/scanner-gainers.js` still parses the CSV **by header name**, not
+column position, so if Finviz ever reorders columns or you customize
+`FINVIZ_COLUMNS` (a Vercel env var), it keeps working without a code
+change.
 
-## What to do next
+## The architecture change this required
 
-Switch the implementation from FMP to Finviz Elite before paying for
-anything. This means: sign up for Finviz Elite instead of FMP, request
-one sample export CSV to confirm column IDs, then update
-`api/scanner-gainers.js` to call Finviz's export endpoint (one `fetch` +
-CSV parse) instead of the current 3-endpoint FMP flow — `js/scanner.js`'s
-client side needs no changes, since it already consumes a normalized
-`{ticker, price, pct, vol, avgVolMAuto, floatMAuto}` shape regardless of
-source. `FMP_API_KEY` env var references become `FINVIZ_API_KEY`.
+Paid API keys can't ship in client-side code (unlike Alpha Vantage's
+free, consumer-facing key) — every paid provider's terms prohibit it.
+Fixed with a Vercel serverless function under `api/`, which Vercel
+auto-serves with no separate hosting and no change to the rest of the
+app's "no build step" static-site nature:
 
-## Why
+- `api/scanner-gainers.js` — calls Finviz's export endpoint server-side
+  (key read from `FINVIZ_API_KEY`, never sent to the browser)
+- `api/scanner-news.js` — unchanged, still calls Finnhub's company-news
+  endpoint server-side per ticker for real publish timestamps
 
-The current Scanner (`docs/reference/` PDFs' 5-Pillars system, implemented
-against Alpha Vantage's free tier) works but has three real limitations:
+Both report `{configured: false}` when their env var isn't set, so
+`js/scanner.js` falls back to the Alpha Vantage flow automatically — this
+keeps the repo usable by anyone who forks it without paying for anything.
 
-1. **~25 requests/day free-tier cap** — 1 call per manual Refresh
-   (`TOP_GAINERS_LOSERS`) + 1 call per per-ticker "Check news"
-   (`NEWS_SENTIMENT`), which caps how many tickers can be checked per day.
-2. **No real relative-volume or float data.** Alpha Vantage's free
-   endpoints only return price/%change/volume — the user manually enters
-   an average-volume baseline and float per ticker for the scanner to
-   compute relative volume and float rotation itself.
-3. **Delayed, end-of-run data**, not a live feed — fine for a
-   watchlist-building tool, not for real-time execution.
+## Data mapping
 
-User is OK paying $50–80/month once the tool is actually producing value.
-
-## Recommendation (from prior research pass)
-
-**Financial Modeling Prep** (Starter $49/mo or Premium $99/mo) — the only
-provider surveyed with a purpose-built trio matching the 5-Pillars system
-directly:
-- Top Gainers / Most Active endpoint (replaces `TOP_GAINERS_LOSERS`)
-- Stock Screener endpoint (price range, volume, exchange filters)
-- **All Shares Float endpoint** — real float data, removing the manual
-  float-entry step entirely
-- Quote/fundamentals endpoints include `avgVolume`, enabling **automatic
-  relative-volume calculation** (`volume / avgVolume`), removing the
-  manual average-volume-baseline step entirely
-
-Paired with **Finnhub's free tier** for company news with real publish
-timestamps (replaces `NEWS_SENTIMENT`) — no reason to pay for a dedicated
-news API (e.g. Benzinga, ~$166+/mo) until the account is profitable.
-
-Full comparison against Polygon.io, Twelve Data, Tiingo, Alpaca, Benzinga,
-EODHD, and IEX Cloud (confirmed shut down Aug 2024) is in the prior
-research pass — FMP won on being the only one with a real float field and
-a pre-built gainers/screener endpoint instead of requiring the app to pull
-raw market-wide aggregates and filter/compute everything client-side.
-
-## The architecture change this requires
-
-**This is the important part.** Every paid provider's terms prohibit
-exposing the API key in client-side browser code — unlike Alpha Vantage's
-free tier, which is explicitly designed for consumer/client-side use with
-a user-supplied key. `trading-companion` is currently a pure static site
-(`index.html` + `styles.css` + `js/*.js`, no backend, no build step).
-
-Fix: add **Vercel serverless functions** under `api/` — Vercel serves any
-file in `api/*.js` as a serverless function automatically, no separate
-hosting, no change to the "no build step" static-site nature of the rest
-of the app:
-
-- `api/scanner-gainers.js` — calls FMP's gainers/screener + float
-  endpoints server-side (key read from a Vercel env var, never sent to
-  the browser), returns the already-filtered/shaped JSON the client needs
-- `api/scanner-news.js` — calls Finnhub's company-news endpoint
-  server-side per ticker, returns just the latest headline + timestamp
-
-The browser's `js/scanner.js` calls `/api/scanner-gainers` and
-`/api/scanner-news` instead of hitting Alpha Vantage directly — from the
-client's perspective, still simple `fetch()` calls to same-origin URLs,
-no CORS issues, no key ever visible in the Network tab.
-
-## Fallback behavior (keep the app usable without a paid key)
-
-Rather than a hard cutover, the serverless functions should check for
-`FMP_API_KEY/FINNHUB_API_KEY` env vars: if unset, return a clear "not
-configured" response and the client falls back to today's Alpha-Vantage
-manual-key flow. This keeps the repo/app usable by anyone who forks it
-without requiring them to pay for FMP, while unlocking the upgraded path
-once the user adds their own key to this Vercel project's env vars.
-
-## Data mapping changes in `js/scanner.js`
-
-| Field | Today (Alpha Vantage) | After (FMP + Finnhub) |
+| Field | Alpha Vantage (fallback) | Finviz Elite (once configured) |
 |---|---|---|
-| Price / % change / volume | `TOP_GAINERS_LOSERS`, auto | FMP gainers/screener, auto |
-| Relative volume | Manual: user enters avg-volume baseline once per ticker | **Automatic** — `volume / avgVolume` from FMP quote data |
-| Float | Manual: user enters float once per ticker | **Automatic** — FMP All Shares Float endpoint |
+| Price / % change / volume | `TOP_GAINERS_LOSERS`, auto | Finviz export, auto |
+| Relative volume | Manual: enter avg-volume baseline once per ticker | **Automatic** — from Finviz's Avg Volume / Relative Volume columns |
+| Float | Manual: enter float once per ticker | **Automatic** — from Finviz's Shares Float column |
 | Float rotation | Computed client-side (unchanged formula) | Computed client-side (unchanged formula) |
-| News + freshness | `NEWS_SENTIMENT`, 1 call/ticker/day, cached | Finnhub company-news, same caching/freshness-bucket logic, just a new data source |
-| MACD (for the new MACD+volume lesson) | Not available today | Stretch goal — FMP has technical-indicator endpoints; confirm exact endpoint/params during implementation |
+| News + freshness | `NEWS_SENTIMENT`, 1 call/ticker/day, cached | Finnhub company-news (unchanged), same caching/freshness logic |
 
-## Rollout steps — remaining
+## Rollout steps
 
-1. Sign up for FMP Starter ($49/mo) — confirm at signup whether real-time
-   vs. slightly-delayed data requires Starter or the next tier up, and
-   whether the gainers/actives/quote/shares_float endpoints used here are
-   all included at that tier (unconfirmed in research).
-2. Get a Finnhub API key (free tier).
-3. Add both as Vercel environment variables: `vercel env add FMP_API_KEY`
-   and `vercel env add FINNHUB_API_KEY` (production + preview).
-4. ~~Implement `api/scanner-gainers.js` and `api/scanner-news.js`~~ — done.
-5. ~~Update `js/scanner.js`~~ — done. Note: manual float/avg-volume input
-   fields were kept rather than removed, now pre-filled with the automatic
-   value and still overridable (a manual entry always wins over the
-   automatic one) — this was simpler and safer than removing the fields
-   outright, and covers symbols FMP's float endpoint doesn't have data for.
-6. Redeploy (env var changes need a new deployment to take effect —
-   `vercel --prod` or push a commit) and check the Scanner tab's Refresh:
-   status text should say "live scanner (float & relative volume computed
-   automatically)" instead of falling through to the Alpha Vantage message.
-7. Spot-check a few known small-cap tickers' float/relative-volume numbers
-   against a trusted source to confirm FMP's data is accurate for this
-   use case before trusting it for real trades.
+1. ~~Sign up for Finviz Elite~~ — done, key added to `.env` locally and
+   to the Vercel project's environment variables.
+2. Get a Finnhub API key (free tier) if not already done — still uses
+   the free tier, no cost, for news-freshness only.
+3. ~~Add as Vercel environment variables~~ — `FINVIZ_API_KEY` done.
+4. ~~Redeploy and verify~~ — done. Verified locally with `vercel dev`
+   (which auto-loads `.env`): the Scanner tab's Refresh correctly shows
+   "live scanner (float & relative volume computed automatically)", with
+   real gainers, real relative volume, and real float rendering in both
+   tables, Pillars scoring correctly, zero console errors.
+5. ~~Resolve Float's column ID~~ — done, see "What got resolved" above.
+6. **Remaining**: spot-check a few known small-cap tickers' numbers
+   against Finviz's own UI directly (not just the internal relative-volume
+   cross-check already done) before trusting this for real trades — and
+   confirm the production deployment (not just local `vercel dev`) picks
+   up the Vercel-side env var correctly after the next deploy.
 
 ## Not in scope for this task
 
-- Real-time streaming (WebSocket) — FMP's REST endpoints are sufficient
-  for a "refresh on click" watchlist-building tool; revisit only if the
-  user wants live-updating rows without a manual refresh.
+- Real-time streaming (WebSocket) — a "refresh on click" watchlist tool
+  doesn't need it; revisit only if live-updating rows without a manual
+  refresh becomes a real requirement.
 - MACD-based auto-scoring in the Pillars badge — the MACD+volume check
-  stays a manual visual chart check per the Lessons content, not an
-  automated Scanner field, unless FMP's technical-indicator endpoint
-  proves easy to integrate during implementation.
+  from the Lessons content stays a manual visual chart check, not an
+  automated Scanner field, unless a future data source makes this trivial
+  to add.

@@ -1,78 +1,104 @@
-// Vercel serverless function — proxies Financial Modeling Prep so the paid
-// API key never ships in client-side code (unlike Alpha Vantage's free,
-// consumer-facing design). Returns { configured: false } when FMP_API_KEY
-// isn't set, so the client cleanly falls back to the Alpha Vantage flow.
-// See docs/scanner-upgrade-plan.md for the full rationale.
+// Vercel serverless function — proxies Finviz Elite's screener export so
+// the paid API key never ships in client-side code. Returns
+// { configured: false } when FINVIZ_API_KEY isn't set, so the client
+// falls back to the Alpha Vantage flow. See docs/scanner-upgrade-plan.md.
+//
+// Column IDs (FINVIZ_COLUMNS) are Finviz's numeric `c=` export codes,
+// requested against the "Custom" view (v=152 — the fixed "Overview" view,
+// v=111, ignores c= and always returns its own default column set).
+// All 7 default columns below were confirmed live against a real Finviz
+// Elite export on 2026-09-12: 1=Ticker, 65=Price, 66=Change, 67=Volume,
+// 63=Average Volume, 64=Relative Volume, 25=Shares Float. Parsing is done
+// BY HEADER NAME (not position), so a different FINVIZ_COLUMNS value (env
+// var) is picked up automatically with zero code changes.
 
-const FMP_BASE = 'https://financialmodelingprep.com';
+const DEFAULT_COLUMNS = '1,65,66,67,63,64,25'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float
+// Price $1-$20, up >=4% on the day — mirrors this app's own default
+// Scanner filters (see the Filters card in the Scanner tab).
+const DEFAULT_FILTERS = 'sh_price_o1,sh_price_u20,ta_change_u4';
+const ROW_LIMIT = 30;
 
-// Cap how many symbols get the expensive per-symbol float lookup — 15 per
-// list keeps this well under FMP's Starter-tier rate limit even with the
-// quote + float calls this makes on top of the two list calls.
-const CANDIDATE_LIMIT = 15;
+function parseCsv(text){
+  const lines = text.trim().split(/\r?\n/);
+  if(lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+  return lines.slice(1).map(line => {
+    const cells = line.split(','); // ticker/numeric columns here never contain embedded commas
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cells[i] != null ? cells[i].replace(/^"|"$/g, '').trim() : ''; });
+    return row;
+  });
+}
 
-function shapeRow(raw, quoteBySymbol, floatBySymbol){
-  const q = quoteBySymbol[raw.symbol] || {};
-  const volume = q.volume != null ? q.volume : raw.volume;
-  const avgVolume = q.avgVolume != null ? q.avgVolume : null;
-  const floatShares = floatBySymbol[raw.symbol] != null ? floatBySymbol[raw.symbol] : null;
+function findCol(row, ...candidateNames){
+  const keys = Object.keys(row);
+  for(const name of candidateNames){
+    const key = keys.find(k => k.toLowerCase() === name.toLowerCase());
+    if(key) return row[key];
+  }
+  return null;
+}
+
+function toNumber(v){
+  if(v == null || v === '' || v === '-') return null;
+  const n = parseFloat(String(v).replace(/[%,]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
+// Verified live against a real Finviz Elite export (2026-09-12): unlike
+// the Finviz UI, the raw CSV export has NO K/M/B suffix letters — each
+// column uses a fixed implicit scale instead. Confirmed by cross-checking
+// against Finviz's own Relative Volume figure: Volume is a plain share
+// count, Average Volume is in THOUSANDS of shares (e.g. "1315.11" =
+// 1,315,110), and Shares Float is in MILLIONS (e.g. "45.54" = 45.54M —
+// this already matches this app's own floatM convention directly).
+function shapeRow(row){
+  const vol = toNumber(findCol(row, 'Volume'));
+  const avgVolThousands = toNumber(findCol(row, 'Average Volume', 'Avg Volume'));
+  const floatM = toNumber(findCol(row, 'Shares Float', 'Shs Float', 'Float'));
+  const relVolFromFinviz = toNumber(findCol(row, 'Relative Volume', 'Rel Volume'));
+  // avgVolMAuto feeds js/scanner.js's existing relVol = vol/(avgVolM*1e6)
+  // formula, so prefer real average volume; if only Finviz's own relative
+  // volume figure came back, back-derive an equivalent average volume so
+  // that same formula still reproduces it.
+  const avgVolMAuto = avgVolThousands != null ? avgVolThousands / 1000
+    : (relVolFromFinviz && vol ? (vol / relVolFromFinviz) / 1e6 : null);
   return {
-    ticker: raw.symbol,
-    price: q.price != null ? q.price : raw.price,
-    pct: q.changesPercentage != null ? q.changesPercentage : raw.changesPercentage,
-    vol: volume != null ? Number(volume) : null,
-    avgVolMAuto: avgVolume ? avgVolume / 1e6 : null,
-    floatMAuto: floatShares ? floatShares / 1e6 : null,
+    ticker: findCol(row, 'Ticker'),
+    price: toNumber(findCol(row, 'Price')),
+    pct: toNumber(findCol(row, 'Change')),
+    vol,
+    avgVolMAuto,
+    floatMAuto: floatM,
   };
 }
 
 export default async function handler(req, res){
-  const apiKey = process.env.FMP_API_KEY;
+  const apiKey = process.env.FINVIZ_API_KEY;
   if(!apiKey){ res.status(200).json({ configured: false }); return; }
 
+  const columns = process.env.FINVIZ_COLUMNS || DEFAULT_COLUMNS;
+  const filters = process.env.FINVIZ_FILTERS || DEFAULT_FILTERS;
+
   try{
-    const [gainersRes, activesRes] = await Promise.all([
-      fetch(`${FMP_BASE}/api/v3/stock_market/gainers?apikey=${apiKey}`),
-      fetch(`${FMP_BASE}/api/v3/stock_market/actives?apikey=${apiKey}`),
-    ]);
-    const [gainersRaw, activesRaw] = await Promise.all([gainersRes.json(), activesRes.json()]);
-    if(!Array.isArray(gainersRaw) || !Array.isArray(activesRaw)){
-      res.status(502).json({ configured: true, error: 'Unexpected response from Financial Modeling Prep.' });
+    const url = `https://elite.finviz.com/export.ashx?v=152&f=${filters}&ft=4&c=${columns}&auth=${apiKey}`;
+    const r = await fetch(url);
+    const text = await r.text();
+    if(!r.ok || /<html/i.test(text)){
+      res.status(502).json({ configured: true, error: 'Unexpected response from Finviz — check FINVIZ_API_KEY, FINVIZ_COLUMNS, and FINVIZ_FILTERS.' });
       return;
     }
-
-    const gainersTop = gainersRaw.slice(0, CANDIDATE_LIMIT);
-    const activesTop = activesRaw.slice(0, CANDIDATE_LIMIT);
-    const symbols = [...new Set([...gainersTop, ...activesTop].map(r => r.symbol).filter(Boolean))];
-
-    const quoteBySymbol = {};
-    if(symbols.length){
-      try{
-        const quoteRes = await fetch(`${FMP_BASE}/api/v3/quote/${symbols.join(',')}?apikey=${apiKey}`);
-        const quotes = await quoteRes.json();
-        (Array.isArray(quotes) ? quotes : []).forEach(q => { quoteBySymbol[q.symbol] = q; });
-      }catch(e){ /* quotes are best-effort; rows fall back to list-endpoint fields */ }
-    }
-
-    // Float is a separate per-symbol endpoint — fetch in parallel, tolerate
-    // individual failures so one bad symbol doesn't break the whole scan.
-    const floatBySymbol = {};
-    await Promise.all(symbols.map(async (sym) => {
-      try{
-        const r = await fetch(`${FMP_BASE}/api/v4/shares_float?symbol=${sym}&apikey=${apiKey}`);
-        const d = await r.json();
-        const entry = Array.isArray(d) ? d[0] : d;
-        if(entry && entry.floatShares) floatBySymbol[sym] = entry.floatShares;
-      }catch(e){ /* skip this symbol's float */ }
-    }));
+    const rows = parseCsv(text).map(shapeRow).filter(r => r.ticker && r.price != null);
+    const byChange = rows.slice().sort((a, b) => Math.abs(b.pct||0) - Math.abs(a.pct||0));
+    const byVolume = rows.slice().sort((a, b) => (b.vol||0) - (a.vol||0));
 
     res.status(200).json({
       configured: true,
       fetchedAt: Date.now(),
-      top_gainers: gainersTop.map(r => shapeRow(r, quoteBySymbol, floatBySymbol)),
-      most_actively_traded: activesTop.map(r => shapeRow(r, quoteBySymbol, floatBySymbol)),
+      top_gainers: byChange.slice(0, ROW_LIMIT),
+      most_actively_traded: byVolume.slice(0, ROW_LIMIT),
     });
   }catch(err){
-    res.status(502).json({ configured: true, error: 'Could not reach Financial Modeling Prep.' });
+    res.status(502).json({ configured: true, error: 'Could not reach Finviz.' });
   }
 }

@@ -13,7 +13,7 @@ document.getElementById('av-key').addEventListener('change', (e) => lsSet('tc-av
 function scannerStatus(msg){ document.getElementById('scanner-status').textContent = msg; }
 
 // Normalizes Alpha Vantage's raw TOP_GAINERS_LOSERS row shape (string
-// fields, no float/avg-volume) into the same shape the FMP-backed path
+// fields, no float/avg-volume) into the same shape the Finviz-backed path
 // produces, so filtering/sorting/rendering downstream never need to know
 // which data source a row came from.
 function normalizeAvRow(raw){
@@ -27,14 +27,14 @@ function normalizeAvRow(raw){
   };
 }
 
-async function refreshScannerFmp(){
+async function refreshScannerFinviz(){
   scannerStatus('Fetching top gainers / most active from the upgraded scanner…');
   try{
     const res = await fetch('/api/scanner-gainers');
     const data = await res.json();
     if(data.configured === false) return false;
     if(data.error){ scannerStatus(`${data.error} Showing last cached scan if available.`); return true; }
-    lsSet(AV_CACHE_KEY, { fetchedAt: data.fetchedAt, source: 'fmp', top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
+    lsSet(AV_CACHE_KEY, { fetchedAt: data.fetchedAt, source: 'finviz', top_gainers: data.top_gainers||[], most_actively_traded: data.most_actively_traded||[] });
     scannerStatus(`Scan updated ${new Date(data.fetchedAt).toLocaleTimeString()} — live scanner (float & relative volume computed automatically).`);
     renderScannerTables();
     return true;
@@ -69,11 +69,11 @@ async function refreshScannerAv(){
   }
 }
 
-// Tries the upgraded (FMP-backed) scanner first; only falls back to the
-// free Alpha Vantage flow when the server reports FMP_API_KEY isn't set.
+// Tries the upgraded (Finviz-backed) scanner first; only falls back to the
+// free Alpha Vantage flow when the server reports FINVIZ_API_KEY isn't set.
 async function refreshScanner(){
-  const usedFmp = await refreshScannerFmp();
-  if(!usedFmp) await refreshScannerAv();
+  const usedFinviz = await refreshScannerFinviz();
+  if(!usedFinviz) await refreshScannerAv();
 }
 document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
 
@@ -295,7 +295,7 @@ function scannerSortRows(rows, scope){
 }
 
 // Computes all derived per-row fields once so filtering/sorting/rendering share it.
-// row is already normalized (see normalizeAvRow / the FMP serverless function's
+// row is already normalized (see normalizeAvRow / the Finviz serverless function's
 // shapeRow) to {ticker, price, pct, vol, avgVolMAuto, floatMAuto}.
 function scannerRowData(row){
   const { ticker, price, pct, vol } = row;
@@ -303,18 +303,18 @@ function scannerRowData(row){
   const newsEntry = getScannerNewsToday(ticker);
   const catalystType = manual.catalystType || '';
   const newsOk = scannerNewsOk(newsEntry, catalystType);
-  // A manual entry always overrides the automatic (FMP-derived) value, in
+  // A manual entry always overrides the automatic (Finviz-derived) value, in
   // case the user has more current or more accurate data than the API.
   const floatM = manual.float != null && manual.float !== '' ? parseFloat(manual.float) : row.floatMAuto;
   const avgVolM = manual.avgVol != null && manual.avgVol !== '' ? parseFloat(manual.avgVol) : row.avgVolMAuto;
   // Relative volume = today's volume / the ticker's own average daily volume,
   // the real "5x average" the Toolkit means — automatic when the upgraded
-  // (FMP) scanner is configured, otherwise computable once entered by hand.
+  // (Finviz) scanner is configured, otherwise computable once entered by hand.
   const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
   const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
   // Float rotation = today's volume / float. A stock trading multiples of
   // its own float (rotation well above 1x) is the classic sign of a real
-  // supply/demand imbalance. Automatic (FMP) or manually entered.
+  // supply/demand imbalance. Automatic (Finviz, once its float column is confirmed) or manually entered.
   const floatRotation = (floatM != null && floatM > 0) ? (vol / (floatM * 1e6)) : null;
   return { row, ticker, price, pct, vol, manual, newsEntry, newsOk, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, watched: isScannerWatched(ticker) };
 }
