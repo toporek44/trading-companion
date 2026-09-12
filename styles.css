@@ -9,13 +9,22 @@
     --ink:#1a1c26;
     --muted:#666b80;
     --line:#dde1ea;
-    --accent:#0a6cf5;
+    /* good/bad/accent are ~10% darker than a first pass would suggest —
+       the originals (#12875a/#d43a35/#0a6cf5) measured 3.98-4.06:1 against
+       their own -soft backgrounds, failing WCAG AA's 4.5:1 for normal text
+       (the .pill badges render this text at 10.5px, well under the
+       ~18.7px-bold/24px-regular "large text" threshold that would allow
+       the lower 3:1 bar). These pass 4.5-4.6:1 against the same
+       backgrounds; the shift is small enough to be visually
+       indistinguishable from the originals. Dark theme's own good/bad/
+       accent (below) already passed comfortably (5.0-8.0:1), untouched. */
+    --accent:#0963e1;
     --accent-2:#7c5cff;
     --accent-ink:#ffffff;
     --accent-soft:#e7edfd;
-    --good:#12875a;
+    --good:#107c52;
     --good-soft:#e0f5ec;
-    --bad:#d43a35;
+    --bad:#c73631;
     --bad-soft:#fceae8;
     --nav-bg:#14161f;
     --nav-text:#c9cbdb;
