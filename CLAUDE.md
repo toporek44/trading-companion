@@ -154,6 +154,65 @@ returned data before trusting it. This already blocked adding a
 sector-relative-strength feature and a Finviz earnings/IPO-date column
 this session (both would have needed an unverified guess).
 
+### Scanner additions from an extended `/loop` pass on this same session
+
+A long autonomous `/loop` run (research competitors, add features, fix
+bugs, verify every change live) added, on top of everything above:
+
+- **Setup Grade** (A+–D, `js/scanner.js` `scannerSetupScore`) — a
+  mechanical score from pillar count + rel-vol + news freshness,
+  explicitly labeled "not a buy/sell recommendation" in the UI.
+- **Today's Top Picks** — a 3-ticker daily shortlist ranked by Setup
+  Grade, independent of the user's Filters/Watchlist-only toggle.
+- **Heatmap view** (Cards/Heatmap toggle on Top Gainers).
+- **Saved filter presets** and **per-ticker notes** (notes are
+  localStorage-only, matching the watchlist's own persistence tier).
+- **CSV export** on all 3 tabs (`downloadCsv()` shared helper) and
+  **keyboard shortcuts** (`js/scanner-shortcuts.js`).
+- **Direct chart/data-source links** in every card's detail panel
+  (Finviz+TradingView for stocks, CoinGecko+TradingView for crypto,
+  Yahoo Finance for futures — deliberately no TradingView link for
+  futures, since continuous-contract symbol mapping isn't reliably
+  guessable, same caution as the sector/earnings-date columns above).
+- **Discord/Slack webhook** alerts alongside Telegram (`DISCORD_WEBHOOK_URL`,
+  optional, additive — see `docs/telegram-alerts-plan.md`).
+- **PWA installability** — `manifest.json`, `icon.svg` (the sidebar's ◆
+  mark), a deliberately no-op `sw.js` (registering a service worker is
+  what most browsers require for installability, but this app's whole
+  value is live data, so it must never risk caching an `/api/*` response).
+- **Security fix**: a real stored XSS existed in `js/journal.js`/
+  `journal-stats.js` — free-text Instrument/Strategy/Tags fields were
+  interpolated unescaped into innerHTML. Fixed; `escapeHtml` now lives in
+  `js/state.js` (shared by both scanner and journal modules without a
+  circular import). A follow-up sweep of the rest of the app found no
+  other instances.
+- **Accessibility fixes**: the card-expand interaction
+  (`.sc-card-clickzone`) was a plain non-interactive `<div>` — completely
+  unreachable by keyboard/screen reader on all 3 tabs. Now `role="button"`
+  + `tabindex="0"` + Enter/Space handling + `aria-label`. Sort pill
+  buttons gained `aria-pressed`/dynamic `aria-label` (the ▲/▼ glyph alone
+  isn't announced). Light-theme `--good`/`--bad`/`--accent` were
+  WCAG-AA-failing (3.98-4.06:1 against their own `-soft` pill
+  backgrounds, computed not eyeballed) — darkened ~10% to pass 4.5:1;
+  dark theme was already fine.
+- **Performance**: `startVisibilityAwareRefresh()` (shared, `js/scanner.js`)
+  pauses each tab's 60s auto-refresh while the browser tab is hidden and
+  catches up immediately on becoming visible again — was previously a
+  plain `setInterval` burning Finviz/CoinGecko/Yahoo quota in the
+  background for nobody.
+- **Other real bugs fixed**: a null-vol/pct crash risk (Finviz's `"-"` for
+  halted tickers), an unescaped ticker in an inline `onclick`, an
+  overlapping-refresh race from a missing in-flight guard (and a second,
+  subtler version of the same race one level deeper in the news-check
+  sub-sequence), `cleanNum`'s `parseFloat(...) || null` silently turning a
+  real `$0` breakeven trade into `null`, and the Journal's price pillar
+  drifting to a hardcoded `$1-$20` after the Scanner's own range became
+  user-editable (`getScannerPriceRange()` in `state.js` now shared).
+- See `docs/competitive-positioning.md` for the full feature-by-feature
+  comparison against Trade Ideas/Benzinga Pro/TC2000/TradingView/Webull,
+  including the informed, reasoned list of what was deliberately *not*
+  built and why.
+
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
 `python3 -m http.server` (no HMR) or `vercel dev` alone (slower to start).
