@@ -8,6 +8,7 @@
 import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
 import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml } from './scanner.js';
+import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
 const CRYPTO_AUTO_NEWS_CHECK_COUNT = 8; // mirrors the stock scanner's cap — keeps auto-checks bounded
@@ -188,9 +189,11 @@ document.getElementById('sc-market-tabs').addEventListener('click', (e) => {
   const market = btn.dataset.value;
   document.getElementById('sc-market-stocks').hidden = market !== 'stocks';
   document.getElementById('sc-market-crypto').hidden = market !== 'crypto';
+  document.getElementById('sc-market-futures').hidden = market !== 'futures';
   if(market === 'crypto' && !cryptoStarted){
     cryptoStarted = true;
     refreshCrypto();
     setInterval(refreshCrypto, CRYPTO_AUTO_REFRESH_MS);
   }
+  if(market === 'futures') startFuturesIfNeeded();
 });

@@ -10,6 +10,7 @@ import { renderPlan } from './plan.js';
 import { renderLessons } from './lessons.js';
 import { renderPractice } from './practice.js';
 import './scanner.js';
+import './futures-scanner.js';
 import './crypto-scanner.js';
 import { renderDashboard } from './dashboard.js';
 import './brief.js';

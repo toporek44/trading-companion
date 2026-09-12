@@ -385,6 +385,7 @@
         <div class="segmented" id="sc-market-tabs" data-value="stocks" style="max-width:340px;margin-bottom:14px;">
           <button type="button" class="seg-btn active" data-value="stocks">US Stocks</button>
           <button type="button" class="seg-btn" data-value="crypto">Crypto <span style="font-size:.7em;opacity:.7;">(24/7)</span></button>
+          <button type="button" class="seg-btn" data-value="futures">Futures <span style="font-size:.7em;opacity:.7;">(~24/5)</span></button>
         </div>
 
         <div id="sc-market-stocks">
@@ -494,6 +495,22 @@
             <h3>Most active <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(24h volume)</span></h3>
             <div class="sc-card-grid" id="crypto-active-list" style="margin-top:10px;"></div>
             <div class="empty-state" id="crypto-active-empty" hidden><div>Loading&hellip;</div></div>
+          </div>
+        </div>
+
+        <div id="sc-market-futures" hidden>
+          <div class="sc-topbar">
+            <p class="lede" style="margin:0;flex:1 1 320px;">Major CME/CBOT/NYMEX/COMEX contracts &mdash; index, energy, metals, rates, currency, and Bitcoin futures &mdash; ranked by |% change|. No Pillars/setup-grade here (float/short-interest/single-company catalysts don't apply to a futures contract); macro headlines shared across all of them in each card's detail.</p>
+            <div class="sc-topbar-actions">
+              <button class="btn primary" id="futures-refresh">Refresh now</button>
+            </div>
+          </div>
+          <p id="futures-status" class="mono" style="margin:6px 0 16px;font-size:.78rem;color:var(--muted);"></p>
+
+          <div class="card" style="margin-bottom:18px;">
+            <h3>Contracts <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(ranked by |% change|)</span></h3>
+            <div class="sc-card-grid" id="futures-list" style="margin-top:10px;"></div>
+            <div class="empty-state" id="futures-empty" hidden><div>Loading&hellip;</div></div>
           </div>
         </div>
       </section>
