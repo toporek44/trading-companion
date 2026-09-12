@@ -16,6 +16,8 @@ export const state = {
   planLoaded: false, checklistLoaded: false,
   lessonsState: {},
   lessonsLoaded: false,
+  srsState: { cards: {}, streak: 0, lastReviewDate: null, newCardsIntroducedToday: 0, newCardsIntroducedDate: null },
+  srsLoaded: false,
 };
 
 export function lsGet(key, fallback){
@@ -52,7 +54,8 @@ export function localOnlyMode(renderAll){
   state.planState = lsGet('tc-tradingplan', {});
   state.checklistState = lsGet('tc-checklist', {});
   state.lessonsState = lsGet('tc-lessons', {});
-  state.calLoaded = state.msLoaded = state.tradesLoaded = state.briefsLoaded = state.planLoaded = state.checklistLoaded = state.lessonsLoaded = true;
+  state.srsState = lsGet('tc-srs', { cards: {}, streak: 0, lastReviewDate: null, newCardsIntroducedToday: 0, newCardsIntroducedDate: null });
+  state.calLoaded = state.msLoaded = state.tradesLoaded = state.briefsLoaded = state.planLoaded = state.checklistLoaded = state.lessonsLoaded = state.srsLoaded = true;
   renderAll();
 }
 
@@ -87,10 +90,11 @@ export async function initData(renderAll){
       if(row.key === 'tradingplan') state.planState = row.state || {};
       if(row.key === 'checklist') state.checklistState = row.state || {};
       if(row.key === 'lessons') state.lessonsState = row.state || {};
+      if(row.key === 'srs') state.srsState = { cards: {}, streak: 0, lastReviewDate: null, newCardsIntroducedToday: 0, newCardsIntroducedDate: null, ...(row.state || {}) };
     });
     state.trades = (tradesRes.data||[]).map(tradeFromRow);
     state.briefs = (briefsRes.data||[]).map(briefFromRow);
-    state.calLoaded = state.msLoaded = state.tradesLoaded = state.briefsLoaded = state.planLoaded = state.checklistLoaded = state.lessonsLoaded = true;
+    state.calLoaded = state.msLoaded = state.tradesLoaded = state.briefsLoaded = state.planLoaded = state.checklistLoaded = state.lessonsLoaded = state.srsLoaded = true;
     statusEl.textContent = 'synced';
     renderAll();
 
@@ -102,6 +106,7 @@ export async function initData(renderAll){
       if(row.key === 'tradingplan') state.planState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
       if(row.key === 'checklist') state.checklistState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
       if(row.key === 'lessons') state.lessonsState = (payload.eventType === 'DELETE') ? {} : (row.state || {});
+      if(row.key === 'srs') state.srsState = (payload.eventType === 'DELETE') ? { cards: {}, streak: 0, lastReviewDate: null, newCardsIntroducedToday: 0, newCardsIntroducedDate: null } : { cards: {}, streak: 0, lastReviewDate: null, newCardsIntroducedToday: 0, newCardsIntroducedDate: null, ...(row.state || {}) };
       renderAll();
     }).subscribe();
 

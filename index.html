@@ -41,6 +41,10 @@
         <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5 9-4.5z"/><path d="M7 10.5v4.5c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5"/><path d="M21 7.5v6"/></svg>
         <span>Lessons</span>
       </button>
+      <button data-page="practice">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <span>Practice</span>
+      </button>
       <button data-page="milestones">
         <svg class="icon" viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 4h11l-2.5 3.5L16 11H5"/></svg>
         <span>Milestones</span>
@@ -470,12 +474,13 @@
         <div class="progress-label" id="lessons-progress-label">0 / 11 lessons passed</div>
         <div class="progress-bar"><div id="lessons-progress-fill"></div></div>
         <div id="lessons-list" style="margin-top:16px;"></div>
+      </section>
 
-        <div class="card" id="candle-drill-card" style="margin-top:20px;">
-          <h3>Candlestick Drill</h3>
-          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Train pattern recognition daily &mdash; unlimited repeats, no pass/fail. Saved in this browser only, not synced.</p>
-          <div class="progress-label" id="candle-drill-stats" style="margin-bottom:12px;"></div>
-          <div id="candle-drill-body"></div>
+      <section id="page-practice" class="page" hidden>
+        <p class="lede">Daily spaced-repetition review &mdash; candlestick patterns, trading terms, and strategy rules, mixed into one queue that repeats what you miss and backs off what you've mastered.</p>
+        <div class="card">
+          <div id="practice-header" style="margin-bottom:16px;"></div>
+          <div id="practice-body"></div>
         </div>
       </section>
 
