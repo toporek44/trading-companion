@@ -83,12 +83,12 @@ async function fetchFinnhubFreshness(ticker, apiKey){
   try{
     const r = await fetch(url);
     const data = await r.json();
-    if(!Array.isArray(data) || data.length === 0) return { hoursOld: null, headline: null };
+    if(!Array.isArray(data) || data.length === 0) return { hoursOld: null, headline: null, url: null };
     const latest = data.reduce((a, b) => (b && b.datetime > (a && a.datetime || 0) ? b : a), null);
     const hoursOld = latest && latest.datetime ? (Date.now() / 1000 - latest.datetime) / 3600 : null;
-    return { hoursOld, headline: (latest && latest.headline) || null };
+    return { hoursOld, headline: (latest && latest.headline) || null, url: (latest && latest.url) || null };
   }catch(e){
-    return { hoursOld: null, headline: null };
+    return { hoursOld: null, headline: null, url: null };
   }
 }
 
@@ -114,16 +114,56 @@ async function saveFiredState(state){
   });
 }
 
-async function sendTelegram(token, chatId, text){
+async function sendTelegram(token, chatId, html){
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({ chat_id: chatId, text: html, parse_mode: 'HTML', disable_web_page_preview: false }),
   });
   if(!res.ok){
     const body = await res.text();
     throw new Error(`Telegram send failed: ${res.status} ${body}`);
   }
+}
+
+// Telegram's HTML parse_mode only needs these three characters escaped in
+// dynamic text (tickers are always plain uppercase letters, safe as-is;
+// headlines are freeform and can contain any of these).
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const APP_URL = 'https://trading-companion-ashen.vercel.app';
+function linksLine(ticker){
+  return `<a href="https://finviz.com/quote.ashx?t=${ticker}">Finviz</a> · ` +
+    `<a href="https://www.tradingview.com/symbols/${ticker}">TradingView</a> · ` +
+    `<a href="${APP_URL}/#scanner">Scanner</a>`;
+}
+
+function formatPillarAlert(row, relVol){
+  const pctStr = `${row.pct>=0?'+':''}${row.pct.toFixed(2)}%`;
+  return [
+    `🎯 <b>${row.ticker}</b> — 5/5 Pillars`,
+    ``,
+    `${pctStr} at $${row.price.toFixed(2)}`,
+    `Rel Vol: ${relVol!=null?relVol.toFixed(1)+'x':'—'} · Float: ${row.floatMAuto!=null?row.floatMAuto.toFixed(1)+'M':'—'}`,
+    ``,
+    linksLine(row.ticker),
+  ].join('\n');
+}
+function formatFreshNewsAlert(row, freshness){
+  const pctStr = `${row.pct>=0?'+':''}${row.pct.toFixed(2)}%`;
+  const lines = [
+    `🔥 <b>${row.ticker}</b> — fresh news (&lt;2h)`,
+    ``,
+    `${pctStr} at $${row.price.toFixed(2)}`,
+  ];
+  if(freshness.headline){
+    const headline = escapeHtml(freshness.headline);
+    lines.push(``, freshness.url ? `<a href="${freshness.url}">${headline}</a>` : headline);
+  }
+  lines.push(``, linksLine(row.ticker));
+  return lines.join('\n');
 }
 
 export default async function handler(req, res){
@@ -134,6 +174,19 @@ export default async function handler(req, res){
   const missing = { finviz: !finvizKey, finhub: !finhubKey, telegramToken: !tgToken, telegramChat: !tgChat };
   if(Object.values(missing).some(Boolean)){
     res.status(200).json({ ok: false, reason: 'not configured', missing });
+    return;
+  }
+
+  // ?preview=1 sends one clearly-labeled sample message with realistic
+  // fake data, using the exact same formatting/send path as a real alert —
+  // for verifying Telegram rendering without waiting for a real qualifying
+  // stock or touching Supabase dedup state. Safe to call any time.
+  if(req.query && req.query.preview === '1'){
+    const sampleRow = { ticker: 'AAPL', price: 5.42, pct: 18.7, floatMAuto: 6.3 };
+    const sampleFreshness = { hoursOld: 0.4, headline: 'Sample Corp announces surprise Q3 earnings beat & raises guidance', url: 'https://finviz.com/quote.ashx?t=AAPL' };
+    const previewText = `🧪 <b>Preview</b> — this is a sample, not a real alert\n\n` + formatPillarAlert(sampleRow, 8.2) + '\n\n———\n\n' + formatFreshNewsAlert(sampleRow, sampleFreshness);
+    await sendTelegram(tgToken, tgChat, previewText);
+    res.status(200).json({ ok: true, preview: true });
     return;
   }
 
@@ -160,12 +213,12 @@ export default async function handler(req, res){
       const key = `pillars5:${row.ticker}`;
       if(pillarCount === 5 && !fired.fired[key]){
         fired.fired[key] = true;
-        alertsToSend.push(`🎯 ${row.ticker} — 5/5 Pillars\n${row.pct>=0?'+':''}${row.pct.toFixed(2)}% at $${row.price.toFixed(2)}, rel vol ${relVol!=null?relVol.toFixed(1)+'x':'—'}, float ${row.floatMAuto!=null?row.floatMAuto.toFixed(1)+'M':'—'}`);
+        alertsToSend.push(formatPillarAlert(row, relVol));
       }
       const freshKey = `freshnews:${row.ticker}`;
       if(freshness.hoursOld != null && freshness.hoursOld < 2 && !fired.fired[freshKey]){
         fired.fired[freshKey] = true;
-        alertsToSend.push(`🔥 ${row.ticker} — fresh news (<2h)\n${row.pct>=0?'+':''}${row.pct.toFixed(2)}% at $${row.price.toFixed(2)}${freshness.headline ? `\n"${freshness.headline}"` : ''}`);
+        alertsToSend.push(formatFreshNewsAlert(row, freshness));
       }
     }
 
