@@ -201,7 +201,7 @@ export function parseTVStrategyExport(text, instrument, strategyName){
     const cleanNum = v => parseFloat(String(v||'').replace(/[^0-9.\-]/g,'')) || null;
     entries.push({
       date: (entryRow[iDate]||'').split(' ')[0] || '',
-      market: 'Futures',
+      market: 'Stock',
       instrument: instrument || '—',
       strategy: strategyName || 'Other',
       direction: typeStr.includes('short') ? 'Short' : 'Long',
