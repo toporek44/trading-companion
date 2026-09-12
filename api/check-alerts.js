@@ -22,7 +22,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const FINVIZ_BASE = 'https://elite.finviz.com';
 const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31';
-const OTHER_FILTERS = 'ta_change_u4,sh_float_u20,sh_relvol_o2';
+const OTHER_FILTERS = 'ta_change_u10,sh_float_u20,sh_relvol_o2';
 const NEWS_CHECK_LIMIT = 15; // bound Finnhub calls per run to the top N candidates by change%
 const SCANNER_RELVOL_PILLAR_MIN = 5;
 

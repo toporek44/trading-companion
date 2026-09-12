@@ -15,11 +15,13 @@
 //
 // Server-side filters (FINVIZ_FILTERS) pre-qualify candidates against the
 // strategy's hard requirements before they ever reach the client: price
-// range (see below), up >=4% (a broad "catch it moving" net — the
-// Pillars badge still requires >=10% for full credit), float under 20M,
-// and relative volume over 2x (again a broad net; the Pillars badge
-// requires >=5x). Confirmed live: `sh_float_u20` and `sh_relvol_o2`
-// correctly cut a ~356-row unfiltered result down to ~37 qualified rows.
+// range (see below), up >=10% (the real Pillar #2 bar — tightened from an
+// earlier >=4% "catch it moving" net after user feedback that the list
+// should lead with genuine 10%+ movers, not pad rows down to 4%), float
+// under 20M, and relative volume over 2x (a broader net; the Pillars badge
+// itself still requires >=5x for full credit). Confirmed live:
+// `sh_float_u20` and `sh_relvol_o2` correctly cut a ~356-row unfiltered
+// result down to ~37 qualified rows.
 //
 // Price range is NOT a fixed constant — it's read from Supabase (same
 // 'scanner-price-range' row the Scanner tab's Min/Max price fields write
@@ -32,7 +34,7 @@ const SUPABASE_URL = "https://wcqickazhkxgyofyqnxq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcWlja2F6aGt4Z3lvZnlxbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5Njc4MjUsImV4cCI6MjEwNDU0MzgyNX0.6o4MmgXZTfuXrvK5sEXYUUJk_wYY64xgE-PnE6IxcVc";
 
 const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float, Short Float, Short Ratio
-const OTHER_FILTERS = 'ta_change_u4,sh_float_u20,sh_relvol_o2';
+const OTHER_FILTERS = 'ta_change_u10,sh_float_u20,sh_relvol_o2';
 const ROW_LIMIT = 30;
 
 async function getPriceRange(){
