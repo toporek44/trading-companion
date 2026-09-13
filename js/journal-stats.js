@@ -1,4 +1,5 @@
-import { state, escapeHtml } from './state.js';
+import { state, escapeHtml, lsGet } from './state.js';
+import { todayStr } from './srs.js';
 
 export function computeStats(list){
   const total = list.length;
@@ -36,6 +37,36 @@ export function computeStats(list){
     else break;
   }
   return {total, winRate, avgR, processRate, totalPnl, expectancy, maxDrawdown: sorted.length ? maxDrawdown : null, currentStreak: sorted.length ? currentStreak : null};
+}
+
+// ---------- Daily circuit breaker (SAC week-1 rule: -$100/day or 3 straight losers stops the day) ----------
+// Daily max loss scales to the account size the Plan tab's risk calculator
+// already uses (10% of account, same `tc-account-size` localStorage key) —
+// falls back to the SAC worked example's flat $100 if no account size is set.
+export function computeCircuitBreaker(list){
+  const accountSize = parseFloat(lsGet('tc-account-size', ''));
+  const dailyMaxLoss = (accountSize > 0) ? accountSize * 0.10 : 100;
+  const today = todayStr();
+  const todayPnl = list.filter(t => t.date === today).reduce((s,t) => s + (t.resultAmount||0), 0);
+  const s = computeStats(list);
+  const dailyLossHit = todayPnl <= -dailyMaxLoss;
+  const streakHit = (s.currentStreak||0) <= -3;
+  return { todayPnl, dailyMaxLoss, dailyLossHit, streakHit, triggered: dailyLossHit || streakHit, streak: s.currentStreak };
+}
+export function renderCircuitBreaker(){
+  const root = document.getElementById('circuit-breaker-banner');
+  if(!root) return;
+  const cb = computeCircuitBreaker(state.trades);
+  if(!cb.triggered){ root.innerHTML = ''; return; }
+  const reasons = [];
+  if(cb.dailyLossHit) reasons.push(`today's P&amp;L is -$${Math.abs(cb.todayPnl).toFixed(2)}, past your -$${cb.dailyMaxLoss.toFixed(2)} daily max loss`);
+  if(cb.streakHit) reasons.push(`${Math.abs(cb.streak)} losing trades in a row`);
+  root.innerHTML = `<div class="card" style="margin-bottom:20px;border-color:var(--bad);background:var(--bad-soft);">
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <span class="pill bad" style="flex-shrink:0;">stop trading</span>
+      <div style="font-size:.88rem;line-height:1.5;">Circuit breaker: ${reasons.join(' and ')}. The SAC rule for exactly this situation is to close the platform for today — this is a nudge, not a lock.</div>
+    </div>
+  </div>`;
 }
 
 export function streakLabel(streak){
