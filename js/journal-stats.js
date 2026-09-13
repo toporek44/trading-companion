@@ -239,6 +239,24 @@ export function buildCoachInsights(list, plan){
     }
   }
 
+  // 7. Negative expectancy despite an OK-looking win rate — the classic
+  // "small wins, rare big loss" trap that a win-rate-only view hides.
+  {
+    const stats = computeStats(trades);
+    if(stats.expectancy != null && stats.expectancy < 0 && trades.length >= 10){
+      insights.push({type:'watchout', text:`Your average trade loses ${fmtUsd(stats.expectancy)} even with a ${Math.round(stats.winRate*100)}% win rate — check whether your average loser is outsized relative to your average winner (see the R-multiple distribution below).`});
+    }
+  }
+
+  // 8. Current winning streak — positive reinforcement using the same
+  // streak calc the circuit-breaker banner uses for the negative case.
+  {
+    const stats = computeStats(trades);
+    if(stats.currentStreak >= 3){
+      insights.push({type:'strength', text:`You're on a ${stats.currentStreak}-trade winning streak — whatever you changed recently, it's working.`});
+    }
+  }
+
   const watchouts = insights.filter(i => i.type === 'watchout');
   const rest = insights.filter(i => i.type !== 'watchout');
   return [...watchouts, ...rest].slice(0, 6);
