@@ -22,7 +22,27 @@ export const MILESTONES = [
   {t:"Chart pattern catalog memorized", d:"Can name Bull Flag, Flat Top, ABCD, Double Top, Head & Shoulders, Bull/Bear Trap from a chart in under 5 seconds"},
   {t:"Daily Scanner routine dialed in", d:"Using the Scanner tab's 15-minute routine to build a real premarket watchlist every session"},
   {t:"Risk rules internalized", d:"Can state the $50→$100 rule, ~10% daily max loss, and the 3-consecutive-loss stop from memory"},
-  {t:"Beta-phase readiness check passed", d:"10 straight trading days, one A-plus (5/5 pillars, MACD + volume confirmed) setup per day, the whole stretch nets green"},
+  {t:"Beta-phase readiness check passed", d:"10 straight trading days, one A-plus (5/5 pillars, MACD + volume confirmed) setup per day, the whole stretch nets green",
+    // The Calendar curriculum's own copy (Week 12) tells the user to
+    // "track your Beta streak in the Journal and Milestones tabs" — but
+    // nothing ever computed one. Can only automate the two objectively
+    // trackable halves of the rule (a 5/5-Pillars trade that day, and the
+    // day nets green) — MACD/volume confirmation isn't a field this
+    // Journal captures, so the hint says so explicitly rather than
+    // silently pretending to check the whole rule.
+    hint: (trades) => {
+      const byDay = {};
+      trades.filter(t => t.market === 'Stock' && t.date).forEach(t => (byDay[t.date] = byDay[t.date] || []).push(t));
+      const days = Object.keys(byDay).sort();
+      let streak = 0;
+      for(let i = days.length - 1; i >= 0; i--){
+        const list = byDay[days[i]];
+        const hasAPlus = list.some(t => t.pillarsCount === 5);
+        const netGreen = list.reduce((s,t) => s + (t.resultAmount||0), 0) > 0;
+        if(hasAPlus && netGreen) streak++; else break;
+      }
+      return `${streak}/10 straight qualifying days so far (5/5-Pillar trade + net green each day) — MACD/volume confirmation is still yours to judge`;
+    }},
   {t:"First live stock trade placed", d:"$1,000 account, 1% max risk, full journal entry"},
   {t:"First month of live trading reviewed", d:"Monthly journal review completed, sizing reassessed from data"}
 ];
