@@ -9,7 +9,20 @@ export function computeStats(list){
   const processCount = list.filter(t => t.processFollowed).length;
   const processRate = total ? processCount/total : 0;
   const totalPnl = list.reduce((s,t)=>s+(t.resultAmount||0),0);
-  return {total, winRate, avgR, processRate, totalPnl};
+  // Expectancy: average $ P&L per trade — the standard trading-journal metric
+  // (Tradervue/Edgewonk both surface this), mathematically equal to
+  // winRate*avgWin - lossRate*avgLoss but simpler to compute directly.
+  const expectancy = total ? totalPnl/total : null;
+  // Max drawdown: largest peak-to-trough decline along the same
+  // date-sorted cumulative-P&L curve the equity chart plots.
+  const sorted = [...list].filter(t=>t.date).sort((a,b)=> a.date.localeCompare(b.date) || (a.createdAt||0)-(b.createdAt||0));
+  let cum = 0, peak = 0, maxDrawdown = 0;
+  sorted.forEach(t => {
+    cum += (t.resultAmount||0);
+    if(cum > peak) peak = cum;
+    maxDrawdown = Math.min(maxDrawdown, cum - peak);
+  });
+  return {total, winRate, avgR, processRate, totalPnl, expectancy, maxDrawdown: sorted.length ? maxDrawdown : null};
 }
 
 export function renderJournalStats(){
@@ -17,11 +30,14 @@ export function renderJournalStats(){
   const root = document.getElementById('journal-stats');
   const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
   const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
+  const fmtUsd = v => v==null ? '—' : (v>=0?'+':'-')+'$'+Math.abs(v).toFixed(2);
   root.innerHTML = `
     <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
     <div class="stat-tile"><div class="k">Win rate</div><div class="v ${s.winRate>=0.5?'good':(s.total?'bad':'')}">${fmtPct(s.winRate)}</div></div>
     <div class="stat-tile"><div class="k">Avg R-multiple</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>
-    <div class="stat-tile"><div class="k">Process adherence</div><div class="v ${s.processRate>=0.8?'good':''}">${fmtPct(s.processRate)}</div></div>`;
+    <div class="stat-tile"><div class="k">Process adherence</div><div class="v ${s.processRate>=0.8?'good':''}">${fmtPct(s.processRate)}</div></div>
+    <div class="stat-tile"><div class="k">Expectancy / trade</div><div class="v ${s.expectancy>0?'good':(s.expectancy<0?'bad':'')}">${fmtUsd(s.expectancy)}</div></div>
+    <div class="stat-tile"><div class="k">Max drawdown</div><div class="v ${s.maxDrawdown<0?'bad':''}">${s.maxDrawdown==null?'—':'-$'+Math.abs(s.maxDrawdown).toFixed(2)}</div></div>`;
 }
 
 // ---------- Trade Coach (rule-based insights from real journal/plan data) ----------
