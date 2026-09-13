@@ -604,7 +604,13 @@ try{
           </details>
 
           <div class="card" style="margin-bottom:18px;">
-            <h3>Top movers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(24h % change)</span></h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+              <h3>Top movers <span style="font-weight:400;color:var(--muted);font-size:.8rem;">(24h % change)</span></h3>
+              <div class="segmented" id="cr-gainers-view" data-value="cards" style="max-width:200px;">
+                <button type="button" class="seg-btn active" data-value="cards">Cards</button>
+                <button type="button" class="seg-btn" data-value="heatmap">Heatmap</button>
+              </div>
+            </div>
             <div class="sc-sort-bar" data-scope="crypto-gainers">
               <span class="sc-sort-caption">Sort:</span>
               <button type="button" data-sort="pct">Change %<span class="sc-sort-ind"></span></button>
@@ -614,6 +620,7 @@ try{
               <button type="button" data-sort="marketCap">Market Cap<span class="sc-sort-ind"></span></button>
             </div>
             <div class="sc-card-grid" id="crypto-gainers-list" style="margin-top:10px;"></div>
+            <div class="sc-heatmap-grid" id="crypto-gainers-heatmap" hidden></div>
             <div class="empty-state" id="crypto-gainers-empty" hidden><div>Loading&hellip;</div></div>
           </div>
 

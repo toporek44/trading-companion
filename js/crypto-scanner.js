@@ -291,12 +291,44 @@ function renderCryptoList(containerId, emptyId, coins){
   container.innerHTML = coins.map((c,i) => cryptoCardHtml(c, i+1)).join('');
 }
 
+// TC2000-style heatmap, mirroring the Stocks tab's scannerHeatmapTileHtml —
+// Top movers only, same as Stocks (Most Active's ranking by raw volume
+// doesn't map as usefully to a color/size heatmap). Deliberately its own
+// function rather than reusing scanner.js's version: that one keys off
+// `d.ticker`/`data-ticker`, while everything else in this file (notes,
+// watchlist, sort) already keys off `.symbol`/`data-symbol`.
+function cryptoHeatmapTileHtml(c){
+  const absPct = Math.abs(c.pct);
+  const intensity = Math.min(absPct / 20, 1); // crypto moves bigger than stocks day-to-day; clamp at 20% for full intensity
+  const bg = c.pct >= 0
+    ? `color-mix(in srgb, var(--good) ${15 + intensity*55}%, var(--surface))`
+    : `color-mix(in srgb, var(--bad) ${15 + intensity*55}%, var(--surface))`;
+  const flex = 1 + intensity * 3;
+  return `<div class="sc-heatmap-tile" data-symbol="${c.symbol}" style="background:${bg};flex-grow:${flex};" title="${c.symbol}: ${c.pct>=0?'+':''}${c.pct.toFixed(2)}% at $${c.price.toFixed(2)} — click to expand">
+    <span class="sc-heatmap-ticker">${c.symbol}</span>
+    <span class="sc-heatmap-pct">${c.pct>=0?'+':''}${c.pct.toFixed(1)}%</span>
+  </div>`;
+}
+initSegmented('cr-gainers-view');
+document.getElementById('cr-gainers-view').addEventListener('click', () => renderCryptoLists());
+document.getElementById('crypto-gainers-heatmap').addEventListener('click', (e) => {
+  const tile = e.target.closest('.sc-heatmap-tile');
+  if(!tile) return;
+  cryptoExpanded.add(tile.dataset.symbol);
+  document.getElementById('cr-gainers-view').querySelector('[data-value="cards"]').click(); // switch back to Cards so the expanded detail is visible
+});
+
 function renderCryptoLists(){
   const cache = lsGet(CRYPTO_CACHE_KEY, null);
   if(!cache) return;
   const gainers = cryptoSortRows((cache.top_gainers || []).filter(cryptoFilterRow), 'crypto-gainers');
   const active = cryptoSortRows((cache.most_active || []).filter(cryptoFilterRow), 'crypto-active');
-  renderCryptoList('crypto-gainers-list', 'crypto-gainers-empty', gainers);
+  const heatmapView = document.getElementById('cr-gainers-view').dataset.value === 'heatmap';
+  document.getElementById('crypto-gainers-list').hidden = heatmapView;
+  document.getElementById('crypto-gainers-heatmap').hidden = !heatmapView;
+  if(heatmapView) document.getElementById('crypto-gainers-heatmap').innerHTML = gainers.map(cryptoHeatmapTileHtml).join('');
+  else renderCryptoList('crypto-gainers-list', 'crypto-gainers-empty', gainers);
+  if(heatmapView) document.getElementById('crypto-gainers-empty').hidden = gainers.length > 0;
   renderCryptoList('crypto-active-list', 'crypto-active-empty', active);
   updateCryptoSortIndicators();
 }
