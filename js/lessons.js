@@ -1,4 +1,4 @@
-import { state, persistProgress } from './state.js';
+import { state, persistProgress, escapeHtml } from './state.js';
 
 // ---------- Lessons ----------
 export const THEME_LABELS = {
@@ -155,9 +155,9 @@ export const LESSONS = [
 let lessonAnswers = {};
 // Whether the current in-progress attempt for a lesson has been submitted (shows feedback).
 let lessonSubmitted = {};
-// Selected theme filter for the Lessons list ('all' or a THEME_LABELS key). Per-browser only.
-let lessonThemeFilter = 'all';
-try { lessonThemeFilter = localStorage.getItem('tc-lessons-theme-filter') || 'all'; } catch(e){}
+// Which single lesson is currently open, or null to show the table of
+// contents. Not persisted — the TOC is always the natural landing view.
+let activeLessonId = null;
 
 export function lessonPassThreshold(total){
   // 2-question quiz needs 2/2, 3-question quiz needs 2/3 (fixed 67%+ threshold, rounded).
@@ -194,22 +194,67 @@ export function submitLessonQuiz(lessonId){
   renderLessons();
 }
 
-export function setLessonThemeFilter(theme){
-  lessonThemeFilter = theme;
-  try { localStorage.setItem('tc-lessons-theme-filter', theme); } catch(e){}
+export function openLesson(lessonId){
+  activeLessonId = lessonId;
+  renderLessons();
+  window.scrollTo(0, 0);
+}
+export function closeLesson(){
+  activeLessonId = null;
   renderLessons();
 }
 
-function renderThemeFilterBar(){
-  const themesPresent = [...new Set(LESSONS.map(l => l.theme))];
-  const pill = (value, label) => {
-    const active = lessonThemeFilter === value;
-    const style = active
-      ? 'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);'
-      : '';
-    return `<button type="button" class="btn" style="display:inline-block;width:auto;margin:0 6px 6px 0;padding:4px 10px;font-size:.78rem;${style}" data-action="lessons-theme" data-theme="${value}">${label}</button>`;
-  };
-  return `<div style="margin-bottom:14px;">${pill('all', 'All')}${themesPresent.map(t => pill(t, THEME_LABELS[t] || t)).join('')}</div>`;
+// Themes in first-appearance order (matches the curriculum's intended
+// progression, rather than an arbitrary object-key order).
+function themeOrder(){
+  const seen = [];
+  LESSONS.forEach(l => { if(!seen.includes(l.theme)) seen.push(l.theme); });
+  return seen;
+}
+
+function lessonStatusPill(lessonId){
+  const s = state.lessonsState[lessonId] || {};
+  if(s.passed) return '<span class="pill good">passed</span>';
+  if(s.lastAnswers) return '<span class="pill bad">retry</span>';
+  return '<span class="pill" style="background:var(--surface-2);color:var(--muted);">not started</span>';
+}
+
+// Table of contents — grouped by theme, one row per lesson, no quiz content
+// shown here. Replaces the old "every lesson expanded and stacked" view,
+// which was the actual UX complaint: no way to see the curriculum's shape
+// or jump to one topic without scrolling past everything else.
+function renderLessonsToc(){
+  return themeOrder().map(theme => {
+    const lessonsInTheme = LESSONS.filter(l => l.theme === theme);
+    const rows = lessonsInTheme.map(l => `
+      <button type="button" class="btn" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;margin-bottom:6px;" data-action="open-lesson" data-lesson="${l.id}">
+        <span>${l.title}</span>
+        ${lessonStatusPill(l.id)}
+      </button>`).join('');
+    return `<div class="card" style="margin-bottom:16px;">
+      <h3 style="margin-bottom:10px;">${THEME_LABELS[theme] || theme}</h3>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// Single-lesson view — just the one lesson's body+quiz, with a way back to
+// the TOC and Prev/Next to move through the curriculum in order without
+// returning to the TOC between every lesson.
+function renderLessonsSingle(lessonId){
+  const lesson = LESSONS.find(l => l.id === lessonId);
+  if(!lesson) return renderLessonsToc();
+  const idx = LESSONS.indexOf(lesson);
+  const prev = LESSONS[idx - 1];
+  const next = LESSONS[idx + 1];
+  const nav = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <button type="button" class="btn" data-action="lessons-back">&larr; All lessons</button>
+    <div style="display:flex;gap:8px;">
+      ${prev ? `<button type="button" class="btn" data-action="open-lesson" data-lesson="${prev.id}" title="${escapeHtml(prev.title)}">&larr; Prev</button>` : ''}
+      ${next ? `<button type="button" class="btn" data-action="open-lesson" data-lesson="${next.id}" title="${escapeHtml(next.title)}">Next &rarr;</button>` : ''}
+    </div>
+  </div>`;
+  return nav + renderLessonCard(lesson);
 }
 
 export function renderLessonCard(lesson){
@@ -266,15 +311,16 @@ export function renderLessonCard(lesson){
 export function renderLessons(){
   const root = document.getElementById('lessons-list');
   if(!root) return;
-  const visibleLessons = lessonThemeFilter === 'all' ? LESSONS : LESSONS.filter(l => l.theme === lessonThemeFilter);
-  root.innerHTML = renderThemeFilterBar() + visibleLessons.map(lesson => renderLessonCard(lesson)).join('');
+  root.innerHTML = activeLessonId ? renderLessonsSingle(activeLessonId) : renderLessonsToc();
   const passedCount = LESSONS.filter(l => (state.lessonsState[l.id]||{}).passed).length;
   document.getElementById('lessons-progress-label').textContent = `${passedCount} / ${LESSONS.length} lessons passed`;
   document.getElementById('lessons-progress-fill').style.width = (passedCount/LESSONS.length*100)+'%';
 }
 document.getElementById('lessons-list').addEventListener('click', (e) => {
-  const themeBtn = e.target.closest('button[data-action="lessons-theme"]');
-  if(themeBtn){ setLessonThemeFilter(themeBtn.dataset.theme); return; }
+  const openBtn = e.target.closest('button[data-action="open-lesson"]');
+  if(openBtn){ openLesson(openBtn.dataset.lesson); return; }
+  const backBtn = e.target.closest('button[data-action="lessons-back"]');
+  if(backBtn){ closeLesson(); return; }
   const optBtn = e.target.closest('button[data-lesson][data-oidx]');
   if(optBtn){ selectLessonAnswer(optBtn.dataset.lesson, parseInt(optBtn.dataset.qidx,10), parseInt(optBtn.dataset.oidx,10)); return; }
   const submitBtn = e.target.closest('button[data-action="submit-quiz"]');
