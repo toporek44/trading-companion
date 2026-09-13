@@ -147,8 +147,8 @@ export function renderRiskCalc(){
   const fmtUsd = v => '$'+v.toFixed(2);
   root.innerHTML = `
     <div class="stat-tile"><div class="k">Risk/trade (~5%)</div><div class="v">${fmtUsd(size*0.05)}</div></div>
-    <div class="stat-tile"><div class="k">Profit target/trade (~10%)</div><div class="v good">${fmtUsd(size*0.10)}</div></div>
-    <div class="stat-tile"><div class="k">Daily max loss (~10%)</div><div class="v bad">-${fmtUsd(size*0.10)}</div></div>`;
+    <div class="stat-tile is-good"><div class="k">Profit target/trade (~10%)</div><div class="v good">${fmtUsd(size*0.10)}</div></div>
+    <div class="stat-tile is-bad"><div class="k">Daily max loss (~10%)</div><div class="v bad">-${fmtUsd(size*0.10)}</div></div>`;
 }
 
 export function renderPlan(){

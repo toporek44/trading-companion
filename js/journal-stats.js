@@ -1,4 +1,4 @@
-import { state, escapeHtml, lsGet } from './state.js';
+import { state, escapeHtml, lsGet, statTileCls } from './state.js';
 import { todayStr } from './srs.js';
 
 export function computeStats(list){
@@ -82,14 +82,20 @@ export function renderJournalStats(){
   const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
   const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
   const fmtUsd = v => v==null ? '—' : (v>=0?'+':'-')+'$'+Math.abs(v).toFixed(2);
+  const winRateCls = s.winRate>=0.5?'good':(s.total?'bad':'');
+  const avgRCls = s.avgR>0?'good':(s.avgR<0?'bad':'');
+  const processCls = s.processRate>=0.8?'good':'';
+  const expectancyCls = s.expectancy>0?'good':(s.expectancy<0?'bad':'');
+  const drawdownCls = s.maxDrawdown<0?'bad':'';
+  const streakCls = s.currentStreak>0?'good':(s.currentStreak<0?'bad':'');
   root.innerHTML = `
     <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
-    <div class="stat-tile"><div class="k">Win rate</div><div class="v ${s.winRate>=0.5?'good':(s.total?'bad':'')}">${fmtPct(s.winRate)}</div></div>
-    <div class="stat-tile"><div class="k">Avg R-multiple</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>
-    <div class="stat-tile"><div class="k">Process adherence</div><div class="v ${s.processRate>=0.8?'good':''}">${fmtPct(s.processRate)}</div></div>
-    <div class="stat-tile"><div class="k">Expectancy / trade</div><div class="v ${s.expectancy>0?'good':(s.expectancy<0?'bad':'')}">${fmtUsd(s.expectancy)}</div></div>
-    <div class="stat-tile"><div class="k">Max drawdown</div><div class="v ${s.maxDrawdown<0?'bad':''}">${s.maxDrawdown==null?'—':'-$'+Math.abs(s.maxDrawdown).toFixed(2)}</div></div>
-    <div class="stat-tile"><div class="k">Current streak</div><div class="v ${s.currentStreak>0?'good':(s.currentStreak<0?'bad':'')}">${streakLabel(s.currentStreak)}</div></div>`;
+    <div class="stat-tile ${statTileCls(winRateCls)}"><div class="k">Win rate</div><div class="v ${winRateCls}">${fmtPct(s.winRate)}</div></div>
+    <div class="stat-tile ${statTileCls(avgRCls)}"><div class="k">Avg R-multiple</div><div class="v ${avgRCls}">${fmtR(s.avgR)}</div></div>
+    <div class="stat-tile ${statTileCls(processCls)}"><div class="k">Process adherence</div><div class="v ${processCls}">${fmtPct(s.processRate)}</div></div>
+    <div class="stat-tile ${statTileCls(expectancyCls)}"><div class="k">Expectancy / trade</div><div class="v ${expectancyCls}">${fmtUsd(s.expectancy)}</div></div>
+    <div class="stat-tile ${statTileCls(drawdownCls)}"><div class="k">Max drawdown</div><div class="v ${drawdownCls}">${s.maxDrawdown==null?'—':'-$'+Math.abs(s.maxDrawdown).toFixed(2)}</div></div>
+    <div class="stat-tile ${statTileCls(streakCls)}"><div class="k">Current streak</div><div class="v ${streakCls}">${streakLabel(s.currentStreak)}</div></div>`;
 }
 
 // ---------- R-multiple distribution (Edgewonk-style outcome-clustering histogram) ----------
@@ -506,15 +512,17 @@ export function renderWeeklyReport(){
     const deltaSpan = (v, fmt) => `<span style="font-size:.72rem;color:${v>0?'var(--good)':(v<0?'var(--bad)':'var(--muted)')};margin-left:6px;">${v>0?'▲':(v<0?'▼':'—')} ${fmt(Math.abs(v))} vs prior 7d</span>`;
     deltaHtml = { accuracy: deltaSpan(pctDelta, v=>v+'pp'), pnl: deltaSpan(pnlDelta, v=>'$'+v.toFixed(2)) };
   }
+  const accuracyCls = accuracy>=0.5?'good':'bad';
+  const pnlCls = totalPnl>=0?'good':'bad';
   root.innerHTML = `
     <div class="grid cols-4">
-      <div class="stat-tile"><div class="k">Avg winners ($)</div><div class="v good">${fmtUsd(avgWinners)}</div></div>
-      <div class="stat-tile"><div class="k">Avg winner (¢/sh)</div><div class="v good">${fmtCents(avgWinnerCents)}</div></div>
-      <div class="stat-tile"><div class="k">Avg losers ($)</div><div class="v bad">${fmtUsd(avgLosers)}</div></div>
-      <div class="stat-tile"><div class="k">Avg loser (¢/sh)</div><div class="v bad">${fmtCents(avgLoserCents)}</div></div>
+      <div class="stat-tile ${avgWinners!=null?'is-good':''}"><div class="k">Avg winners ($)</div><div class="v good">${fmtUsd(avgWinners)}</div></div>
+      <div class="stat-tile ${avgWinnerCents!=null?'is-good':''}"><div class="k">Avg winner (¢/sh)</div><div class="v good">${fmtCents(avgWinnerCents)}</div></div>
+      <div class="stat-tile ${avgLosers!=null?'is-bad':''}"><div class="k">Avg losers ($)</div><div class="v bad">${fmtUsd(avgLosers)}</div></div>
+      <div class="stat-tile ${avgLoserCents!=null?'is-bad':''}"><div class="k">Avg loser (¢/sh)</div><div class="v bad">${fmtCents(avgLoserCents)}</div></div>
     </div>
     <div class="grid cols-2" style="margin-top:12px;">
-      <div class="stat-tile"><div class="k">Total accuracy</div><div class="v ${accuracy>=0.5?'good':'bad'}">${fmtPct(accuracy)}</div>${deltaHtml.accuracy||''}</div>
-      <div class="stat-tile"><div class="k">Total P&amp;L (7d)</div><div class="v ${totalPnl>=0?'good':'bad'}">${fmtUsd(totalPnl)}</div>${deltaHtml.pnl||''}</div>
+      <div class="stat-tile ${statTileCls(accuracyCls)}"><div class="k">Total accuracy</div><div class="v ${accuracyCls}">${fmtPct(accuracy)}</div>${deltaHtml.accuracy||''}</div>
+      <div class="stat-tile ${statTileCls(pnlCls)}"><div class="k">Total P&amp;L (7d)</div><div class="v ${pnlCls}">${fmtUsd(totalPnl)}</div>${deltaHtml.pnl||''}</div>
     </div>`;
 }

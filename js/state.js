@@ -31,6 +31,16 @@ export function lsSet(key, value){
 // (and re-exported from there for crypto-scanner.js/futures-scanner.js).
 // Moved here so journal.js can use it too without creating a circular
 // import (scanner.js already imports from journal.js for initSegmented).
+// .stat-tile.is-good/.is-bad (styles.css) render a glowing colored
+// left-border accent on the whole tile — the CSS existed since early in
+// this session but nothing ever applied the class; every stat tile only
+// ever colored its inner .v text. Call with the same 'good'/'bad'/''
+// string already being used for the inner <div class="v ${cls}">, so the
+// outer tile and its value always agree — never compute this separately.
+export function statTileCls(cls){
+  return cls === 'good' ? 'is-good' : cls === 'bad' ? 'is-bad' : '';
+}
+
 export function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }

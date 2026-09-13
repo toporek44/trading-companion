@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, statTileCls } from './state.js';
 import { computeStats, streakLabel } from './journal-stats.js';
 import { WEEKS, TOTAL_DAYS, findTodayKey } from './calendar.js';
 import { MILESTONES } from './milestones.js';
@@ -13,13 +13,17 @@ export function renderDashboard(){
   const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
   const fmtUsd = v => v==null ? '—' : (v>=0?'+':'-')+'$'+Math.abs(v).toFixed(2);
 
+  const winRateCls = s.total ? (s.winRate>=0.5?'good':'bad') : '';
+  const avgRCls = s.avgR>0?'good':(s.avgR<0?'bad':'');
+  const expectancyCls = s.expectancy>0?'good':(s.expectancy<0?'bad':'');
+  const streakCls = s.currentStreak>0?'good':(s.currentStreak<0?'bad':'');
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-tile"><div class="k">Day</div><div class="v">${Math.min(totalDoneDays+1, TOTAL_DAYS)}<span style="font-size:.9rem;color:var(--muted);">/${TOTAL_DAYS}</span></div></div>
     <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
-    <div class="stat-tile"><div class="k">Win rate</div><div class="v ${s.total? (s.winRate>=0.5?'good':'bad'):''}">${fmtPct(s.winRate)}</div></div>
-    <div class="stat-tile"><div class="k">Avg R</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>
-    <div class="stat-tile"><div class="k">Expectancy / trade</div><div class="v ${s.expectancy>0?'good':(s.expectancy<0?'bad':'')}">${fmtUsd(s.expectancy)}</div></div>
-    <div class="stat-tile"><div class="k">Current streak</div><div class="v ${s.currentStreak>0?'good':(s.currentStreak<0?'bad':'')}">${streakLabel(s.currentStreak)}</div></div>`;
+    <div class="stat-tile ${statTileCls(winRateCls)}"><div class="k">Win rate</div><div class="v ${winRateCls}">${fmtPct(s.winRate)}</div></div>
+    <div class="stat-tile ${statTileCls(avgRCls)}"><div class="k">Avg R</div><div class="v ${avgRCls}">${fmtR(s.avgR)}</div></div>
+    <div class="stat-tile ${statTileCls(expectancyCls)}"><div class="k">Expectancy / trade</div><div class="v ${expectancyCls}">${fmtUsd(s.expectancy)}</div></div>
+    <div class="stat-tile ${statTileCls(streakCls)}"><div class="k">Current streak</div><div class="v ${streakCls}">${streakLabel(s.currentStreak)}</div></div>`;
 
   const todayKey = findTodayKey();
   const todayEl = document.getElementById('dash-today');
