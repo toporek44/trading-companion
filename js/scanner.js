@@ -529,9 +529,9 @@ startVisibilityAwareRefresh(loadRecentAlerts, AUTO_REFRESH_MS); // stays in sync
 
 // ---------- Scanner: watchlist (localStorage, ticker array) ----------
 const SCANNER_WATCHLIST_KEY = 'tc-scanner-watchlist';
-function getScannerWatchlist(){ return lsGet(SCANNER_WATCHLIST_KEY, []); }
-function isScannerWatched(ticker){ return getScannerWatchlist().includes(ticker); }
-function toggleScannerWatch(ticker){
+export function getScannerWatchlist(){ return lsGet(SCANNER_WATCHLIST_KEY, []); }
+export function isScannerWatched(ticker){ return getScannerWatchlist().includes(ticker); }
+export function toggleScannerWatch(ticker){
   const list = getScannerWatchlist();
   const idx = list.indexOf(ticker);
   if(idx >= 0) list.splice(idx, 1); else list.push(ticker);

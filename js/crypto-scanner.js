@@ -7,7 +7,7 @@
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
 import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, isScannerWatched, toggleScannerWatch } from './scanner.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
@@ -25,6 +25,10 @@ function cryptoTodayStr(){ return new Date().toISOString().slice(0,10); }
 // shared 'tc-scanner-notes' object (e.g. a hypothetical stock ticker "BTC").
 function getCryptoNote(symbol){ return getScannerNote(`crypto:${symbol}`); }
 function setCryptoNote(symbol, text){ setScannerNote(`crypto:${symbol}`, text); }
+// Same market-prefix reasoning as the notes functions above — a crypto
+// symbol must never collide with a stock ticker in the shared watchlist.
+function isCryptoWatched(symbol){ return isScannerWatched(`crypto:${symbol}`); }
+function toggleCryptoWatch(symbol){ toggleScannerWatch(`crypto:${symbol}`); }
 function cryptoSlug(name){ return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
 
 function getCryptoNewsCache(){ return lsGet(CRYPTO_NEWS_CACHE_KEY, {}); }
@@ -74,6 +78,7 @@ function cryptoMomentum(coin){
 
 function cryptoCardHtml(coin, rank){
   const expanded = cryptoExpanded.has(coin.symbol);
+  const watched = isCryptoWatched(coin.symbol);
   const pct = coin.pct;
   const pctHtml = pct != null
     ? `<span class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`
@@ -89,11 +94,14 @@ function cryptoCardHtml(coin, rank){
     <div class="sc-card-clickzone" role="button" tabindex="0" aria-expanded="${expanded}" aria-label="${expanded ? 'Collapse' : 'Expand'} ${coin.symbol} details">
       <div class="sc-card-top">
         <span class="sc-card-rank mono">#${rank}</span>
-        <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
+        <div class="sc-card-top-right">
+          <span class="sc-card-expand-hint">${expanded ? '&#9660; hide' : '&#9654; details'}</span>
+          <button type="button" class="sc-watch-toggle" data-symbol="${coin.symbol}" title="${watched?'Remove from':'Add to'} watchlist" aria-label="${watched?'Remove '+coin.symbol+' from':'Add '+coin.symbol+' to'} watchlist" aria-pressed="${watched}">${watched ? '★' : '☆'}</button>
+        </div>
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${coin.symbol}</span>${freshnessIconHtml}${getCryptoNote(coin.symbol) ? '<span title="You have a note on this coin">&#128221;</span>' : ''}
+          <span class="sc-card-ticker-sym">${coin.symbol}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getCryptoNote(coin.symbol) ? '<span title="You have a note on this coin">&#128221;</span>' : ''}
           <span style="color:var(--muted);font-weight:400;font-size:12px;">${escapeHtml(coin.name||'')}</span>
         </div>
         ${pctHtml}
@@ -146,11 +154,15 @@ function cryptoFilterRow(coin){
   const maxP = maxPRaw === '' ? Infinity : (parseFloat(maxPRaw) || Infinity);
   const minPct = parseFloat(document.getElementById('cr-minpct').value) || 0;
   const minVol = parseFloat(document.getElementById('cr-minvol').value) || 0;
+  const watchOnly = document.getElementById('cr-watch-filter').dataset.value === 'watch';
+  if(watchOnly && !isCryptoWatched(coin.symbol)) return false;
   return coin.price >= minP && coin.price <= maxP && Math.abs(coin.pct) >= minPct && (coin.volume ?? 0) >= minVol;
 }
 ['cr-minprice','cr-maxprice','cr-minpct','cr-minvol'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderCryptoLists);
 });
+initSegmented('cr-watch-filter');
+document.getElementById('cr-watch-filter').addEventListener('click', () => renderCryptoLists());
 
 // Same 3-click cycle as the Stocks tab's sort pills: ascending, descending,
 // back to each list's own natural default (gainers by |%change|, active by
@@ -246,6 +258,8 @@ function renderCryptoLists(){
       if(coin) checkCryptoNews(coin);
       return;
     }
+    const watchBtn = e.target.closest('.sc-watch-toggle');
+    if(watchBtn){ toggleCryptoWatch(watchBtn.dataset.symbol); renderCryptoLists(); return; }
     const zone = e.target.closest('.sc-card-clickzone');
     if(zone){
       const symbol = zone.closest('.sc-stock-card').dataset.symbol;
