@@ -228,6 +228,13 @@
   }
   .sc-sort-bar button:hover{ border-color:var(--accent); color:var(--accent); }
 
+  /* ---- Journal: sortable trade-log column headers ---- */
+  .th-sort{
+    font:inherit; font-weight:inherit; color:inherit; background:none; border:none; padding:0;
+    cursor:pointer; white-space:nowrap;
+  }
+  .th-sort:hover, .th-sort.active{ color:var(--accent); }
+
   /* ---- Scanner: heatmap view (TC2000-style, Top Gainers only) ---- */
   .sc-heatmap-grid{ display:flex; flex-wrap:wrap; gap:3px; }
   .sc-heatmap-tile{

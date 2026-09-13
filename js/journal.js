@@ -443,14 +443,35 @@ document.getElementById('tv-import-input').addEventListener('change', async (e) 
 // ---------- Trade log filter (search + strategy) — per-browser UI state only ----------
 let tradesSearchQuery = '';
 let tradesStrategyFilter = '';
+// Column sort — defaults to date desc (newest first, matching the
+// insertion order the table always showed before sorting existed), so a
+// user who never touches a header sees identical behavior to before.
+let tradesSortKey = 'date';
+let tradesSortDir = 'desc';
 
 function filteredTrades(){
   const q = tradesSearchQuery.trim().toLowerCase();
-  return state.trades.filter(t => {
+  const list = state.trades.filter(t => {
     if(tradesStrategyFilter && t.strategy !== tradesStrategyFilter) return false;
     if(!q) return true;
     const haystack = [t.instrument, t.tags, t.notes, t.date].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(q);
+  });
+  const dir = tradesSortDir === 'asc' ? 1 : -1;
+  const key = tradesSortKey;
+  const numericKeys = new Set(['resultAmount', 'rMultiple']);
+  return list.slice().sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if(numericKeys.has(key)){
+      av = typeof av === 'number' ? av : -Infinity;
+      bv = typeof bv === 'number' ? bv : -Infinity;
+    } else {
+      av = (av || '').toString().toLowerCase();
+      bv = (bv || '').toString().toLowerCase();
+    }
+    if(av < bv) return -1 * dir;
+    if(av > bv) return 1 * dir;
+    return 0;
   });
 }
 
@@ -580,7 +601,27 @@ export function renderTradesTable(){
     selectAll.indeterminate = selectedTradeIds.size > 0 && !selectAll.checked;
   }
   updateBulkDeleteButton();
+  document.querySelectorAll('.th-sort').forEach(btn => {
+    const active = btn.dataset.sortKey === tradesSortKey;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-sort', active ? (tradesSortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+    const base = btn.textContent.replace(/[▲▼]\s*$/, '').trim();
+    btn.textContent = active ? `${base} ${tradesSortDir === 'asc' ? '▲' : '▼'}` : base;
+  });
 }
+
+document.querySelector('#trades-tbody')?.closest('table')?.querySelector('thead')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.th-sort');
+  if(!btn) return;
+  const key = btn.dataset.sortKey;
+  if(tradesSortKey === key){
+    tradesSortDir = tradesSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    tradesSortKey = key;
+    tradesSortDir = key === 'date' ? 'desc' : 'desc';
+  }
+  renderTradesTable();
+});
 
 document.getElementById('trades-tbody')?.addEventListener('change', (e) => {
   const cb = e.target.closest('input.trade-select');
