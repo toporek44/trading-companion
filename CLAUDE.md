@@ -502,6 +502,34 @@ bugs, verify every change live) added, on top of everything above:
   duplicate, partial overlap, and a fresh import — via real CSV files
   built and uploaded through Playwright, with `window.prompt` stubbed to
   answer the Instrument/Strategy prompts non-interactively.
+- **Curriculum-vs-code gap-hunting found two more real issues** (a
+  still-later `/loop` pass, same session): the Calendar curriculum's own
+  Week 12 copy tells the user to "track your Beta streak in the Journal
+  and Milestones tabs," but no such concept existed in code anywhere —
+  the inverse of the "built but never wired up" bugs found earlier
+  (content describing a feature that was never built, rather than a
+  feature built with no UI). Added a Beta-phase milestone hint computing
+  the two objectively-trackable halves of the rule (a day with a logged
+  5/5-Pillars trade, and that day's net P&L positive) as a consecutive-
+  day streak; explicitly does NOT claim to verify MACD/volume
+  confirmation, since that's not a field this Journal captures. Verified
+  live with three real scenarios (0/10 baseline, building a 2-day
+  streak, a red day correctly resetting it) via crafted trades with all
+  the Pillars-qualifying fields filled in. Then found a real, more
+  serious bug while looking at pillarsCount usage: `computePillars()`
+  ran unconditionally on EVERY logged trade regardless of Market, so an
+  Options/Futures/Crypto trade (e.g. a crypto entry at $45,000, wildly
+  outside the Pillars' $2-$20 stock price range) got a misleadingly low
+  Pillars score in the trade log, and unfairly counted against Trade
+  Coach's "trading outside your own setup criteria" insight — a rubric
+  that was never meant to apply to it (the Scanner tab already
+  deliberately has no Pillars/Setup-Grade for Crypto/Futures for this
+  exact reason). Fixed by only computing Pillars for `market ===
+  'Stock'`; other markets store `null`, which the existing "—" trade-log
+  fallback and Trade Coach's `typeof pillarsCount === 'number'` filter
+  both already handled correctly with zero further changes needed.
+  Verified live: a Crypto trade now shows "—", a Stock trade still shows
+  a real score.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
