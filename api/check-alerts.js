@@ -199,14 +199,18 @@ export default async function handler(req, res){
       const floatOk = row.floatMAuto != null && row.floatMAuto < 20;
       const pillarCount = [priceOk, gainOk, volOk, newsOk, floatOk].filter(Boolean).length;
 
+      // Stores a timestamp (ms since epoch) rather than a bare `true` — the
+      // dedup guard below only cares that the value is truthy (any number
+      // works), but the in-app "Recent alerts" panel needs *when* each
+      // alert fired, not just whether it did.
       const key = `pillars5:${row.ticker}`;
       if(pillarCount === 5 && !fired.fired[key]){
-        fired.fired[key] = true;
+        fired.fired[key] = Date.now();
         alertsToSend.push(formatPillarAlert(row, relVol));
       }
       const freshKey = `freshnews:${row.ticker}`;
       if(freshness.hoursOld != null && freshness.hoursOld < 2 && !fired.fired[freshKey]){
-        fired.fired[freshKey] = true;
+        fired.fired[freshKey] = Date.now();
         alertsToSend.push(formatFreshNewsAlert(row, freshness));
       }
     }

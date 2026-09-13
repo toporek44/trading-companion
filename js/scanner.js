@@ -498,16 +498,27 @@ async function loadRecentAlerts(){
     const rows = await res.json();
     const state = Array.isArray(rows) && rows[0] && rows[0].state;
     const fired = (state && state.fired) || {};
-    const entries = Object.keys(fired).map(key => {
+    // Values are a timestamp (ms since epoch) going forward, but entries
+    // written before this change are the bare boolean `true` — handle both
+    // rather than assuming every row in production already has the new shape.
+    const entries = Object.entries(fired).map(([key, value]) => {
       const [cond, ...rest] = key.split(':');
-      return { cond, ticker: rest.join(':') };
-    });
+      const firedAtMs = typeof value === 'number' ? value : null;
+      return { cond, ticker: rest.join(':'), firedAtMs };
+    }).sort((a, b) => (b.firedAtMs||0) - (a.firedAtMs||0));
     if(entries.length === 0){
       container.innerHTML = `<p style="color:var(--muted);font-size:.85rem;margin:0;">No alerts fired yet today.</p>`;
       return;
     }
+    const relTime = (ms) => {
+      if(ms == null) return 'earlier today';
+      const mins = Math.round((Date.now() - ms) / 60000);
+      if(mins < 1) return 'just now';
+      if(mins < 60) return `${mins}m ago`;
+      return `${Math.floor(mins/60)}h ${mins%60}m ago`;
+    };
     container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;">${entries.map(e =>
-      `<span class="pill good" title="${ALERT_COND_LABELS[e.cond] || e.cond}">${escapeHtml(e.ticker)} &middot; ${escapeHtml(ALERT_COND_LABELS[e.cond] || e.cond)}</span>`
+      `<span class="pill good" title="${escapeHtml(ALERT_COND_LABELS[e.cond] || e.cond)} &middot; ${relTime(e.firedAtMs)}">${escapeHtml(e.ticker)} &middot; ${escapeHtml(ALERT_COND_LABELS[e.cond] || e.cond)} &middot; ${relTime(e.firedAtMs)}</span>`
     ).join('')}</div>`;
   }catch(err){
     container.innerHTML = `<p style="color:var(--muted);font-size:.85rem;margin:0;">Could not load recent alerts.</p>`;
