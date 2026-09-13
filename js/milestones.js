@@ -30,6 +30,16 @@ export const MILESTONES = [
     // day nets green) — MACD/volume confirmation isn't a field this
     // Journal captures, so the hint says so explicitly rather than
     // silently pretending to check the whole rule.
+    //
+    // "Straight" here means straight qualifying TRADING days, not straight
+    // calendar days — a trader who quits for a month and comes back keeps
+    // their old streak alive, since the walk only looks at days that
+    // actually have trades logged, with no check for a calendar-date gap
+    // between them. That matches computeStats()'s own currentStreak
+    // elsewhere in this app (also trade-order, not calendar-order), so
+    // it's consistent rather than a one-off inconsistency — but it's worth
+    // being explicit about in the copy, since "10 straight trading days"
+    // could otherwise read as 10 consecutive calendar days.
     hint: (trades) => {
       const byDay = {};
       trades.filter(t => t.market === 'Stock' && t.date).forEach(t => (byDay[t.date] = byDay[t.date] || []).push(t));
@@ -41,7 +51,7 @@ export const MILESTONES = [
         const netGreen = list.reduce((s,t) => s + (t.resultAmount||0), 0) > 0;
         if(hasAPlus && netGreen) streak++; else break;
       }
-      return `${streak}/10 straight qualifying days so far (5/5-Pillar trade + net green each day) — MACD/volume confirmation is still yours to judge`;
+      return `${streak}/10 qualifying trading days in a row so far (5/5-Pillar trade + net green each day, not necessarily 10 straight calendar days) — MACD/volume confirmation is still yours to judge`;
     }},
   {t:"First live stock trade placed", d:"$1,000 account, 1% max risk, full journal entry"},
   {t:"First month of live trading reviewed", d:"Monthly journal review completed, sizing reassessed from data"}
