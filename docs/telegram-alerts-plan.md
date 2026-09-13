@@ -56,23 +56,24 @@ working end to end).
 
 - **`api/check-alerts.js`** — a serverless function that:
   1. Fetches the same Finviz Elite gainers list the Scanner tab uses
-     (same filters: price $1-$20, float <20M, relative volume >2x).
+     (same filters: user-editable price range — see `getScannerPriceRange()`
+     in `js/state.js`, $2-$20 default — float <20M, relative volume >2x).
   2. For the top 15 candidates by |change%|, checks Finnhub for news
      freshness (bounding API usage — Finnhub free tier is 60 calls/min).
   3. Computes the same 5-Pillars score as `js/scanner.js`'s client-side
      logic (price range, ≥10% gain, ≥5x relative volume, float <20M, news
      ≤24h old).
-  4. Fires a Telegram message for any ticker that newly hits 5/5 pillars,
-     or newly gets a <2h-fresh news check, that hasn't already alerted
-     today.
+  4. Fires a Telegram message (and optionally a Discord/Slack webhook —
+     see below) for any ticker that newly hits 5/5 pillars, or newly gets
+     a <2h-fresh news check, that hasn't already alerted today.
   5. Dedup state is stored in the **same Supabase `progress` table** the
      rest of the app already uses for calendar/milestones/etc — key
-     `telegram-alerts-fired`, value `{date, fired: {"cond:TICKER": true}}`.
-     No schema migration needed, no new table.
-- **External scheduler** (not yet set up): a free service like
-  [cron-job.org](https://cron-job.org) hitting
-  `https://trading-companion-ashen.vercel.app/api/check-alerts` every
-  1-5 minutes.
+     `telegram-alerts-fired`, value `{date, fired: {"cond:TICKER": <ms-since-epoch>}}`.
+     The timestamp (not just a bare `true`) feeds the Scanner tab's own
+     "Recent alerts (today)" panel, which shows how long ago each one
+     fired. No schema migration needed, no new table.
+- **Scheduler**: see "Scheduler (implemented)" below — Supabase
+  `pg_cron`+`pg_net`, not an external service.
 
 ## Required env vars
 
