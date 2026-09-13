@@ -97,7 +97,15 @@ async function toggleCalDay(key, val){
 }
 
 // ---------- Calendar rendering ----------
-let openWeeks = {0:true};
+// Was hardcoded to always auto-open week 0 regardless of actual progress —
+// a real gap for anyone past week 1, who'd have to manually expand their
+// way to wherever "today" actually is on every page load. Now opens the
+// week containing the next unchecked day instead, computed once on first
+// render (renderAll only calls this after state.calState has loaded) —
+// `autoOpened` prevents this from fighting a user's own manual
+// expand/collapse clicks on subsequent renders.
+let openWeeks = {};
+let autoOpened = false;
 export function findTodayKey(){
   for(let wi=0; wi<WEEKS.length; wi++){
     for(let di=0; di<WEEKS[wi].days.length; di++){
@@ -112,6 +120,10 @@ export function renderCalendar(){
   if(!root) return;
   root.innerHTML = '';
   const todayKey = findTodayKey();
+  if(!autoOpened){
+    openWeeks[todayKey ? todayKey.wi : 0] = true;
+    autoOpened = true;
+  }
   let dayCounter = 0, totalDone = 0;
   WEEKS.forEach((week, wi) => {
     const startDay = dayCounter + 1;
