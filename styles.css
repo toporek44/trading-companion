@@ -423,7 +423,7 @@
     .side-foot{ display:block; margin-top:auto; padding:10px 8px 0; font-size:10.5px; color:var(--nav-muted); font-family:"IBM Plex Mono",monospace; }
 
     .grid.cols-4{ grid-template-columns:repeat(4,1fr); }
-    .grid.cols-6{ grid-template-columns:repeat(6,1fr); }
+    .grid.cols-6{ grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
     .grid.cols-2{ grid-template-columns:1fr 1fr; }
     .day-row .d-body{ grid-template-columns:1fr 1fr; }
     .tbl-scroll{ margin:0; padding:0; }

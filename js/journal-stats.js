@@ -22,7 +22,27 @@ export function computeStats(list){
     if(cum > peak) peak = cum;
     maxDrawdown = Math.min(maxDrawdown, cum - peak);
   });
-  return {total, winRate, avgR, processRate, totalPnl, expectancy, maxDrawdown: sorted.length ? maxDrawdown : null};
+  // Current streak: consecutive wins/losses counting back from the most
+  // recent trade (positive = win streak, negative = loss streak).
+  // Breakeven trades (resultAmount === 0) are skipped — they neither
+  // extend nor break a streak, matching how Edgewonk/Tradervue treat them.
+  let currentStreak = 0;
+  for(let i = sorted.length - 1; i >= 0; i--){
+    const r = sorted[i].resultAmount || 0;
+    if(r === 0) continue;
+    const dir = r > 0 ? 1 : -1;
+    if(currentStreak === 0) currentStreak = dir;
+    else if(Math.sign(currentStreak) === dir) currentStreak += dir;
+    else break;
+  }
+  return {total, winRate, avgR, processRate, totalPnl, expectancy, maxDrawdown: sorted.length ? maxDrawdown : null, currentStreak: sorted.length ? currentStreak : null};
+}
+
+function streakLabel(streak){
+  if(streak == null || streak === 0) return '—';
+  const n = Math.abs(streak);
+  const noun = streak > 0 ? (n === 1 ? 'win' : 'wins') : (n === 1 ? 'loss' : 'losses');
+  return `${n} ${noun}`;
 }
 
 export function renderJournalStats(){
@@ -37,7 +57,8 @@ export function renderJournalStats(){
     <div class="stat-tile"><div class="k">Avg R-multiple</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>
     <div class="stat-tile"><div class="k">Process adherence</div><div class="v ${s.processRate>=0.8?'good':''}">${fmtPct(s.processRate)}</div></div>
     <div class="stat-tile"><div class="k">Expectancy / trade</div><div class="v ${s.expectancy>0?'good':(s.expectancy<0?'bad':'')}">${fmtUsd(s.expectancy)}</div></div>
-    <div class="stat-tile"><div class="k">Max drawdown</div><div class="v ${s.maxDrawdown<0?'bad':''}">${s.maxDrawdown==null?'—':'-$'+Math.abs(s.maxDrawdown).toFixed(2)}</div></div>`;
+    <div class="stat-tile"><div class="k">Max drawdown</div><div class="v ${s.maxDrawdown<0?'bad':''}">${s.maxDrawdown==null?'—':'-$'+Math.abs(s.maxDrawdown).toFixed(2)}</div></div>
+    <div class="stat-tile"><div class="k">Current streak</div><div class="v ${s.currentStreak>0?'good':(s.currentStreak<0?'bad':'')}">${streakLabel(s.currentStreak)}</div></div>`;
 }
 
 // ---------- R-multiple distribution (Edgewonk-style outcome-clustering histogram) ----------
