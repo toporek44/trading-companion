@@ -442,5 +442,12 @@
   main{ padding:0; }
   .card{ box-shadow:none; border:1px solid #ccc; break-inside:avoid; }
   input, select, textarea{ border:1px solid #999 !important; color:#000 !important; background:#fff !important; }
+  /* Scoped print, e.g. the Weekly Performance report's own Print button —
+     js/journal.js toggles this class on <body> right before calling
+     window.print(), and removes it on window.onafterprint. Hides every
+     other top-level section of the current page so only the one card
+     prints, instead of the whole Journal page (trade log, equity chart,
+     R-histogram, etc. all at once). */
+  body.print-scope-active .page > *:not(#weekly-report-card){ display:none !important; }
 }
 

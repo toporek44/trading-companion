@@ -466,6 +466,16 @@ function exportTradesCsv(){
 }
 document.getElementById('journal-export-csv').addEventListener('click', exportTradesCsv);
 
+// Prints just the Weekly Performance report card (mirrors this app's own
+// weekly-reporting-template.pdf) rather than the whole dense Journal page
+// (trade log, equity chart, R-histogram, etc. all at once). See the
+// print-scope-active rule in styles.css.
+document.getElementById('weekly-report-print-btn').addEventListener('click', () => {
+  document.body.classList.add('print-scope-active');
+  window.print();
+});
+window.addEventListener('afterprint', () => document.body.classList.remove('print-scope-active'));
+
 // ---------- Tag suggestions (avoid re-typing/misspelling a tag you've
 // already used — inconsistent spelling silently fragments the By-Tag
 // stats table, since it groups by exact string match) ----------

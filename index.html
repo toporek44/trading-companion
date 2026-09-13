@@ -253,8 +253,11 @@
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:18px;">
-          <h3>Weekly performance report</h3>
+        <div class="card" id="weekly-report-card" style="margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <h3>Weekly performance report</h3>
+            <button type="button" class="btn" id="weekly-report-print-btn" title="Print just this report">&#128424; Print</button>
+          </div>
           <p style="color:var(--muted);font-size:.8rem;margin:2px 0 0;">(last 7 days, mirrors your Warrior Trading weekly reporting sheet)</p>
           <div id="weekly-report" style="margin-top:12px;"></div>
         </div>
