@@ -157,7 +157,8 @@ export function renderPractice(){
   const today = todayStr();
   const dueCount = activeCards().filter(c => state.srsState.cards[c.id] && state.srsState.cards[c.id].dueDate <= today).length;
   const { budget: newAvailable } = newCardBudget();
-  header.innerHTML = `<div class="progress-label">Streak: ${state.srsState.streak || 0} day(s) &middot; ${dueCount} due today &middot; ${newAvailable} new available</div>${renderDeckBars()}${renderCategoryFilters()}`;
+  header.innerHTML = `<div class="progress-label">Streak: ${state.srsState.streak || 0} day(s) &middot; ${dueCount} due today &middot; ${newAvailable} new available</div>${renderDeckBars()}${renderCategoryFilters()}
+    <p class="mono" style="font-size:.72rem;color:var(--muted);margin:8px 0 0;">Keyboard: <kbd>1</kbd>-<kbd>4</kbd> answer &middot; <kbd>Enter</kbd> next card</p>`;
 
   if(sessionIndex >= sessionQueue.length){
     body.innerHTML = sessionQueue.length
@@ -237,4 +238,29 @@ document.getElementById('practice-body').addEventListener('click', (e) => {
 document.getElementById('practice-header').addEventListener('click', (e) => {
   const catBtn = e.target.closest('button[data-action="practice-toggle-category"]');
   if(catBtn){ toggleCategory(catBtn.dataset.category); }
+});
+
+// Keyboard review — 1-4 picks an answer option, Enter/Space advances (or
+// restarts once a session is complete). A flashcard drill is exactly the
+// kind of repetitive interaction that benefits most from not needing the
+// mouse, same reasoning behind Anki/Quizlet's own keyboard-first review.
+document.addEventListener('keydown', (e) => {
+  const page = document.getElementById('page-practice');
+  if(!page || page.hidden) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = document.activeElement?.tagName;
+  if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+  if(/^[1-4]$/.test(e.key)){
+    const idx = parseInt(e.key, 10) - 1;
+    const optBtn = document.querySelector(`#practice-body button[data-opt-idx="${idx}"]`);
+    if(optBtn && !optBtn.disabled){ answerCurrent(idx); e.preventDefault(); }
+    return;
+  }
+  if(e.key === 'Enter' || e.key === ' '){
+    const nextBtn = document.querySelector('#practice-body button[data-action="practice-next"]');
+    const restartBtn = document.querySelector('#practice-body button[data-action="practice-restart"]');
+    if(nextBtn){ nextCard(); e.preventDefault(); }
+    else if(restartBtn){ restartSession(); e.preventDefault(); }
+  }
 });
