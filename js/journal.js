@@ -202,18 +202,28 @@ document.getElementById('trade-form').addEventListener('submit', async (e) => {
   const floatM = parseFloat(document.getElementById('f-float').value);
   const newsCatalyst = document.getElementById('f-news').dataset.value === 'true';
   const holdTime = parseFloat(document.getElementById('f-holdtime').value);
+  const market = document.getElementById('f-market').value;
+  // The 5 Pillars (price range, % gain, relative volume, news, float) are
+  // small-cap US stock mechanics — the Scanner tab already deliberately
+  // has no Pillars/Setup-Grade scoring for Crypto/Futures for this exact
+  // reason. computePillars() used to run unconditionally for every trade
+  // regardless of market, so an Options/Futures/Crypto trade (e.g. a
+  // crypto entry at $45,000, wildly outside the $2-$20 stock range) would
+  // get a misleadingly low Pillars score in the trade log and unfairly
+  // count against the "trading outside your own setup criteria" Trade
+  // Coach insight — a rubric that was never meant to apply to it.
   const priceRange = await getScannerPriceRange();
-  const {meetsPillars, pillarsCount} = computePillars(
+  const {meetsPillars, pillarsCount} = market === 'Stock' ? computePillars(
     entryPrice,
     isNaN(pctGainOnDay) ? null : pctGainOnDay,
     isNaN(relVolume) ? null : relVolume,
     newsCatalyst,
     isNaN(floatM) ? null : floatM,
     priceRange
-  );
+  ) : { meetsPillars: null, pillarsCount: null };
   const entry = {
     date: document.getElementById('f-date').value,
-    market: document.getElementById('f-market').value,
+    market: market,
     instrument: document.getElementById('f-instrument').value.trim() || '—',
     strategy: document.getElementById('f-strategy').value,
     direction: document.getElementById('f-direction').dataset.value,
