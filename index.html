@@ -488,6 +488,11 @@
           <summary><h3 style="display:inline;">Alerts &mdash; how they work</h3></summary>
           <p style="color:var(--muted);font-size:.86rem;margin:10px 0 0;">The "Enable alerts" button above turns on <strong>browser notifications plus a two-tone audio chime</strong> the moment a ticker hits a full 5/5 Pillars score, or a tracked ticker's news freshness newly turns &#128293;&nbsp;(&lt;2h) &mdash; the sound means you don't have to be looking at the tab to catch it. Each ticker alerts once per day per condition &mdash; no repeat spam on every 60s refresh.</p>
           <p style="color:var(--muted);font-size:.78rem;margin:10px 0 0;"><strong>Limitation:</strong> these only fire while this tab is open in a browser (it can be backgrounded/minimized and still work in most browsers), not when the browser or device is fully closed. Phone alerts that work with everything closed go through Telegram instead &mdash; server-side, no tab needed (see docs/telegram-alerts-plan.md).</p>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+            <label style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">Recent Telegram/Discord alerts (today)</label>
+            <p style="color:var(--muted);font-size:.78rem;margin:6px 0 10px;">The server-side alert check (runs every 2 minutes regardless of whether this tab is open) dedupes per ticker per condition per day &mdash; this shows what's already fired today, so you don't have to check your phone to know.</p>
+            <div id="scanner-recent-alerts"><p style="color:var(--muted);font-size:.85rem;margin:0;">Loading&hellip;</p></div>
+          </div>
         </details>
 
         <details class="card sc-collapsible" style="margin-bottom:18px;">

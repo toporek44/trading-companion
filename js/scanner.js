@@ -481,6 +481,41 @@ updateScannerAlertsUI();
 // this is a deliberate manual preview, not a real triggered alert.
 document.getElementById('scanner-alerts-test-sound').addEventListener('click', playScannerAlertChime);
 
+// ---------- Scanner: recent server-side alerts (read-only view into the
+// same Supabase state api/check-alerts.js uses for its own dedup) ----------
+// Key format is "cond:TICKER" (see api/check-alerts.js) where cond is
+// "pillars5" or "freshnews". Only today's fired state is ever kept (the
+// server resets the whole row once the date rolls over), so this is
+// necessarily a same-day view, not a historical alert log.
+const ALERT_COND_LABELS = { pillars5: '5/5 Pillars', freshnews: 'Fresh news (<2h)' };
+async function loadRecentAlerts(){
+  const container = document.getElementById('scanner-recent-alerts');
+  if(!container) return;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.telegram-alerts-fired&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const state = Array.isArray(rows) && rows[0] && rows[0].state;
+    const fired = (state && state.fired) || {};
+    const entries = Object.keys(fired).map(key => {
+      const [cond, ...rest] = key.split(':');
+      return { cond, ticker: rest.join(':') };
+    });
+    if(entries.length === 0){
+      container.innerHTML = `<p style="color:var(--muted);font-size:.85rem;margin:0;">No alerts fired yet today.</p>`;
+      return;
+    }
+    container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;">${entries.map(e =>
+      `<span class="pill good" title="${ALERT_COND_LABELS[e.cond] || e.cond}">${escapeHtml(e.ticker)} &middot; ${escapeHtml(ALERT_COND_LABELS[e.cond] || e.cond)}</span>`
+    ).join('')}</div>`;
+  }catch(err){
+    container.innerHTML = `<p style="color:var(--muted);font-size:.85rem;margin:0;">Could not load recent alerts.</p>`;
+  }
+}
+loadRecentAlerts();
+startVisibilityAwareRefresh(loadRecentAlerts, AUTO_REFRESH_MS); // stays in sync as the server-side check (every 2min) fires new ones
+
 // ---------- Scanner: watchlist (localStorage, ticker array) ----------
 const SCANNER_WATCHLIST_KEY = 'tc-scanner-watchlist';
 function getScannerWatchlist(){ return lsGet(SCANNER_WATCHLIST_KEY, []); }

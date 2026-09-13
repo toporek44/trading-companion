@@ -7,7 +7,7 @@
 // independent of any open browser tab, and sends a Telegram message for
 // any ticker that newly qualifies today. Dedup state is stored in the
 // same Supabase `progress` table the rest of the app already uses (key
-// 'telegram-alerts-fired', value {date, fired: {"TICKER|cond": true}}) —
+// 'telegram-alerts-fired', value {date, fired: {"cond:TICKER": true}}) —
 // no schema migration needed, no new table.
 //
 // Requires FINVIZ_API_KEY, FINHUB_API_KEY (already configured), plus
