@@ -38,7 +38,7 @@ export function computeStats(list){
   return {total, winRate, avgR, processRate, totalPnl, expectancy, maxDrawdown: sorted.length ? maxDrawdown : null, currentStreak: sorted.length ? currentStreak : null};
 }
 
-function streakLabel(streak){
+export function streakLabel(streak){
   if(streak == null || streak === 0) return '—';
   const n = Math.abs(streak);
   const noun = streak > 0 ? (n === 1 ? 'win' : 'wins') : (n === 1 ? 'loss' : 'losses');

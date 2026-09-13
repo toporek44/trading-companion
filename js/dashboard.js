@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { computeStats } from './journal-stats.js';
+import { computeStats, streakLabel } from './journal-stats.js';
 import { WEEKS, TOTAL_DAYS, findTodayKey } from './calendar.js';
 import { MILESTONES } from './milestones.js';
 import { renderBrief } from './brief.js';
@@ -16,7 +16,8 @@ export function renderDashboard(){
     <div class="stat-tile"><div class="k">Day</div><div class="v">${Math.min(totalDoneDays+1, TOTAL_DAYS)}<span style="font-size:.9rem;color:var(--muted);">/${TOTAL_DAYS}</span></div></div>
     <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
     <div class="stat-tile"><div class="k">Win rate</div><div class="v ${s.total? (s.winRate>=0.5?'good':'bad'):''}">${fmtPct(s.winRate)}</div></div>
-    <div class="stat-tile"><div class="k">Avg R</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>`;
+    <div class="stat-tile"><div class="k">Avg R</div><div class="v ${s.avgR>0?'good':(s.avgR<0?'bad':'')}">${fmtR(s.avgR)}</div></div>
+    <div class="stat-tile"><div class="k">Current streak</div><div class="v ${s.currentStreak>0?'good':(s.currentStreak<0?'bad':'')}">${streakLabel(s.currentStreak)}</div></div>`;
 
   const todayKey = findTodayKey();
   const todayEl = document.getElementById('dash-today');
