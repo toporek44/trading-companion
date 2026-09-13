@@ -130,6 +130,74 @@ function cryptoCardHtml(coin, rank){
   </div>`;
 }
 
+// ---------- Crypto: filters + sorting (parity with the US Stocks tab) ----------
+function cryptoFilterRow(coin){
+  if(coin.price == null || coin.pct == null) return false; // same defense-in-depth as scannerFilterRow — never let a null reach the card renderer's unguarded .toFixed()
+  const minP = parseFloat(document.getElementById('cr-minprice').value) || 0;
+  const maxPRaw = document.getElementById('cr-maxprice').value.trim();
+  const maxP = maxPRaw === '' ? Infinity : (parseFloat(maxPRaw) || Infinity);
+  const minPct = parseFloat(document.getElementById('cr-minpct').value) || 0;
+  const minVol = parseFloat(document.getElementById('cr-minvol').value) || 0;
+  return coin.price >= minP && coin.price <= maxP && Math.abs(coin.pct) >= minPct && (coin.volume ?? 0) >= minVol;
+}
+['cr-minprice','cr-maxprice','cr-minpct','cr-minvol'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderCryptoLists);
+});
+
+// Same 3-click cycle as the Stocks tab's sort pills: ascending, descending,
+// back to each list's own natural default (gainers by |%change|, active by
+// volume — matching what the API already sorts by server-side).
+const CRYPTO_SORT_DEFAULTS = { 'crypto-gainers': { key: 'pct', dir: -1 }, 'crypto-active': { key: 'volume', dir: -1 } };
+const cryptoSortState = {
+  'crypto-gainers': { ...CRYPTO_SORT_DEFAULTS['crypto-gainers'], stage: 0 },
+  'crypto-active': { ...CRYPTO_SORT_DEFAULTS['crypto-active'], stage: 0 },
+};
+function cryptoSortRows(coins, scope){
+  const state = cryptoSortState[scope];
+  return coins.slice().sort((a, b) => {
+    const pick = (c) => {
+      switch(state.key){
+        case 'symbol': return c.symbol;
+        case 'price': return c.price;
+        case 'volume': return c.volume ?? -Infinity;
+        case 'marketCap': return c.marketCap ?? -Infinity;
+        default: return Math.abs(c.pct ?? -Infinity); // "pct" sorts by |change| — matches "Top movers" semantics (a -30% mover is as notable as +30%)
+      }
+    };
+    const av = pick(a), bv = pick(b);
+    return typeof av === 'string' ? state.dir * av.localeCompare(bv) : state.dir * (av - bv);
+  });
+}
+document.querySelectorAll('.sc-sort-bar[data-scope^="crypto-"]').forEach(headRow => {
+  headRow.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-sort]');
+    if(!el) return;
+    const scope = headRow.dataset.scope;
+    const state = cryptoSortState[scope];
+    if(state.key === el.dataset.sort){
+      state.stage = (state.stage + 1) % 3;
+      if(state.stage === 0) Object.assign(state, CRYPTO_SORT_DEFAULTS[scope]);
+      else state.dir = state.stage === 1 ? 1 : -1;
+    } else {
+      state.key = el.dataset.sort; state.dir = 1; state.stage = 1;
+    }
+    renderCryptoLists();
+  });
+});
+function updateCryptoSortIndicators(){
+  document.querySelectorAll('.sc-sort-bar[data-scope^="crypto-"]').forEach(headRow => {
+    const state = cryptoSortState[headRow.dataset.scope];
+    headRow.querySelectorAll('[data-sort]').forEach(el => {
+      const ind = el.querySelector('.sc-sort-ind');
+      const isActive = state.stage !== 0 && state.key === el.dataset.sort;
+      const base = (el.dataset.baseLabel ??= el.textContent.trim());
+      el.setAttribute('aria-pressed', String(isActive));
+      el.setAttribute('aria-label', isActive ? `${base}, sorted ${state.dir === 1 ? 'ascending' : 'descending'}` : `Sort by ${base}`);
+      if(ind) ind.textContent = isActive ? (state.dir === 1 ? ' ▲' : ' ▼') : '';
+    });
+  });
+}
+
 function renderCryptoList(containerId, emptyId, coins){
   const container = document.getElementById(containerId);
   const empty = document.getElementById(emptyId);
@@ -145,8 +213,11 @@ function renderCryptoList(containerId, emptyId, coins){
 function renderCryptoLists(){
   const cache = lsGet(CRYPTO_CACHE_KEY, null);
   if(!cache) return;
-  renderCryptoList('crypto-gainers-list', 'crypto-gainers-empty', cache.top_gainers || []);
-  renderCryptoList('crypto-active-list', 'crypto-active-empty', cache.most_active || []);
+  const gainers = cryptoSortRows((cache.top_gainers || []).filter(cryptoFilterRow), 'crypto-gainers');
+  const active = cryptoSortRows((cache.most_active || []).filter(cryptoFilterRow), 'crypto-active');
+  renderCryptoList('crypto-gainers-list', 'crypto-gainers-empty', gainers);
+  renderCryptoList('crypto-active-list', 'crypto-active-empty', active);
+  updateCryptoSortIndicators();
 }
 
 ['crypto-gainers-list','crypto-active-list'].forEach(id => {
@@ -211,8 +282,11 @@ document.getElementById('crypto-refresh').addEventListener('click', refreshCrypt
 
 function exportCryptoCsv(){
   const cache = lsGet(CRYPTO_CACHE_KEY, null);
-  const gainers = cache?.top_gainers || [];
-  const active = cache?.most_active || [];
+  if(!cache) return;
+  // Exports exactly what's currently visible (filters + sort applied) —
+  // same "what you see is what you export" principle as the Stocks tab.
+  const gainers = cryptoSortRows((cache.top_gainers || []).filter(cryptoFilterRow), 'crypto-gainers');
+  const active = cryptoSortRows((cache.most_active || []).filter(cryptoFilterRow), 'crypto-active');
   if(gainers.length === 0 && active.length === 0) return;
   const header = ['List','Rank','Symbol','Name','Price','24hChange%','24hVolume','MarketCap'];
   const toRow = (c, list, rank) => [list, rank, c.symbol, c.name, c.price, c.pct != null ? c.pct.toFixed(2) : '', c.volume, c.marketCap];

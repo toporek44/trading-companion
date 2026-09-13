@@ -8,6 +8,7 @@
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
 import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh } from './scanner.js';
+import { initSegmented } from './journal.js';
 
 const FUTURES_AUTO_REFRESH_MS = 60000;
 const FUTURES_CACHE_KEY = 'tc-futures-cache';
@@ -72,6 +73,54 @@ function futuresCardHtml(c, rank){
   </div>`;
 }
 
+// ---------- Futures: group filter + sorting (parity with US Stocks/Crypto) ----------
+// A numeric price/volume filter doesn't fit well here — 14 fixed contracts
+// spanning wildly different price scales (a Yen future prices near 0.01,
+// an S&P future near 7000) — so this is a categorical Group filter instead,
+// which is the natural way to narrow a small fixed watchlist.
+initSegmented('fut-group-filter');
+document.getElementById('fut-group-filter').addEventListener('click', renderFuturesList);
+
+const FUTURES_SORT_DEFAULT = { key: 'pct', dir: -1 };
+const futuresSortState = { ...FUTURES_SORT_DEFAULT, stage: 0 };
+function futuresSortRows(contracts){
+  return contracts.slice().sort((a, b) => {
+    const pick = (c) => {
+      switch(futuresSortState.key){
+        case 'symbol': return c.symbol;
+        case 'price': return c.price;
+        case 'volume': return c.volume ?? -Infinity;
+        default: return Math.abs(c.pct ?? -Infinity); // |% change| — matches the tab's own "ranked by |% change|" default
+      }
+    };
+    const av = pick(a), bv = pick(b);
+    return typeof av === 'string' ? futuresSortState.dir * av.localeCompare(bv) : futuresSortState.dir * (av - bv);
+  });
+}
+document.querySelector('.sc-sort-bar[data-scope="futures"]').addEventListener('click', (e) => {
+  const el = e.target.closest('[data-sort]');
+  if(!el) return;
+  if(futuresSortState.key === el.dataset.sort){
+    futuresSortState.stage = (futuresSortState.stage + 1) % 3;
+    if(futuresSortState.stage === 0) Object.assign(futuresSortState, FUTURES_SORT_DEFAULT);
+    else futuresSortState.dir = futuresSortState.stage === 1 ? 1 : -1;
+  } else {
+    futuresSortState.key = el.dataset.sort; futuresSortState.dir = 1; futuresSortState.stage = 1;
+  }
+  renderFuturesList();
+});
+function updateFuturesSortIndicators(){
+  const headRow = document.querySelector('.sc-sort-bar[data-scope="futures"]');
+  headRow.querySelectorAll('[data-sort]').forEach(el => {
+    const ind = el.querySelector('.sc-sort-ind');
+    const isActive = futuresSortState.stage !== 0 && futuresSortState.key === el.dataset.sort;
+    const base = (el.dataset.baseLabel ??= el.textContent.trim());
+    el.setAttribute('aria-pressed', String(isActive));
+    el.setAttribute('aria-label', isActive ? `${base}, sorted ${futuresSortState.dir === 1 ? 'ascending' : 'descending'}` : `Sort by ${base}`);
+    if(ind) ind.textContent = isActive ? (futuresSortState.dir === 1 ? ' ▲' : ' ▼') : '';
+  });
+}
+
 function renderFuturesList(){
   const cache = lsGet(FUTURES_CACHE_KEY, null);
   const container = document.getElementById('futures-list');
@@ -81,8 +130,12 @@ function renderFuturesList(){
     empty.hidden = false;
     return;
   }
-  empty.hidden = true;
-  container.innerHTML = cache.contracts.map((c,i) => futuresCardHtml(c, i+1)).join('');
+  const groupFilter = document.getElementById('fut-group-filter').dataset.value;
+  const filtered = groupFilter === 'all' ? cache.contracts : cache.contracts.filter(c => c.group === groupFilter);
+  const sorted = futuresSortRows(filtered);
+  empty.hidden = sorted.length > 0;
+  container.innerHTML = sorted.map((c,i) => futuresCardHtml(c, i+1)).join('');
+  updateFuturesSortIndicators();
 }
 
 document.getElementById('futures-list').addEventListener('click', (e) => {
@@ -135,7 +188,10 @@ document.getElementById('futures-refresh').addEventListener('click', refreshFutu
 
 function exportFuturesCsv(){
   const cache = lsGet(FUTURES_CACHE_KEY, null);
-  const contracts = cache?.contracts || [];
+  if(!cache) return;
+  const groupFilter = document.getElementById('fut-group-filter').dataset.value;
+  const filtered = groupFilter === 'all' ? (cache.contracts || []) : (cache.contracts || []).filter(c => c.group === groupFilter);
+  const contracts = futuresSortRows(filtered); // what you see is what you export
   if(contracts.length === 0) return;
   const header = ['Rank','Symbol','Label','Group','Price','Change%','Volume','Contract','Exchange'];
   const rows = contracts.map((c,i) => [
