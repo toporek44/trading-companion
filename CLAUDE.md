@@ -484,7 +484,24 @@ bugs, verify every change live) added, on top of everything above:
   never shows the "log more trades" filler message as if it were real
   insight. Both features were verified live then reverted/cleaned up
   (a real calendar-day toggle and 5 real trades) to avoid leaving test
-  pollution in the account's actual progress data.
+  pollution in the account's actual progress data. An audit fork on both
+  came back clean — no double-write race on rapid clicks (renderDashboard
+  re-renders synchronously before the Supabase write resolves, so
+  findTodayKey() already reflects the change), and buildCoachInsights'
+  plan-dependent branches all null-guard correctly against the default
+  empty `state.planState = {}`.
+- **Fixed a real, commonly-hit bug**: re-importing a TradingView Strategy
+  Tester CSV duplicated every previously-imported trade, since
+  TradingView's export is always the full trade history (there's no
+  "export only new trades" option) — a completely normal workflow (add a
+  few more trades, re-export, re-import) silently doubled the journal.
+  Each entry's notes field already carries a unique "Trade #N" from
+  TradingView's own numbering, so `(instrument, notes)` against trades
+  already tagged `source==='tradingview'` is a reliable dedup key with no
+  new field needed. Verified live across all three cases — full
+  duplicate, partial overlap, and a fresh import — via real CSV files
+  built and uploaded through Playwright, with `window.prompt` stubbed to
+  answer the Instrument/Strategy prompts non-interactively.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than

@@ -40,6 +40,8 @@ what's worth building next and what's a real, informed gap to accept.
 | Heatmap view on all 3 markets | TC2000's signature feature | Was Stocks-only; Crypto and Futures now get the same color/size-by-%-change tiles, each with its own intensity threshold tuned to how much that market actually moves day-to-day |
 | Keyboard-first review (Practice) | Anki, Quizlet | 1-4 answers a flashcard, Enter/Space advances — no mouse needed for a full review session |
 | Keyboard nav on Lessons + Glossary | Most learning tools are click-only | Arrow keys move between lessons; `/` + 1/2 search and switch tabs on Glossary |
+| Dashboard direct actions | Most dashboards are read-only summaries | "Mark today done" and Trade Coach's top insight both live right on the Dashboard, not just their source pages |
+| TradingView re-import dedup | Most journal importers don't guard against this | TradingView's Strategy Tester export is always the full history, not incremental — re-importing after new trades (a normal workflow) used to duplicate everything already imported |
 
 ## Real, informed gaps — deliberately not built, and why
 
