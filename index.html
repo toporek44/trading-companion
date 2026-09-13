@@ -337,7 +337,10 @@
         </div>
 
         <div class="card" style="margin-bottom:20px;">
-          <h3>Pre-Trading Checklist</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <h3>Pre-Trading Checklist</h3>
+            <span id="ck-status" class="pill"></span>
+          </div>
           <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Meant to be re-filled each morning before you trade &mdash; this holds only your latest check-in, not a history log.</p>
           <div class="form-grid">
             <div class="field"><label for="ck-marketstrength">Market strength today (0–10)</label><input type="number" min="0" max="10" step="1" id="ck-marketstrength" placeholder="e.g. 7"></div>

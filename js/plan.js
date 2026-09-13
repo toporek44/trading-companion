@@ -1,6 +1,7 @@
 import { state, lsGet, lsSet, persistProgress } from './state.js';
 import { initSegmented } from './journal.js';
 import { computeStats } from './journal-stats.js';
+import { todayStr } from './srs.js';
 
 // ---------- Plan (Trading Plan Worksheet, Pre-Trading Checklist, Trifecta Goals, Risk calculator) ----------
 initSegmented('ck-centered');
@@ -26,9 +27,11 @@ document.getElementById('ck-save-btn').addEventListener('click', () => {
     adjust: document.getElementById('ck-adjust').value.trim(),
     obvious: document.getElementById('ck-obvious').value.trim(),
     squeeze: document.getElementById('ck-squeeze').value.trim(),
+    date: todayStr(),
   };
   state.checklistState = checklist;
   persistProgress('checklist', checklist);
+  renderChecklistStatus();
 });
 
 // Account size for the risk calculator is a lightweight per-browser convenience,
@@ -66,6 +69,28 @@ function fillChecklistForm(){
     group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === state.checklistState.cycle));
   }
   checklistFormFilled = true;
+}
+
+// The checklist card's own copy says "meant to be re-filled each morning...
+// holds only your latest check-in" but nothing enforced or even showed
+// that — a trader could see last Tuesday's "obvious stock" answer sitting
+// in the form with no indication it's stale, easy to mistake for today's.
+// Doesn't clear the form (that risks looking like data loss); just makes
+// the staleness visible.
+function renderChecklistStatus(){
+  const el = document.getElementById('ck-status');
+  if(!el) return;
+  const saved = state.checklistState.date;
+  if(!saved){
+    el.textContent = "Not saved yet today — fill this in before you trade.";
+    el.className = 'pill bad';
+  } else if(saved === todayStr()){
+    el.textContent = `Saved today.`;
+    el.className = 'pill good';
+  } else {
+    el.textContent = `Last saved ${saved} — this is stale, re-check before you trade today.`;
+    el.className = 'pill bad';
+  }
 }
 
 // Profit Trifecta Goals — Warrior Trading's progression table, exact figures.
@@ -123,6 +148,7 @@ export function renderRiskCalc(){
 export function renderPlan(){
   fillPlanForm();
   fillChecklistForm();
+  renderChecklistStatus();
   renderTrifectaCallout();
   renderRiskCalc();
 }
