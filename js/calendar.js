@@ -90,7 +90,7 @@ export const WEEKS = [
 ];
 export const TOTAL_DAYS = WEEKS.reduce((n,w) => n + w.days.length, 0);
 
-async function toggleCalDay(key, val){
+export async function toggleCalDay(key, val){
   state.calState = {...state.calState, [key]: val};
   renderAll();
   await persistProgress('calendar', state.calState);

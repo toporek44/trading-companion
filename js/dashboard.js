@@ -1,6 +1,6 @@
 import { state, statTileCls } from './state.js';
 import { computeStats, streakLabel } from './journal-stats.js';
-import { WEEKS, TOTAL_DAYS, findTodayKey } from './calendar.js';
+import { WEEKS, TOTAL_DAYS, findTodayKey, toggleCalDay } from './calendar.js';
 import { MILESTONES } from './milestones.js';
 import { renderBrief } from './brief.js';
 
@@ -36,7 +36,10 @@ export function renderDashboard(){
       <div class="mono" style="font-size:.8rem;color:var(--accent);margin-bottom:8px;">DAY ${dayNum} &middot; WEEK ${todayKey.wi+1}: ${WEEKS[todayKey.wi].theme}</div>
       <div style="margin-bottom:8px;"><span class="k mono" style="font-size:10px;text-transform:uppercase;color:var(--muted);">Learn (1hr)</span><div style="font-size:.9rem;">${learn}</div></div>
       <div><span class="k mono" style="font-size:10px;text-transform:uppercase;color:var(--muted);">Practice (1hr)</span><div style="font-size:.9rem;">${practice}</div></div>
-      <button class="btn" style="margin-top:12px;" onclick="document.querySelector('[data-page=calendar]').click()">Open calendar</button>`;
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn primary" onclick="window.__markTodayDone()">&#10003; Mark today done</button>
+        <button class="btn" onclick="document.querySelector('[data-page=calendar]').click()">Open calendar</button>
+      </div>`;
   }
 
   document.getElementById('dash-cal-label').textContent = `Day-by-day calendar: ${totalDoneDays} / ${TOTAL_DAYS}`;
@@ -46,3 +49,15 @@ export function renderDashboard(){
 
   renderBrief();
 }
+
+// Lets a user complete today's calendar checkbox without leaving the
+// Dashboard — previously "Open calendar" was the only path, an extra
+// navigation + scroll-to-find-today's-row for what's otherwise a single
+// click. Reuses calendar.js's own toggleCalDay so this writes through the
+// exact same Supabase persistProgress('calendar', ...) path the Calendar
+// tab's own checkboxes use — no separate/duplicated persistence logic.
+window.__markTodayDone = function(){
+  const todayKey = findTodayKey();
+  if(!todayKey) return;
+  toggleCalDay(`${todayKey.wi}-${todayKey.di}`, true);
+};
