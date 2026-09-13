@@ -36,6 +36,8 @@ what's worth building next and what's a real, informed gap to accept.
 | Printable Trading Plan + Weekly Report | Most tools are screen-only | Both mirror this app's own reference PDFs (sample-trading-plan.pdf, weekly-reporting-template.pdf); the Weekly Report prints itself in isolation, not the whole page |
 | Overtrading/revenge-trading detection | None seen in any researched paid tool | Trade Coach flags a day with 2x+ typical trade count that also finished negative — the Lessons deck defines the concept, this connects it to real Journal data |
 | Light/Dark/System theme toggle | Every paid tool has this | Existed as fully-built CSS for a while with zero UI control — this session closed that gap, plus a matching stat-tile glow accent and a hero-number serif treatment that had the same "wired in CSS, never used" problem |
+| "Log this trade →" on every market | Some tools link a screener to an order ticket | Was Stocks-only; now on Crypto and Futures too, jumping to a pre-filled Journal entry |
+| Crypto heatmap view | TC2000's signature feature | Was Stocks-only; Crypto's Top Movers gets the same color/size-by-%-change tiles |
 
 ## Real, informed gaps — deliberately not built, and why
 

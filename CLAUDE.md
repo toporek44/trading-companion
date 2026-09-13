@@ -413,6 +413,31 @@ bugs, verify every change live) added, on top of everything above:
   screen readers announce the actual current/next state, not just a
   generic "toggle theme" label that would've buried the same info
   sighted users get for free from the visible button text.
+- **Mobile clock-bar fix + Scanner cross-market parity round** (a
+  still-later `/loop` pass, same session): the clock bar's
+  `justify-content:center` meant overflowing content (Warsaw time + NYSE
+  + Futures + the new theme toggle) landed the default mobile scroll
+  position mid-content — text cut off on BOTH edges on first load,
+  reading as a rendering bug, and the theme toggle was effectively
+  undiscoverable. Fixed with `justify-content:flex-start` under the
+  860px breakpoint. Then closed out three more Stocks-only Scanner gaps,
+  found by a dedicated audit fork doing a systematic scanner.js-vs-
+  crypto/futures-scanner.js comparison: "Log this trade →" (added to
+  both Crypto and Futures — unlike watchlist/presets, this isn't a
+  screening feature, so it made sense even for Futures' fixed 14-
+  contract list; deliberately does NOT pre-fill the Journal's "Stock %
+  gain on day" Pillars field for either, since that field is stock-
+  specific), a visible keyboard-shortcut hint line on the Journal page
+  (mirroring the Scanner's own, since the shortcuts existed but were
+  undiscoverable without already knowing to press `?`), and a Cards/
+  Heatmap toggle on Crypto's Top Movers (own `cryptoHeatmapTileHtml()`
+  keyed off `.symbol` rather than reusing scanner.js's `.ticker`-based
+  version; intensity clamps at a 20% move vs. Stocks' 50%, since crypto
+  swings bigger day-to-day). The fork also flagged proactive browser-
+  notification alerts and the Telegram/Discord alerts panel as
+  Stocks-only, but correctly scoped those out — extending either needs
+  new trigger logic or server infra, not just wiring an existing feature
+  through, unlike the true "parity fix" gaps closed above.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
