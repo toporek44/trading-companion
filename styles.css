@@ -98,6 +98,15 @@
     border-bottom:1px solid rgba(255,255,255,.08);
     white-space:nowrap; overflow-x:auto;
   }
+  /* On a narrow viewport the bar's content (Warsaw time + NYSE + Futures +
+     the theme toggle) overflows and scrolls horizontally — but with
+     justify-content:center, the browser's default scroll position lands
+     mid-content, cutting text off on BOTH edges on first load (looked like
+     a rendering bug, not a "scroll me" affordance). Starting from the left
+     on mobile means at least Warsaw time renders intact, and the rest
+     (including the theme toggle, previously undiscoverable) is a normal
+     "swipe right to see more" scroll from there. */
+  @media (max-width:859px){ .market-clock{ justify-content:flex-start; } }
   .market-clock .mc-sep{ color:var(--nav-muted); }
   .market-clock .mc-us-state{ font-weight:700; }
   .market-clock .mc-us-state.is-open{ color:var(--good); }
