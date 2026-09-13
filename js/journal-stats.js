@@ -282,6 +282,28 @@ export function buildCoachInsights(list, plan){
     }
   }
 
+  // 10. Hold-time asymmetry — "cut winners short, let losers run" is a
+  // named classic trading mistake (opposite of the discipline this app's
+  // own curriculum teaches), and the Journal's holdTime/holdUnit fields
+  // already capture what's needed to check for it; nothing surfaced it
+  // until now.
+  {
+    const toMinutes = t => {
+      if(typeof t.holdTime !== 'number' || isNaN(t.holdTime)) return null;
+      return t.holdUnit === 'sec' ? t.holdTime / 60 : t.holdTime;
+    };
+    const winMinutes = trades.filter(t => (t.resultAmount||0) > 0).map(toMinutes).filter(m => m != null);
+    const lossMinutes = trades.filter(t => (t.resultAmount||0) < 0).map(toMinutes).filter(m => m != null);
+    if(winMinutes.length >= 5 && lossMinutes.length >= 5){
+      const avgWin = winMinutes.reduce((a,b) => a+b, 0) / winMinutes.length;
+      const avgLoss = lossMinutes.reduce((a,b) => a+b, 0) / lossMinutes.length;
+      const fmtMin = m => m < 1 ? `${Math.round(m*60)}s` : `${m.toFixed(1)}min`;
+      if(avgLoss > avgWin * 1.5 && avgLoss - avgWin >= 1){
+        insights.push({type:'watchout', text:`You hold losing trades ${fmtMin(avgLoss)} on average vs ${fmtMin(avgWin)} for winners — a classic "cut winners short, let losers run" pattern worth breaking.`});
+      }
+    }
+  }
+
   const watchouts = insights.filter(i => i.type === 'watchout');
   const rest = insights.filter(i => i.type !== 'watchout');
   return [...watchouts, ...rest].slice(0, 6);
