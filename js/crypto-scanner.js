@@ -8,6 +8,7 @@
 import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY } from './state.js';
 import { initSegmented } from './journal.js';
 import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, isScannerWatched, toggleScannerWatch } from './scanner.js';
+import { showPage } from './nav.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
@@ -140,6 +141,8 @@ function cryptoCardHtml(coin, rank){
         <div class="sc-detail-col">
           <h4>Your notes</h4>
           <textarea class="sc-note-textarea" data-symbol="${coin.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getCryptoNote(coin.symbol))}</textarea>
+          <div style="flex:1;"></div>
+          <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:10px;" onclick="__logCryptoTrade('${coin.symbol.replace(/'/g,"\\'")}')">Log this trade &rarr;</button>
         </div>
       </div>
     </div>
@@ -403,3 +406,18 @@ document.getElementById('sc-market-tabs').addEventListener('click', (e) => {
   }
   if(market === 'futures') startFuturesIfNeeded();
 });
+
+// "Log this trade" existed only on the Stocks tab (js/scanner.js's own
+// __logScannerTrade) — same class of Stocks-only gap already fixed this
+// session for notes/watchlist/presets. Deliberately does NOT fill the
+// Journal's "Stock % gain on day" pillar field even though a coin's 24h
+// change is conceptually similar — that field's label and the 5-Pillars
+// system behind it are stock-specific, and auto-filling it here would
+// misleadingly imply crypto trades get scored against Pillars too.
+window.__logCryptoTrade = function(symbol){
+  showPage('journal');
+  document.getElementById('f-market').value = 'Crypto';
+  document.getElementById('f-instrument').value = symbol;
+  document.getElementById('f-tags').value = 'from-scanner';
+  document.getElementById('f-instrument').scrollIntoView({behavior:'smooth', block:'center'});
+};
