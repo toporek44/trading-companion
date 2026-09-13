@@ -29,6 +29,12 @@ function updateButton(){
   const theme = currentTheme();
   btn.textContent = LABELS[theme];
   btn.title = `Theme: ${theme} (click to change)`;
+  // A static aria-label would make screen readers announce only "Toggle
+  // color theme" and ignore the button's own visible text (which is where
+  // the current state lives) — set it dynamically instead, same pattern
+  // used for the Scanner's watch-toggle stars elsewhere in this app.
+  const next = ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length];
+  btn.setAttribute('aria-label', `Theme: ${theme}. Click to switch to ${next}.`);
 }
 
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
