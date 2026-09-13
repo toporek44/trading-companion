@@ -5,7 +5,7 @@
 // volume/market-cap turnover. Card layout mirrors the stock scanner
 // (summary + click-to-expand detail) for a consistent feel, and reuses its
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
-import { lsGet, lsSet } from './state.js';
+import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY } from './state.js';
 import { initSegmented } from './journal.js';
 import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, isScannerWatched, toggleScannerWatch } from './scanner.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
@@ -163,6 +163,64 @@ function cryptoFilterRow(coin){
 });
 initSegmented('cr-watch-filter');
 document.getElementById('cr-watch-filter').addEventListener('click', () => renderCryptoLists());
+
+// ---------- Crypto: saved filter presets (parity with the Stocks tab) ----------
+const CRYPTO_PRESETS_KEY = 'crypto-scanner-presets';
+const CRYPTO_PRESET_FIELD_IDS = { min: 'cr-minprice', max: 'cr-maxprice', minpct: 'cr-minpct', minvol: 'cr-minvol' };
+let cryptoPresets = [];
+
+function renderCryptoPresetOptions(){
+  const select = document.getElementById('cr-preset-select');
+  const current = select.value;
+  select.innerHTML = '<option value="">Load a preset&hellip;</option>' +
+    cryptoPresets.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+  if(cryptoPresets.some(p => p.name === current)) select.value = current;
+}
+async function loadCryptoPresets(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.${CRYPTO_PRESETS_KEY}&select=state`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    const rows = await res.json();
+    const s = Array.isArray(rows) && rows[0] && rows[0].state;
+    cryptoPresets = Array.isArray(s) ? s : [];
+  }catch(e){ cryptoPresets = []; }
+  renderCryptoPresetOptions();
+}
+loadCryptoPresets();
+
+document.getElementById('cr-preset-select').addEventListener('change', (e) => {
+  const preset = cryptoPresets.find(p => p.name === e.target.value);
+  if(!preset) return;
+  Object.entries(CRYPTO_PRESET_FIELD_IDS).forEach(([field, id]) => {
+    if(preset[field] != null) document.getElementById(id).value = preset[field];
+  });
+  renderCryptoLists();
+  cryptoStatus(`Loaded preset "${preset.name}".`);
+});
+document.getElementById('cr-preset-save').addEventListener('click', () => {
+  const name = (prompt('Name this preset (e.g. "Big movers only"):') || '').trim();
+  if(!name) return;
+  const values = {};
+  Object.entries(CRYPTO_PRESET_FIELD_IDS).forEach(([field, id]) => {
+    const v = parseFloat(document.getElementById(id).value);
+    values[field] = isNaN(v) ? null : v;
+  });
+  cryptoPresets = [...cryptoPresets.filter(p => p.name !== name), { name, ...values }];
+  persistProgress(CRYPTO_PRESETS_KEY, cryptoPresets);
+  renderCryptoPresetOptions();
+  document.getElementById('cr-preset-select').value = name;
+  cryptoStatus(`Saved preset "${name}".`);
+});
+document.getElementById('cr-preset-delete').addEventListener('click', () => {
+  const select = document.getElementById('cr-preset-select');
+  const name = select.value;
+  if(!name) return;
+  cryptoPresets = cryptoPresets.filter(p => p.name !== name);
+  persistProgress(CRYPTO_PRESETS_KEY, cryptoPresets);
+  renderCryptoPresetOptions();
+  cryptoStatus(`Deleted preset "${name}".`);
+});
 
 // Same 3-click cycle as the Stocks tab's sort pills: ascending, descending,
 // back to each list's own natural default (gainers by |%change|, active by

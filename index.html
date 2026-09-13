@@ -573,6 +573,16 @@
               <button type="button" class="seg-btn active" data-value="all">Show: All</button>
               <button type="button" class="seg-btn" data-value="watch">Watchlist only</button>
             </div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+              <label style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">Saved presets</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+                <select id="cr-preset-select" style="min-width:180px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface-2);color:var(--ink);">
+                  <option value="">Load a preset&hellip;</option>
+                </select>
+                <button type="button" class="btn" id="cr-preset-save">Save current as preset</button>
+                <button type="button" class="btn danger" id="cr-preset-delete">Delete selected</button>
+              </div>
+            </div>
           </details>
 
           <div class="card" style="margin-bottom:18px;">
