@@ -550,6 +550,13 @@ document.getElementById('f-tags-suggestions')?.addEventListener('click', (e) => 
 // selection can never silently apply to a different filtered view.
 let selectedTradeIds = new Set();
 
+// Notes/thesis are captured on every trade but were only ever visible by
+// opening edit mode — a trader glancing back at the log to recall "why did
+// I take this" had to click edit, read, then cancel. Click the instrument
+// cell to expand an inline detail row instead. Per-browser-session only,
+// same tier as the selection Set above.
+let expandedTradeIds = new Set();
+
 function updateBulkDeleteButton(){
   const btn = document.getElementById('trades-bulk-delete');
   const tagBtn = document.getElementById('trades-bulk-tag');
@@ -569,6 +576,7 @@ export function renderTradesTable(){
   // Drop selections for trades no longer in view (deleted, or filtered out).
   const visibleIds = new Set(list.map(t => t.id));
   selectedTradeIds.forEach(id => { if(!visibleIds.has(id)) selectedTradeIds.delete(id); });
+  expandedTradeIds.forEach(id => { if(!visibleIds.has(id)) expandedTradeIds.delete(id); });
   tbody.innerHTML = '';
   emptyEl.hidden = list.length > 0;
   emptyEl.querySelector('div:last-child').textContent = state.trades.length === 0
@@ -577,11 +585,13 @@ export function renderTradesTable(){
   list.forEach(t => {
     const tr = document.createElement('tr');
     const resultClass = (t.resultAmount||0) > 0 ? 'good' : ((t.resultAmount||0) < 0 ? 'bad' : '');
+    const hasNotes = !!(t.notes && t.notes.trim());
+    const expanded = expandedTradeIds.has(t.id);
     tr.innerHTML = `
       <td><input type="checkbox" class="trade-select" data-id="${escapeHtml(t.id)}" ${selectedTradeIds.has(t.id) ? 'checked' : ''} aria-label="Select this trade"></td>
       <td class="num">${escapeHtml(t.date)||'—'}</td>
       <td>${escapeHtml(t.market)||'—'}</td>
-      <td>${escapeHtml(t.instrument)||'—'}${t.source==='tradingview' ? ' <span class="pill neutral" title="Imported from TradingView">TV</span>' : ''}</td>
+      <td>${hasNotes ? `<button type="button" class="trade-expand-btn" data-id="${escapeHtml(t.id)}" aria-expanded="${expanded}" title="${expanded?'Hide':'Show'} thesis/notes" style="background:none;border:none;padding:0;font:inherit;cursor:pointer;color:inherit;text-align:left;">${expanded?'▾':'▸'} ${escapeHtml(t.instrument)||'—'}</button>` : (escapeHtml(t.instrument)||'—')}${t.source==='tradingview' ? ' <span class="pill neutral" title="Imported from TradingView">TV</span>' : ''}</td>
       <td>${escapeHtml(t.strategy)||'—'}${(t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).map(tag=>` <span class="pill neutral">${escapeHtml(tag)}</span>`).join('')}</td>
       <td>${escapeHtml(t.direction)||'—'}</td>
       <td class="num"><span class="pill ${resultClass||'neutral'}">${t.resultAmount!=null ? ((t.resultAmount>=0?'+$':'-$')+Math.abs(t.resultAmount).toFixed(2)) : '—'}</span></td>
@@ -594,6 +604,16 @@ export function renderTradesTable(){
         <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">delete</button>
       </td>`;
     tbody.appendChild(tr);
+    if(hasNotes && expanded){
+      const detailTr = document.createElement('tr');
+      detailTr.className = 'trade-detail-row';
+      const cell = document.createElement('td');
+      cell.colSpan = 11;
+      cell.style.cssText = 'white-space:pre-wrap;font-size:.85rem;color:var(--muted);padding:8px 10px 12px 34px;';
+      cell.textContent = t.notes;
+      detailTr.appendChild(cell);
+      tbody.appendChild(detailTr);
+    }
   });
   const selectAll = document.getElementById('trades-select-all');
   if(selectAll){
@@ -623,6 +643,13 @@ document.querySelector('#trades-tbody')?.closest('table')?.querySelector('thead'
   renderTradesTable();
 });
 
+document.getElementById('trades-tbody')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.trade-expand-btn');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  if(expandedTradeIds.has(id)) expandedTradeIds.delete(id); else expandedTradeIds.add(id);
+  renderTradesTable();
+});
 document.getElementById('trades-tbody')?.addEventListener('change', (e) => {
   const cb = e.target.closest('input.trade-select');
   if(!cb) return;

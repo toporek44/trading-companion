@@ -234,6 +234,8 @@
     cursor:pointer; white-space:nowrap;
   }
   .th-sort:hover, .th-sort.active{ color:var(--accent); }
+  .trade-detail-row{ background:var(--surface-2); }
+  .trade-expand-btn:hover{ color:var(--accent); }
 
   /* ---- Scanner: heatmap view (TC2000-style, Top Gainers only) ---- */
   .sc-heatmap-grid{ display:flex; flex-wrap:wrap; gap:3px; }
