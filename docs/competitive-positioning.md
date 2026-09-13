@@ -38,6 +38,8 @@ what's worth building next and what's a real, informed gap to accept.
 | Light/Dark/System theme toggle | Every paid tool has this | Existed as fully-built CSS for a while with zero UI control — this session closed that gap, plus a matching stat-tile glow accent and a hero-number serif treatment that had the same "wired in CSS, never used" problem |
 | "Log this trade →" on every market | Some tools link a screener to an order ticket | Was Stocks-only; now on Crypto and Futures too, jumping to a pre-filled Journal entry |
 | Heatmap view on all 3 markets | TC2000's signature feature | Was Stocks-only; Crypto and Futures now get the same color/size-by-%-change tiles, each with its own intensity threshold tuned to how much that market actually moves day-to-day |
+| Keyboard-first review (Practice) | Anki, Quizlet | 1-4 answers a flashcard, Enter/Space advances — no mouse needed for a full review session |
+| Keyboard nav on Lessons + Glossary | Most learning tools are click-only | Arrow keys move between lessons; `/` + 1/2 search and switch tabs on Glossary |
 
 ## Real, informed gaps — deliberately not built, and why
 

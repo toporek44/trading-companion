@@ -452,6 +452,22 @@ bugs, verify every change live) added, on top of everything above:
   glance" is the same real use case regardless of list size. Intensity
   clamps at a 5% move for full color (vs. Crypto's 20%, Stocks' 50%),
   since futures move far less day-to-day than either.
+- **Keyboard shortcuts finished their sweep across the app** (a
+  still-later `/loop` pass, same session): Lessons gained Left/Right
+  arrow-key navigation between lessons (only while a lesson is actually
+  open, not the table-of-contents), Practice gained 1-4 to answer a
+  flashcard and Enter/Space to advance — the highest-value of this
+  batch, since a spaced-repetition drill is exactly the repetitive
+  interaction keyboard review helps most (same reasoning as Anki/
+  Quizlet) — and Glossary gained `/` to focus search plus 1/2 to switch
+  the Terms/Candlestick-Patterns tabs. Every one of these shipped with
+  its own visible hint line in the same commit, rather than repeating
+  the undiscoverable-shortcut mistake the Journal's hint had to fix
+  after the fact. Calendar/Milestones/Plan/Dashboard/Brief were
+  deliberately left without shortcuts — none of them have the kind of
+  repetitive per-item interaction (answer/advance, search/filter,
+  tab-switch) that keyboard shortcuts meaningfully speed up elsewhere in
+  this app; they're mostly one-off checkbox/form pages.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
