@@ -466,6 +466,27 @@ export function renderWeeklyReport(){
   const fmtUsd = v => v==null ? '—' : (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
   const fmtCents = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(1)+'¢';
   const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+
+  // vs. the prior 7-day window (days -13..-7) — only shown when that prior
+  // window actually has trades, so a brand-new journal doesn't show a
+  // misleading "vs 0 trades" comparison.
+  const priorStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 13);
+  const priorEnd = cutoff;
+  const priorWindow = state.trades.filter(t => {
+    if(!t.date) return false;
+    const d = new Date(t.date+'T00:00:00');
+    return d >= priorStart && d < priorEnd;
+  });
+  let deltaHtml = '';
+  if(priorWindow.length > 0){
+    const priorWinners = priorWindow.filter(t => (t.resultAmount||0) > 0);
+    const priorAccuracy = priorWinners.length / priorWindow.length;
+    const priorPnl = priorWindow.reduce((s,t)=>s+(t.resultAmount||0),0);
+    const pctDelta = Math.round((accuracy - priorAccuracy) * 100);
+    const pnlDelta = totalPnl - priorPnl;
+    const deltaSpan = (v, fmt) => `<span style="font-size:.72rem;color:${v>0?'var(--good)':(v<0?'var(--bad)':'var(--muted)')};margin-left:6px;">${v>0?'▲':(v<0?'▼':'—')} ${fmt(Math.abs(v))} vs prior 7d</span>`;
+    deltaHtml = { accuracy: deltaSpan(pctDelta, v=>v+'pp'), pnl: deltaSpan(pnlDelta, v=>'$'+v.toFixed(2)) };
+  }
   root.innerHTML = `
     <div class="grid cols-4">
       <div class="stat-tile"><div class="k">Avg winners ($)</div><div class="v good">${fmtUsd(avgWinners)}</div></div>
@@ -474,7 +495,7 @@ export function renderWeeklyReport(){
       <div class="stat-tile"><div class="k">Avg loser (¢/sh)</div><div class="v bad">${fmtCents(avgLoserCents)}</div></div>
     </div>
     <div class="grid cols-2" style="margin-top:12px;">
-      <div class="stat-tile"><div class="k">Total accuracy</div><div class="v ${accuracy>=0.5?'good':'bad'}">${fmtPct(accuracy)}</div></div>
-      <div class="stat-tile"><div class="k">Total P&amp;L (7d)</div><div class="v ${totalPnl>=0?'good':'bad'}">${fmtUsd(totalPnl)}</div></div>
+      <div class="stat-tile"><div class="k">Total accuracy</div><div class="v ${accuracy>=0.5?'good':'bad'}">${fmtPct(accuracy)}</div>${deltaHtml.accuracy||''}</div>
+      <div class="stat-tile"><div class="k">Total P&amp;L (7d)</div><div class="v ${totalPnl>=0?'good':'bad'}">${fmtUsd(totalPnl)}</div>${deltaHtml.pnl||''}</div>
     </div>`;
 }
