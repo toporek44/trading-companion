@@ -36,6 +36,35 @@ export function updateRPreview(){
 document.getElementById('f-risk').addEventListener('input', updateRPreview);
 document.getElementById('f-result').addEventListener('input', updateRPreview);
 
+// Position-size suggestion: risk$ / |entry - stop| = max size that keeps a
+// stop-out at exactly the planned risk amount — the "right share size" leg
+// of the SAC strategy's 4-part filter (right stock, right entry, right
+// share size, active risk mgmt), which this form otherwise left the user to
+// do in their head.
+function updateSizeSuggestion(){
+  const risk = parseFloat(document.getElementById('f-risk').value) || 0;
+  const entry = parseFloat(document.getElementById('f-entry').value);
+  const stop = parseFloat(document.getElementById('f-stop').value);
+  const out = document.getElementById('f-size-suggest');
+  const perUnitRisk = (!isNaN(entry) && !isNaN(stop)) ? Math.abs(entry - stop) : 0;
+  if(risk > 0 && perUnitRisk > 0){
+    const suggested = Math.floor(risk / perUnitRisk);
+    out.innerHTML = `Suggested: <button type="button" class="link-btn" id="f-size-apply" style="font:inherit;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;">${suggested}</button> (risk / stop distance)`;
+  } else {
+    out.textContent = '';
+  }
+}
+['f-entry','f-stop','f-risk'].forEach(id => document.getElementById(id).addEventListener('input', updateSizeSuggestion));
+document.getElementById('f-size-suggest').addEventListener('click', (e) => {
+  if(e.target.id === 'f-size-apply'){
+    const risk = parseFloat(document.getElementById('f-risk').value) || 0;
+    const entry = parseFloat(document.getElementById('f-entry').value);
+    const stop = parseFloat(document.getElementById('f-stop').value);
+    const perUnitRisk = Math.abs(entry - stop);
+    document.getElementById('f-size').value = Math.floor(risk / perUnitRisk);
+  }
+});
+
 export function resetTradeForm(){
   document.getElementById('trade-form').reset();
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
@@ -47,6 +76,7 @@ export function resetTradeForm(){
     group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === defaultVal));
   });
   updateRPreview();
+  updateSizeSuggestion();
 }
 
 // The 5 Pillars, per the Small Account Toolkit / Trading Plan Worksheet:
