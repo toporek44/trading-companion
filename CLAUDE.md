@@ -375,6 +375,44 @@ bugs, verify every change live) added, on top of everything above:
   flags a day with 2x+ the trader's own typical trades/day (min 5 active
   days logged) that also finished net negative, without diagnosing
   intent — just surfaces it for the trader to judge.
+- **Print polish + a "built but never wired up" sweep** (a still-later
+  `/loop` pass, same session): a fifth audit fork on the two print
+  features caught a real regression — `.seg-btn.active` (Direction Long/
+  Short, Process-followed Yes/No, Hot/Cold cycle) only distinguished
+  itself via `background-color`/`box-shadow`, both stripped by most
+  browsers' print output by default and meaningless on a B&W printer
+  regardless, so a printed worksheet would've shown every option looking
+  identical. Fixed with print-specific bold+underline+border styling.
+  A dedicated investigation fork (prompted by realizing the theme-toggle
+  CSS below had been fully built with zero JS ever using it) found two
+  more of the same pattern: `.stat-tile.is-good`/`.is-bad` (a glowing
+  tile-border accent) existed in styles.css but no code ever applied
+  those classes — every stat tile only colored its inner `.v` text.
+  Added a shared `statTileCls()` helper (state.js) computed once from
+  the same 'good'/'bad' string already used for the inner class, so tile
+  and value can never disagree, wired into every real stat tile across
+  Dashboard/Journal/Weekly-report/Plan (null-guarded so an empty "—"
+  never glows). And `.serif-num` (Fraunces) existed but was never
+  applied anywhere — applied it to the Dashboard's Day-X/60 hero number
+  specifically (not a blanket change across every tile, to avoid an
+  unverified visual overhaul); the first attempt was itself silently
+  inert due to a CSS specificity tie with `.stat-tile .v`, caught via
+  live verification and fixed with an explicit two-class override rule —
+  the exact same "looks wired up, isn't" trap this whole sweep was
+  chasing, this time self-inflicted and caught immediately.
+- **Light/Dark/System theme toggle wired up**: styles.css had a complete
+  `:root[data-theme="dark"]` override (with a
+  `:not([data-theme="light"])` guard on the `prefers-color-scheme` media
+  query, so an explicit light choice could beat a dark system preference
+  too) sitting unused — no control had ever set `data-theme`. Added a
+  click-to-cycle button in the clock bar (`js/theme-toggle.js`),
+  persisted to `localStorage` key `tc-theme`, plus a synchronous inline
+  script in `<head>` (before the stylesheet loads) that applies a saved
+  choice on first paint to avoid a flash of the wrong theme. The
+  button's `aria-label` is set dynamically (not a static string) so
+  screen readers announce the actual current/next state, not just a
+  generic "toggle theme" label that would've buried the same info
+  sighted users get for free from the visible button text.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than

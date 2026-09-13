@@ -35,6 +35,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Crypto saved filter presets | TC2000 EasyScan, TradingView | Same named-combo pattern as the Stocks tab, own Supabase key |
 | Printable Trading Plan + Weekly Report | Most tools are screen-only | Both mirror this app's own reference PDFs (sample-trading-plan.pdf, weekly-reporting-template.pdf); the Weekly Report prints itself in isolation, not the whole page |
 | Overtrading/revenge-trading detection | None seen in any researched paid tool | Trade Coach flags a day with 2x+ typical trade count that also finished negative — the Lessons deck defines the concept, this connects it to real Journal data |
+| Light/Dark/System theme toggle | Every paid tool has this | Existed as fully-built CSS for a while with zero UI control — this session closed that gap, plus a matching stat-tile glow accent and a hero-number serif treatment that had the same "wired in CSS, never used" problem |
 
 ## Real, informed gaps — deliberately not built, and why
 
