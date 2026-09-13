@@ -9,6 +9,7 @@
 import { lsGet, lsSet } from './state.js';
 import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote } from './scanner.js';
 import { initSegmented } from './journal.js';
+import { showPage } from './nav.js';
 
 // Prefixed key so a futures symbol never collides with a stock ticker in
 // the shared 'tc-scanner-notes' object.
@@ -76,6 +77,8 @@ function futuresCardHtml(c, rank){
         <div class="sc-detail-col">
           <h4>Your notes</h4>
           <textarea class="sc-note-textarea" data-symbol="${c.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getFuturesNote(c.symbol))}</textarea>
+          <div style="flex:1;"></div>
+          <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:10px;" onclick="__logFuturesTrade('${c.symbol.replace('=F','').replace(/'/g,"\\'")}')">Log this trade &rarr;</button>
         </div>
       </div>
     </div>
@@ -225,3 +228,17 @@ export function startFuturesIfNeeded(){
   refreshFutures();
   startVisibilityAwareRefresh(refreshFutures, FUTURES_AUTO_REFRESH_MS);
 }
+
+// "Log this trade" — same Stocks-only gap already closed for Crypto this
+// session. Unlike the watchlist star/saved-presets features (deliberately
+// NOT added here, since Futures is already a fixed 14-contract list with
+// nothing to screen), jumping straight to a Journal entry is just as
+// useful on a small fixed list as a large one. No Journal pillar fields
+// filled in, same reasoning as Crypto's version — Pillars don't apply.
+window.__logFuturesTrade = function(symbol){
+  showPage('journal');
+  document.getElementById('f-market').value = 'Futures';
+  document.getElementById('f-instrument').value = symbol;
+  document.getElementById('f-tags').value = 'from-scanner';
+  document.getElementById('f-instrument').scrollIntoView({behavior:'smooth', block:'center'});
+};
