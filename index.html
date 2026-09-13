@@ -15,6 +15,16 @@
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0b0c11">
+<script>
+// Synchronous, before the stylesheet loads, so a saved Light/Dark choice
+// applies on the very first paint instead of flashing the system-default
+// theme for a frame first. 'system' (the default) means no attribute at
+// all — styles.css's @media(prefers-color-scheme) already handles that.
+try{
+  var t = localStorage.getItem('tc-theme');
+  if(t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+}catch(e){}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -25,6 +35,7 @@
   <span class="mc-item"><span id="mc-us-state" class="mc-us-state"></span> <span id="mc-us-countdown" class="mono"></span></span>
   <span class="mc-sep">&middot;</span>
   <span class="mc-item"><span id="mc-futures-state" class="mc-us-state"></span> <span id="mc-futures-countdown" class="mono"></span></span>
+  <button type="button" id="theme-toggle" class="mc-item" style="background:none;border:none;cursor:pointer;font:inherit;color:inherit;padding:0;" aria-label="Toggle color theme"></button>
 </div>
 <div class="app">
   <aside class="sidebar">
