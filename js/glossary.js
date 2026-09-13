@@ -186,3 +186,24 @@ document.getElementById('glossary-tabs')?.addEventListener('click', (e) => {
   document.getElementById('glossary-search').placeholder = glossaryTab === 'terms' ? 'Search terms or definitions…' : 'Search pattern names…';
   renderGlossaryPage();
 });
+
+// '/' focuses search, 1/2 switch tabs — same shortcut vocabulary as the
+// Scanner (tab switching) and Journal (search focus) elsewhere in this app.
+document.addEventListener('keydown', (e) => {
+  const page = document.getElementById('page-glossary');
+  if(!page || page.hidden) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = document.activeElement?.tagName;
+  if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+  if(e.key === '/'){
+    document.getElementById('glossary-search')?.focus();
+    e.preventDefault();
+    return;
+  }
+  if(e.key === '1' || e.key === '2'){
+    const value = e.key === '1' ? 'terms' : 'candles';
+    document.getElementById('glossary-tabs')?.querySelector(`[data-value="${value}"]`)?.click();
+    e.preventDefault();
+  }
+});
