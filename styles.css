@@ -442,6 +442,15 @@
   main{ padding:0; }
   .card{ box-shadow:none; border:1px solid #ccc; break-inside:avoid; }
   input, select, textarea{ border:1px solid #999 !important; color:#000 !important; background:#fff !important; }
+  /* .seg-btn.active (Direction Long/Short, Process followed Yes/No, etc.)
+     normally distinguishes itself only via background-color + box-shadow —
+     both of which most browsers omit from print output by default (the
+     "print background graphics" setting), and both are meaningless on a
+     black-and-white printer regardless. Without this, a printed worksheet
+     would show every segmented option looking identical, hiding which one
+     was actually selected — the entire point of printing it. */
+  .seg-btn{ color:#999 !important; }
+  .seg-btn.active{ color:#000 !important; font-weight:800 !important; text-decoration:underline; border:1px solid #000 !important; }
   /* Scoped print, e.g. the Weekly Performance report's own Print button —
      js/journal.js toggles this class on <body> right before calling
      window.print(), and removes it on window.onafterprint. Hides every
