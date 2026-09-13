@@ -257,6 +257,25 @@ export function buildCoachInsights(list, plan){
     }
   }
 
+  // 9. Overtrading: a single day with far more trades than typical AND a
+  // losing result — the classic "revenge trading" / chasing-losses pattern
+  // the Lessons psychology deck names but nothing in the Journal itself
+  // ever pointed back at. Needs >=5 active days to have a meaningful
+  // "typical" to compare against.
+  {
+    const byDay = {};
+    trades.forEach(t => { if(t.date) (byDay[t.date] = byDay[t.date] || []).push(t); });
+    const days = Object.keys(byDay);
+    if(days.length >= 5){
+      const avgPerDay = trades.length / days.length;
+      const busiest = days.map(d => ({date: d, list: byDay[d]})).sort((a,b) => b.list.length - a.list.length)[0];
+      const busiestPnl = busiest.list.reduce((s,t) => s + (t.resultAmount||0), 0);
+      if(busiest.list.length >= 5 && busiest.list.length >= avgPerDay * 2 && busiestPnl < 0){
+        insights.push({type:'watchout', text:`${busiest.date} had ${busiest.list.length} trades — over 2x your typical ${avgPerDay.toFixed(1)}/day — and finished ${fmtUsd(busiestPnl)}. Worth checking if that was a plan, or chasing a loss.`});
+      }
+    }
+  }
+
   const watchouts = insights.filter(i => i.type === 'watchout');
   const rest = insights.filter(i => i.type !== 'watchout');
   return [...watchouts, ...rest].slice(0, 6);
