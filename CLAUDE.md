@@ -468,6 +468,23 @@ bugs, verify every change live) added, on top of everything above:
   repetitive per-item interaction (answer/advance, search/filter,
   tab-switch) that keyboard shortcuts meaningfully speed up elsewhere in
   this app; they're mostly one-off checkbox/form pages.
+- **Dashboard grew two direct-action shortcuts** (a still-later `/loop`
+  pass, same session): "Mark today done" lets a user check off today's
+  calendar day right from the Dashboard's own "Today's focus" card
+  instead of navigating to Calendar and finding today's row —
+  `toggleCalDay` exported from calendar.js and reused directly (via
+  `window.__markTodayDone`, matching the `__logScannerTrade`-style
+  onclick-global pattern already used elsewhere) so it writes through
+  the exact same Supabase path, no duplicated persistence logic. And
+  Trade Coach's top insight (watchouts sorted first) now shows on the
+  Dashboard too, not just Journal — matching the page's own "your
+  standing at a glance" framing, which previously excluded the single
+  piece of feedback most likely to actually change behavior. Hidden
+  below the same 5-trade minimum `buildCoachInsights` itself uses, so it
+  never shows the "log more trades" filler message as if it were real
+  insight. Both features were verified live then reverted/cleaned up
+  (a real calendar-day toggle and 5 real trades) to avoid leaving test
+  pollution in the account's actual progress data.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
