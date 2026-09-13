@@ -652,14 +652,20 @@ try{
           <div class="card" style="margin-bottom:18px;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
               <h3>Contracts</h3>
-              <div class="segmented" id="fut-group-filter" data-value="all" style="max-width:480px;flex-wrap:wrap;">
-                <button type="button" class="seg-btn active" data-value="all">All</button>
-                <button type="button" class="seg-btn" data-value="Index">Index</button>
-                <button type="button" class="seg-btn" data-value="Energy">Energy</button>
-                <button type="button" class="seg-btn" data-value="Metals">Metals</button>
-                <button type="button" class="seg-btn" data-value="Rates">Rates</button>
-                <button type="button" class="seg-btn" data-value="Currency">Currency</button>
-                <button type="button" class="seg-btn" data-value="Crypto">Crypto</button>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div class="segmented" id="fut-view" data-value="cards" style="max-width:200px;">
+                  <button type="button" class="seg-btn active" data-value="cards">Cards</button>
+                  <button type="button" class="seg-btn" data-value="heatmap">Heatmap</button>
+                </div>
+                <div class="segmented" id="fut-group-filter" data-value="all" style="max-width:480px;flex-wrap:wrap;">
+                  <button type="button" class="seg-btn active" data-value="all">All</button>
+                  <button type="button" class="seg-btn" data-value="Index">Index</button>
+                  <button type="button" class="seg-btn" data-value="Energy">Energy</button>
+                  <button type="button" class="seg-btn" data-value="Metals">Metals</button>
+                  <button type="button" class="seg-btn" data-value="Rates">Rates</button>
+                  <button type="button" class="seg-btn" data-value="Currency">Currency</button>
+                  <button type="button" class="seg-btn" data-value="Crypto">Crypto</button>
+                </div>
               </div>
             </div>
             <div class="sc-sort-bar" data-scope="futures" style="margin-top:10px;">
@@ -670,6 +676,7 @@ try{
               <button type="button" data-sort="volume">Volume<span class="sc-sort-ind"></span></button>
             </div>
             <div class="sc-card-grid" id="futures-list" style="margin-top:10px;"></div>
+            <div class="sc-heatmap-grid" id="futures-heatmap" hidden></div>
             <div class="empty-state" id="futures-empty" hidden><div>Loading&hellip;</div></div>
           </div>
         </div>

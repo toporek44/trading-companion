@@ -133,12 +133,42 @@ function updateFuturesSortIndicators(){
   });
 }
 
+// TC2000-style heatmap, mirroring Crypto's cryptoHeatmapTileHtml — own
+// function (not scanner.js's .ticker-keyed version) since this file keys
+// off .symbol like Crypto does. A fixed 14-contract watchlist gets less
+// value from a heatmap than a large scannable universe does (nothing to
+// screen down), but it's still a genuinely useful "which contracts moved
+// today" overview at a glance, same reasoning TC2000 built the feature on.
+function futuresHeatmapTileHtml(c){
+  const pct = c.pct ?? 0;
+  const absPct = Math.abs(pct);
+  const intensity = Math.min(absPct / 5, 1); // futures move far less than stocks/crypto day-to-day; clamp at 5% for full intensity
+  const bg = pct >= 0
+    ? `color-mix(in srgb, var(--good) ${15 + intensity*55}%, var(--surface))`
+    : `color-mix(in srgb, var(--bad) ${15 + intensity*55}%, var(--surface))`;
+  const flex = 1 + intensity * 3;
+  return `<div class="sc-heatmap-tile" data-symbol="${c.symbol}" style="background:${bg};flex-grow:${flex};" title="${c.symbol.replace('=F','')}: ${pct>=0?'+':''}${pct.toFixed(2)}% at ${c.price.toLocaleString(undefined,{maximumFractionDigits:2})} — click to expand">
+    <span class="sc-heatmap-ticker">${c.symbol.replace('=F','')}</span>
+    <span class="sc-heatmap-pct">${pct>=0?'+':''}${pct.toFixed(1)}%</span>
+  </div>`;
+}
+initSegmented('fut-view');
+document.getElementById('fut-view').addEventListener('click', renderFuturesList);
+document.getElementById('futures-heatmap').addEventListener('click', (e) => {
+  const tile = e.target.closest('.sc-heatmap-tile');
+  if(!tile) return;
+  futuresExpanded.add(tile.dataset.symbol);
+  document.getElementById('fut-view').querySelector('[data-value="cards"]').click(); // switch back to Cards so the expanded detail is visible
+});
+
 function renderFuturesList(){
   const cache = lsGet(FUTURES_CACHE_KEY, null);
   const container = document.getElementById('futures-list');
+  const heatmap = document.getElementById('futures-heatmap');
   const empty = document.getElementById('futures-empty');
   if(!cache || !cache.contracts || cache.contracts.length === 0){
     container.innerHTML = '';
+    heatmap.innerHTML = '';
     empty.hidden = false;
     return;
   }
@@ -146,7 +176,11 @@ function renderFuturesList(){
   const filtered = groupFilter === 'all' ? cache.contracts : cache.contracts.filter(c => c.group === groupFilter);
   const sorted = futuresSortRows(filtered);
   empty.hidden = sorted.length > 0;
-  container.innerHTML = sorted.map((c,i) => futuresCardHtml(c, i+1)).join('');
+  const heatmapView = document.getElementById('fut-view').dataset.value === 'heatmap';
+  container.hidden = heatmapView;
+  heatmap.hidden = !heatmapView;
+  if(heatmapView) heatmap.innerHTML = sorted.map(futuresHeatmapTileHtml).join('');
+  else container.innerHTML = sorted.map((c,i) => futuresCardHtml(c, i+1)).join('');
   updateFuturesSortIndicators();
 }
 
