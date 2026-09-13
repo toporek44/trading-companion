@@ -247,13 +247,14 @@ function renderLessonsSingle(lessonId){
   const idx = LESSONS.indexOf(lesson);
   const prev = LESSONS[idx - 1];
   const next = LESSONS[idx + 1];
-  const nav = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+  const nav = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
     <button type="button" class="btn" data-action="lessons-back">&larr; All lessons</button>
     <div style="display:flex;gap:8px;">
       ${prev ? `<button type="button" class="btn" data-action="open-lesson" data-lesson="${prev.id}" title="${escapeHtml(prev.title)}">&larr; Prev</button>` : ''}
       ${next ? `<button type="button" class="btn" data-action="open-lesson" data-lesson="${next.id}" title="${escapeHtml(next.title)}">Next &rarr;</button>` : ''}
     </div>
-  </div>`;
+  </div>
+  <p class="mono" style="font-size:.72rem;color:var(--muted);margin:0 0 14px;text-align:right;">Keyboard: <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> prev/next lesson</p>`;
   return nav + renderLessonCard(lesson);
 }
 
@@ -325,4 +326,22 @@ document.getElementById('lessons-list').addEventListener('click', (e) => {
   if(optBtn){ selectLessonAnswer(optBtn.dataset.lesson, parseInt(optBtn.dataset.qidx,10), parseInt(optBtn.dataset.oidx,10)); return; }
   const submitBtn = e.target.closest('button[data-action="submit-quiz"]');
   if(submitBtn){ submitLessonQuiz(submitBtn.dataset.lesson); }
+});
+
+// Left/Right arrow-key navigation through the curriculum, matching the
+// Prev/Next buttons already on screen while viewing a single lesson —
+// same "make an existing interaction keyboard-reachable" pattern as the
+// Scanner/Journal shortcuts elsewhere in this app. Only active while a
+// lesson is actually open (not on the table-of-contents) and the Lessons
+// page is visible, so it never steals arrow keys from another page.
+document.addEventListener('keydown', (e) => {
+  if(!activeLessonId) return;
+  const page = document.getElementById('page-lessons');
+  if(!page || page.hidden) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = document.activeElement?.tagName;
+  if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  const idx = LESSONS.findIndex(l => l.id === activeLessonId);
+  if(e.key === 'ArrowLeft' && LESSONS[idx - 1]){ openLesson(LESSONS[idx - 1].id); e.preventDefault(); }
+  else if(e.key === 'ArrowRight' && LESSONS[idx + 1]){ openLesson(LESSONS[idx + 1].id); e.preventDefault(); }
 });
