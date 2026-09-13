@@ -265,6 +265,12 @@
             <h3>Trade log</h3>
             <button type="button" class="btn" id="journal-export-csv">Export CSV</button>
           </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <div class="field" style="flex:1;min-width:180px;"><input type="text" id="trades-search" placeholder="Search instrument, tags, notes…"></div>
+            <div class="field" style="max-width:220px;"><select id="trades-strategy-filter">
+              <option value="">All strategies</option>
+            </select></div>
+          </div>
           <div class="tbl-scroll" style="margin-top:10px;">
             <table>
               <thead><tr><th>Date</th><th>Mkt</th><th>Instrument</th><th>Strategy</th><th>Dir</th><th>Result</th><th>R</th><th>Process</th><th>Pillars</th><th></th></tr></thead>

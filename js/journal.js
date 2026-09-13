@@ -274,15 +274,47 @@ document.getElementById('tv-import-input').addEventListener('change', async (e) 
   }
 });
 
+// ---------- Trade log filter (search + strategy) — per-browser UI state only ----------
+let tradesSearchQuery = '';
+let tradesStrategyFilter = '';
+
+function filteredTrades(){
+  const q = tradesSearchQuery.trim().toLowerCase();
+  return state.trades.filter(t => {
+    if(tradesStrategyFilter && t.strategy !== tradesStrategyFilter) return false;
+    if(!q) return true;
+    const haystack = [t.instrument, t.tags, t.notes].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(q);
+  });
+}
+
+function refreshStrategyFilterOptions(){
+  const sel = document.getElementById('trades-strategy-filter');
+  const strategies = [...new Set(state.trades.map(t => t.strategy).filter(Boolean))].sort();
+  const current = sel.value;
+  sel.innerHTML = `<option value="">All strategies</option>${strategies.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')}`;
+  if(strategies.includes(current)) sel.value = current;
+}
+
+document.getElementById('trades-search').addEventListener('input', (e) => {
+  tradesSearchQuery = e.target.value;
+  renderTradesTable();
+});
+document.getElementById('trades-strategy-filter').addEventListener('change', (e) => {
+  tradesStrategyFilter = e.target.value;
+  renderTradesTable();
+});
+
 // ---------- Trade log CSV export (mirrors Scanner's export-what-you-see) ----------
 function exportTradesCsv(){
-  if(state.trades.length === 0) return;
+  const list = filteredTrades();
+  if(list.length === 0) return;
   const header = [
     'Date','Market','Instrument','Strategy','Direction','EntryPrice','StopPrice','ExitPrice','Size',
     'RiskAmount','ResultAmount','RMultiple','ProcessFollowed','PctGainOnDay','RelVolume','FloatM',
     'NewsCatalyst','Timeframe','Pattern','HoldTime','HoldUnit','MeetsPillars','PillarsCount','Notes','Tags','Source',
   ];
-  const rows = state.trades.map(t => [
+  const rows = list.map(t => [
     t.date, t.market, t.instrument, t.strategy, t.direction, t.entryPrice, t.stopPrice, t.exitPrice, t.size,
     t.riskAmount, t.resultAmount, t.rMultiple, t.processFollowed, t.pctGainOnDay, t.relVolume, t.float,
     t.newsCatalyst, t.timeframe, t.pattern, t.holdTime, t.holdUnit, t.meetsPillars, t.pillarsCount, t.notes, t.tags, t.source,
@@ -295,9 +327,14 @@ document.getElementById('journal-export-csv').addEventListener('click', exportTr
 export function renderTradesTable(){
   const tbody = document.getElementById('trades-tbody');
   const emptyEl = document.getElementById('trades-empty');
+  refreshStrategyFilterOptions();
+  const list = filteredTrades();
   tbody.innerHTML = '';
-  emptyEl.hidden = state.trades.length > 0;
-  state.trades.forEach(t => {
+  emptyEl.hidden = list.length > 0;
+  emptyEl.querySelector('div:last-child').textContent = state.trades.length === 0
+    ? 'No trades logged yet — your first paper trade goes here.'
+    : 'No trades match your search/filter.';
+  list.forEach(t => {
     const tr = document.createElement('tr');
     const resultClass = (t.resultAmount||0) > 0 ? 'good' : ((t.resultAmount||0) < 0 ? 'bad' : '');
     tr.innerHTML = `
