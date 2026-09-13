@@ -112,21 +112,20 @@ function newCardBudget(){
   return { today, introducedToday, budget: Math.max(0, 10 - introducedToday) };
 }
 
+// Builds the in-memory queue only — does NOT touch/persist
+// newCardsIntroducedToday. That used to happen here, which was a real bug:
+// renderPractice() (and therefore ensureSession()) runs unconditionally as
+// part of the app-wide renderAll() at every page load, regardless of
+// whether the user ever opens the Practice tab — so the day's entire
+// 10-new-card budget was silently spent just by loading the Dashboard,
+// before anyone had answered a single card. The budget is now only spent
+// in answerCurrent() below, when a genuinely new card is actually
+// answered — matching what "introduced" should mean.
 function ensureSession(){
   if(sessionQueue) return;
-  const { today, introducedToday, budget } = newCardBudget();
+  const { today, budget } = newCardBudget();
   const cards = activeCards();
-  const alreadySeenIds = new Set(Object.keys(state.srsState.cards));
   sessionQueue = buildQueue(cards, state.srsState.cards, today, budget);
-  const newlyIntroduced = sessionQueue.filter(c => !alreadySeenIds.has(c.id)).length;
-  if(newlyIntroduced > 0){
-    state.srsState = {
-      ...state.srsState,
-      newCardsIntroducedToday: introducedToday + newlyIntroduced,
-      newCardsIntroducedDate: today,
-    };
-    persistProgress('srs', state.srsState);
-  }
   sessionIndex = 0;
   sessionAnswered = null;
   sessionView = null;
@@ -196,13 +195,18 @@ function answerCurrent(idx){
   sessionAnswered = idx;
   const isCorrect = view.options[idx] === view.correctText;
   const today = todayStr();
+  const isNewCard = !state.srsState.cards[card.id]; // first time this card has ever been answered
   const newRecord = gradeCard(state.srsState.cards[card.id], isCorrect, today);
   const newStreak = computeStreak(state.srsState.streak || 0, state.srsState.lastReviewDate, today);
+  const { introducedToday } = newCardBudget();
   state.srsState = {
     ...state.srsState,
     cards: { ...state.srsState.cards, [card.id]: newRecord },
     streak: newStreak,
     lastReviewDate: today,
+    // Only spent here, on a real answer — see the comment on ensureSession()
+    // above for why this moved out of session/queue construction.
+    ...(isNewCard ? { newCardsIntroducedToday: introducedToday + 1, newCardsIntroducedDate: today } : {}),
   };
   persistProgress('srs', state.srsState);
   renderPractice();
