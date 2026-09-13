@@ -405,11 +405,24 @@ document.getElementById('tv-import-input').addEventListener('change', async (e) 
     const text = await file.text();
     const instrument = window.prompt('Instrument for this import (e.g. ES1!, MNQ1!):', '') || '—';
     const strategyName = window.prompt('Strategy name for this import (optional):', 'Other') || 'Other';
-    const entries = parseTVStrategyExport(text, instrument, strategyName);
-    if(entries.length === 0){ statusEl.textContent = 'No trades found in that file.'; return; }
+    const parsed = parseTVStrategyExport(text, instrument, strategyName);
+    if(parsed.length === 0){ statusEl.textContent = 'No trades found in that file.'; return; }
+    // TradingView's Strategy Tester export is always the FULL trade
+    // history, not incremental — re-exporting after a few more trades and
+    // re-importing (a completely normal workflow) would otherwise
+    // duplicate every previously-imported trade. Each entry's notes field
+    // already carries a unique "Trade #N" from TradingView's own trade
+    // numbering (see parseTVStrategyExport above), so (instrument, notes)
+    // is a reliable dedup key without needing a new field.
+    const alreadyImported = new Set(
+      state.trades.filter(t => t.source === 'tradingview').map(t => `${t.instrument}|${t.notes}`)
+    );
+    const entries = parsed.filter(e => !alreadyImported.has(`${e.instrument}|${e.notes}`));
+    const skipped = parsed.length - entries.length;
+    if(entries.length === 0){ statusEl.textContent = `All ${parsed.length} trade${parsed.length===1?'':'s'} in that file ${parsed.length===1?'was':'were'} already imported.`; return; }
     statusEl.textContent = `Importing ${entries.length} trade${entries.length===1?'':'s'}…`;
     await importTradesFromCSV(entries);
-    statusEl.textContent = `Imported ${entries.length} trade${entries.length===1?'':'s'} from TradingView.`;
+    statusEl.textContent = `Imported ${entries.length} trade${entries.length===1?'':'s'} from TradingView` + (skipped ? ` (${skipped} already-imported trade${skipped===1?'':'s'} skipped).` : '.');
   }catch(err){
     statusEl.textContent = 'Could not read that file — export "List of Trades" from the Strategy Tester as CSV and try again.';
   } finally {
