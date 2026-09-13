@@ -531,9 +531,12 @@ let selectedTradeIds = new Set();
 
 function updateBulkDeleteButton(){
   const btn = document.getElementById('trades-bulk-delete');
-  if(!btn) return;
-  btn.hidden = selectedTradeIds.size === 0;
-  btn.textContent = `Delete selected (${selectedTradeIds.size})`;
+  const tagBtn = document.getElementById('trades-bulk-tag');
+  if(btn){
+    btn.hidden = selectedTradeIds.size === 0;
+    btn.textContent = `Delete selected (${selectedTradeIds.size})`;
+  }
+  if(tagBtn) tagBtn.hidden = selectedTradeIds.size === 0;
 }
 
 export function renderTradesTable(){
@@ -619,5 +622,29 @@ document.getElementById('trades-bulk-delete')?.addEventListener('click', async (
     lsSet('tc-trades', state.trades);
   }
   selectedTradeIds.clear();
+  renderAll();
+});
+
+document.getElementById('trades-bulk-tag')?.addEventListener('click', async () => {
+  const ids = [...selectedTradeIds];
+  if(ids.length === 0) return;
+  const tag = (prompt(`Add a tag to ${ids.length} selected trade${ids.length===1?'':'s'}:`) || '').trim();
+  if(!tag) return;
+  const targets = state.trades.filter(t => ids.includes(t.id));
+  // No single-call batched update with per-row differing values in
+  // Supabase's JS client (unlike bulk-delete's one .in() call) — each
+  // trade's existing tags string differs, so this is N individual
+  // updates. Still a real UX win: one prompt instead of N edit-trade trips.
+  for(const t of targets){
+    const existing = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
+    if(existing.some(e => e.toLowerCase() === tag.toLowerCase())) continue;
+    const newTags = existing.concat(tag).join(', ');
+    if(state.sb){
+      try{ await state.sb.from('trades').update({ tags: newTags }).eq('id', t.id); }catch(e){}
+    } else {
+      t.tags = newTags;
+    }
+  }
+  if(state.sb){ await refetchTrades(); } else { lsSet('tc-trades', state.trades); }
   renderAll();
 });
