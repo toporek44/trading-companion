@@ -47,6 +47,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Print on every text-heavy page | Most tools are screen-only | Trading Plan Worksheet, Weekly Report, and Daily Brief all get a real print path now |
 | Bulk delete on the trade log | Tradervue, Edgewonk | Checkbox column + tri-state select-all + a single batched delete call, instead of deleting a bad import one trade at a time |
 | Bulk tag on the trade log | Tradervue, Edgewonk | Same checkbox selection as bulk-delete, adds one tag to every selected trade (dedup, case-insensitive) — no single-call batched update with differing values in Supabase's client, so N individual updates under the hood, still one user interaction |
+| Sortable trade-log columns | Tradervue, TC2000 | Date/Instrument/Result/R headers toggle asc/desc (▲/▼, aria-sort); defaults to date-desc so nothing changes until a user clicks one; search/filter/CSV export all honor the active sort since it lives inside `filteredTrades()` |
 
 ## Real, informed gaps — deliberately not built, and why
 
