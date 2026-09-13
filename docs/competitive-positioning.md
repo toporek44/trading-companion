@@ -20,6 +20,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Per-ticker notes | TC2000's watchlist context menu | Implemented (text-only — no charting surface to attach to) |
 | 24/7 coverage (crypto + futures tabs) | Most paid scanners are single-market | 3 markets in one app, unified card UI |
 | PWA installable (home-screen icon) | Webull/TC2000 mobile apps | Implemented this session (manifest + icon + no-op service worker) |
+| Sortable/filterable columns on every market tab | Every paid scanner (table sort is table-stakes) | Was Stocks-only for a while (a real gap a user flagged) — Crypto and Futures now have matching sort pills + filters (Futures uses a categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto — instead of numeric fields, since 14 fixed contracts spanning wildly different price scales don't suit a min/max price filter) |
 
 ## Real, informed gaps — deliberately not built, and why
 
