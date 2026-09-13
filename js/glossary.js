@@ -1,4 +1,7 @@
-// ---------- Trading glossary (original definitions, for the Practice deck) ----------
+// ---------- Trading glossary (original definitions, for the Practice deck
+// AND a standalone browsable reference page — see renderGlossaryPage) ----------
+import { escapeHtml } from './state.js';
+
 export const CATEGORY_LABELS = {
   'order-types': 'Order Types',
   'indicators': 'Indicators & Chart',
@@ -79,3 +82,64 @@ export const GLOSSARY_TERMS = [
 export function getGlossaryCards(){
   return GLOSSARY_TERMS.map(t => ({ id: 'glossary:' + t.id, deck: 'glossary', term: t.term, definition: t.definition, category: t.category }));
 }
+
+// ---------- Standalone glossary reference page (search + category filter) ----------
+// Separate from the Practice deck above — this is a plain lookup view, no
+// spaced-repetition state, so it needs none of Practice's session/queue
+// machinery. Category filter state is per-browser only (a display
+// preference), same tier as Practice's own category filter.
+let glossaryCategoryFilter = ''; // '' = all categories
+let glossarySearchQuery = '';
+
+function glossaryFilteredTerms(){
+  const q = glossarySearchQuery.trim().toLowerCase();
+  return GLOSSARY_TERMS.filter(t => {
+    if(glossaryCategoryFilter && t.category !== glossaryCategoryFilter) return false;
+    if(!q) return true;
+    return t.term.toLowerCase().includes(q) || t.definition.toLowerCase().includes(q);
+  });
+}
+
+function renderGlossaryPills(){
+  const root = document.getElementById('glossary-category-pills');
+  if(!root) return;
+  const categories = Object.keys(CATEGORY_LABELS);
+  root.innerHTML = [
+    `<button type="button" class="btn" data-category="" style="display:inline-block;width:auto;padding:5px 12px;font-size:.8rem;${glossaryCategoryFilter===''?'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);':''}">All</button>`,
+    ...categories.map(cat => `<button type="button" class="btn" data-category="${cat}" style="display:inline-block;width:auto;padding:5px 12px;font-size:.8rem;${glossaryCategoryFilter===cat?'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);':''}">${escapeHtml(CATEGORY_LABELS[cat])}</button>`),
+  ].join('');
+}
+
+function renderGlossaryList(){
+  const root = document.getElementById('glossary-list');
+  if(!root) return;
+  const terms = glossaryFilteredTerms();
+  if(terms.length === 0){
+    root.innerHTML = `<div class="empty-state"><div>No terms match your search/filter.</div></div>`;
+    return;
+  }
+  root.innerHTML = terms.map(t => `
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;">
+        <strong>${escapeHtml(t.term)}</strong>
+        <span class="pill neutral">${escapeHtml(CATEGORY_LABELS[t.category] || t.category)}</span>
+      </div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.9rem;line-height:1.5;">${escapeHtml(t.definition)}</p>
+    </div>`).join('');
+}
+
+export function renderGlossaryPage(){
+  renderGlossaryPills();
+  renderGlossaryList();
+}
+
+document.getElementById('glossary-search')?.addEventListener('input', (e) => {
+  glossarySearchQuery = e.target.value;
+  renderGlossaryList();
+});
+document.getElementById('glossary-category-pills')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-category]');
+  if(!btn) return;
+  glossaryCategoryFilter = btn.dataset.category;
+  renderGlossaryPage();
+});

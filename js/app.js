@@ -9,6 +9,7 @@ import { renderJournalStats, renderEquityChart, renderRHistogram, renderStatsByS
 import { renderPlan } from './plan.js';
 import { renderLessons } from './lessons.js';
 import { renderPractice } from './practice.js';
+import { renderGlossaryPage } from './glossary.js';
 import './scanner.js';
 import './futures-scanner.js';
 import './crypto-scanner.js';
@@ -33,6 +34,7 @@ export function renderAll(){
   renderPlan();
   renderLessons();
   renderPractice();
+  renderGlossaryPage();
   renderDashboard();
 }
 

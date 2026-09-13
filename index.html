@@ -49,6 +49,10 @@
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         <span>Practice</span>
       </button>
+      <button data-page="glossary">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V5.2C4 4 5 3 6.2 3H18a1 1 0 0 1 1 1v14.3"/><path d="M6.2 21H19"/><path d="M9 7h6M9 10.5h6M9 14h3"/></svg>
+        <span>Glossary</span>
+      </button>
       <button data-page="milestones">
         <svg class="icon" viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 4h11l-2.5 3.5L16 11H5"/></svg>
         <span>Milestones</span>
@@ -632,6 +636,17 @@
           <div id="practice-header" style="margin-bottom:16px;"></div>
           <div id="practice-body"></div>
         </div>
+      </section>
+
+      <section id="page-glossary" class="page" hidden>
+        <p class="lede">Quick lookup for the terms used throughout this app — no spaced-repetition flow, just search and read.</p>
+        <div class="card" style="margin-bottom:18px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div class="field" style="flex:1;min-width:180px;"><input type="text" id="glossary-search" placeholder="Search terms or definitions…" aria-label="Search glossary"></div>
+          </div>
+          <div id="glossary-category-pills" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+        <div id="glossary-list"></div>
       </section>
 
       <section id="page-milestones" class="page" hidden>
