@@ -1,11 +1,12 @@
 import { state, statTileCls, escapeHtml } from './state.js';
-import { computeStats, streakLabel, buildCoachInsights, coachInsightMeta } from './journal-stats.js';
+import { computeStats, streakLabel, buildCoachInsights, coachInsightMeta, renderCircuitBreaker } from './journal-stats.js';
 import { WEEKS, TOTAL_DAYS, findTodayKey, toggleCalDay } from './calendar.js';
 import { MILESTONES } from './milestones.js';
 import { renderBrief } from './brief.js';
 
 // ---------- Dashboard ----------
 export function renderDashboard(){
+  renderCircuitBreaker('dash-circuit-breaker');
   const totalDoneDays = Object.values(state.calState).filter(Boolean).length;
   const doneMs = Object.values(state.msState).filter(Boolean).length;
   const s = computeStats(state.trades);

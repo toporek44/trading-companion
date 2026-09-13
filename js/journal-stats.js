@@ -53,8 +53,11 @@ export function computeCircuitBreaker(list){
   const streakHit = (s.currentStreak||0) <= -3;
   return { todayPnl, dailyMaxLoss, dailyLossHit, streakHit, triggered: dailyLossHit || streakHit, streak: s.currentStreak };
 }
-export function renderCircuitBreaker(){
-  const root = document.getElementById('circuit-breaker-banner');
+// rootId defaults to the Journal page's own banner; Dashboard passes its
+// own element id so the same "stop trading" nudge shows on the page a
+// trader is most likely to check mid-session, not just the Journal tab.
+export function renderCircuitBreaker(rootId = 'circuit-breaker-banner'){
+  const root = document.getElementById(rootId);
   if(!root) return;
   const cb = computeCircuitBreaker(state.trades);
   if(!cb.triggered){ root.innerHTML = ''; return; }
