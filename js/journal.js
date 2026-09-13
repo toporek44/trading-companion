@@ -523,12 +523,28 @@ document.getElementById('f-tags-suggestions')?.addEventListener('click', (e) => 
 });
 
 // ---------- Trade log table ----------
+// Bulk selection — for cleaning up a bad import or a batch of test/mistake
+// entries without deleting one at a time. Selection is per-browser-session
+// only (not persisted): intentionally resets on every render so a stale
+// selection can never silently apply to a different filtered view.
+let selectedTradeIds = new Set();
+
+function updateBulkDeleteButton(){
+  const btn = document.getElementById('trades-bulk-delete');
+  if(!btn) return;
+  btn.hidden = selectedTradeIds.size === 0;
+  btn.textContent = `Delete selected (${selectedTradeIds.size})`;
+}
+
 export function renderTradesTable(){
   const tbody = document.getElementById('trades-tbody');
   const emptyEl = document.getElementById('trades-empty');
   refreshStrategyFilterOptions();
   renderTagSuggestions();
   const list = filteredTrades();
+  // Drop selections for trades no longer in view (deleted, or filtered out).
+  const visibleIds = new Set(list.map(t => t.id));
+  selectedTradeIds.forEach(id => { if(!visibleIds.has(id)) selectedTradeIds.delete(id); });
   tbody.innerHTML = '';
   emptyEl.hidden = list.length > 0;
   emptyEl.querySelector('div:last-child').textContent = state.trades.length === 0
@@ -538,6 +554,7 @@ export function renderTradesTable(){
     const tr = document.createElement('tr');
     const resultClass = (t.resultAmount||0) > 0 ? 'good' : ((t.resultAmount||0) < 0 ? 'bad' : '');
     tr.innerHTML = `
+      <td><input type="checkbox" class="trade-select" data-id="${escapeHtml(t.id)}" ${selectedTradeIds.has(t.id) ? 'checked' : ''} aria-label="Select this trade"></td>
       <td class="num">${escapeHtml(t.date)||'—'}</td>
       <td>${escapeHtml(t.market)||'—'}</td>
       <td>${escapeHtml(t.instrument)||'—'}${t.source==='tradingview' ? ' <span class="pill neutral" title="Imported from TradingView">TV</span>' : ''}</td>
@@ -554,4 +571,53 @@ export function renderTradesTable(){
       </td>`;
     tbody.appendChild(tr);
   });
+  const selectAll = document.getElementById('trades-select-all');
+  if(selectAll){
+    selectAll.checked = list.length > 0 && list.every(t => selectedTradeIds.has(t.id));
+    selectAll.indeterminate = selectedTradeIds.size > 0 && !selectAll.checked;
+  }
+  updateBulkDeleteButton();
 }
+
+document.getElementById('trades-tbody')?.addEventListener('change', (e) => {
+  const cb = e.target.closest('input.trade-select');
+  if(!cb) return;
+  if(cb.checked) selectedTradeIds.add(cb.dataset.id); else selectedTradeIds.delete(cb.dataset.id);
+  updateBulkDeleteButton();
+  const selectAll = document.getElementById('trades-select-all');
+  if(selectAll){
+    const rows = [...document.querySelectorAll('#trades-tbody input.trade-select')];
+    selectAll.checked = rows.length > 0 && rows.every(r => r.checked);
+    selectAll.indeterminate = rows.some(r => r.checked) && !selectAll.checked;
+  }
+});
+document.getElementById('trades-select-all')?.addEventListener('change', (e) => {
+  document.querySelectorAll('#trades-tbody input.trade-select').forEach(cb => {
+    cb.checked = e.target.checked;
+    if(e.target.checked) selectedTradeIds.add(cb.dataset.id); else selectedTradeIds.delete(cb.dataset.id);
+  });
+  updateBulkDeleteButton();
+});
+document.getElementById('trades-bulk-delete')?.addEventListener('click', async () => {
+  const ids = [...selectedTradeIds];
+  if(ids.length === 0) return;
+  if(!confirm(`Delete ${ids.length} selected trade${ids.length===1?'':'s'}? This can't be undone.`)) return;
+  // Same stale-edit guard as the single-trade delete — if the trade
+  // currently open in the edit form is among those selected, clear the
+  // form so "Update trade" doesn't end up pointed at a deleted id.
+  if(editingTradeId && ids.includes(editingTradeId)){
+    editingTradeId = null;
+    document.getElementById('trade-form-submit').textContent = 'Add trade';
+    document.getElementById('trade-form-cancel-edit').hidden = true;
+    resetTradeForm();
+  }
+  if(state.sb){
+    try{ await state.sb.from('trades').delete().in('id', ids); }catch(e){}
+    await refetchTrades();
+  } else {
+    state.trades = state.trades.filter(t => !ids.includes(t.id));
+    lsSet('tc-trades', state.trades);
+  }
+  selectedTradeIds.clear();
+  renderAll();
+});
