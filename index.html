@@ -726,8 +726,11 @@ try{
       </section>
 
       <section id="page-brief" class="page" hidden>
-        <p class="lede">Populated each morning by your scheduled Daily Trading Brief task. If nothing shows up, the brief hasn't run yet or hasn't synced here.</p>
-        <div id="brief-list"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <p class="lede" style="margin:0;">Populated each morning by your scheduled Daily Trading Brief task. If nothing shows up, the brief hasn't run yet or hasn't synced here.</p>
+          <button type="button" class="btn" onclick="window.print()">&#128424; Print</button>
+        </div>
+        <div id="brief-list" style="margin-top:14px;"></div>
       </section>
 
     </div>
