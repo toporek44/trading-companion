@@ -50,10 +50,48 @@ function usMarketStatus(){
   };
 }
 
+// CME Globex futures session, ET wall-clock: closed Fri >=17:00 through Sun
+// <18:00 (weekend), plus a daily maintenance halt 17:00-18:00 ET every
+// other day. Pure function of (day-of-week, minutes-since-midnight) so it's
+// unit-testable without a real Date — verified against 14 boundary cases
+// (every open/halted/closed transition) before wiring this in.
+function futuresStatusFromEt(day, minutesNow){
+  const haltStart = 17 * 60, haltEnd = 18 * 60;
+  if(day === 6) return 'closed';
+  if(day === 5 && minutesNow >= haltStart) return 'closed';
+  if(day === 0 && minutesNow < haltEnd) return 'closed';
+  if(minutesNow >= haltStart && minutesNow < haltEnd) return 'halted';
+  return 'open';
+}
+const FUTURES_STATUS_LABEL = { open: 'Futures open', halted: 'Futures halted', closed: 'Futures closed (weekend)' };
+const FUTURES_COUNTDOWN_LABEL = { open: 'next halt in', halted: 'reopens in', closed: 'reopens in' };
+
+function futuresSessionStatus(){
+  const nowEt = zonedNow('America/New_York');
+  const day0 = nowEt.getDay();
+  const min0 = nowEt.getHours() * 60 + nowEt.getMinutes();
+  const state = futuresStatusFromEt(day0, min0);
+
+  // Next-transition time found by stepping forward minute-by-minute rather
+  // than computing it symbolically — trivially cheap (at most one week's
+  // worth of minutes) and avoids day/hour-boundary arithmetic bugs that a
+  // closed-form version would risk.
+  let day = day0, min = min0, steps = 0;
+  const maxSteps = 7 * 24 * 60;
+  while(futuresStatusFromEt(day, min) === state && steps < maxSteps){
+    min++;
+    if(min >= 1440){ min = 0; day = (day + 1) % 7; }
+    steps++;
+  }
+  return { state, label: FUTURES_STATUS_LABEL[state], countdownLabel: FUTURES_COUNTDOWN_LABEL[state], ms: steps * 60000 };
+}
+
 function renderMarketClock(){
   const warsawEl = document.getElementById('mc-warsaw-time');
   const stateEl = document.getElementById('mc-us-state');
   const countdownEl = document.getElementById('mc-us-countdown');
+  const futStateEl = document.getElementById('mc-futures-state');
+  const futCountdownEl = document.getElementById('mc-futures-countdown');
   if(!warsawEl || !stateEl || !countdownEl) return;
 
   warsawEl.textContent = formatHms(zonedNow('Europe/Warsaw'));
@@ -62,6 +100,13 @@ function renderMarketClock(){
   stateEl.textContent = status.label;
   stateEl.className = `mc-us-state is-${status.state}`;
   countdownEl.textContent = `(${status.countdownLabel} ${formatDuration(status.ms)})`;
+
+  if(futStateEl && futCountdownEl){
+    const fut = futuresSessionStatus();
+    futStateEl.textContent = fut.label;
+    futStateEl.className = `mc-us-state is-${fut.state === 'open' ? 'open' : fut.state === 'halted' ? 'premarket' : 'closed'}`;
+    futCountdownEl.textContent = `(${fut.countdownLabel} ${formatDuration(fut.ms)})`;
+  }
 }
 
 renderMarketClock();
