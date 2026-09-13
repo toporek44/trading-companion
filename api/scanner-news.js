@@ -1,7 +1,9 @@
 // Vercel serverless function — proxies Finnhub's company-news endpoint so
 // its key stays server-side. Returns { configured: false } when
-// FINHUB_API_KEY isn't set, so the client falls back to the Alpha Vantage
-// NEWS_SENTIMENT flow. See docs/scanner-upgrade-plan.md.
+// FINHUB_API_KEY isn't set, so the client shows a clear "not configured"
+// status instead of silently doing nothing (there is no fallback data
+// source — Alpha Vantage was removed entirely, see
+// docs/scanner-upgrade-plan.md).
 
 export default async function handler(req, res){
   const apiKey = process.env.FINHUB_API_KEY;
