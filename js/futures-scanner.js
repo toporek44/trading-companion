@@ -102,7 +102,12 @@ function futuresSortRows(contracts){
         case 'symbol': return c.symbol;
         case 'price': return c.price;
         case 'volume': return c.volume ?? -Infinity;
-        default: return Math.abs(c.pct ?? -Infinity); // |% change| — matches the tab's own "ranked by |% change|" default
+        // |% change| — matches the tab's own "ranked by |% change|" default.
+        // A null pct (Yahoo returned no change data — plausible for a
+        // thinner contract) must sort last regardless of asc/desc, not
+        // first: `Math.abs(null ?? -Infinity)` would be +Infinity, making
+        // an unknown-move contract look like the day's #1 mover.
+        default: return c.pct == null ? -Infinity : Math.abs(c.pct);
       }
     };
     const av = pick(a), bv = pick(b);

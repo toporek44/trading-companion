@@ -22,6 +22,11 @@ async function loadPriceRangeSetting(){
   const { min, max } = await getScannerPriceRange();
   document.getElementById('sc-minprice').value = min;
   document.getElementById('sc-maxprice').value = max;
+  // This resolves asynchronously (a Supabase fetch), racing the initial
+  // renderScannerTables() call at module load — without this, a saved
+  // custom range wouldn't visibly apply until the next 60s auto-refresh
+  // tick re-reads the (by-then-updated) input values.
+  renderScannerTables();
 }
 function savePriceRangeSetting(){
   const min = parseFloat(document.getElementById('sc-minprice').value);
