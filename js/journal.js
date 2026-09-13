@@ -466,11 +466,35 @@ function exportTradesCsv(){
 }
 document.getElementById('journal-export-csv').addEventListener('click', exportTradesCsv);
 
+// ---------- Tag suggestions (avoid re-typing/misspelling a tag you've
+// already used — inconsistent spelling silently fragments the By-Tag
+// stats table, since it groups by exact string match) ----------
+function renderTagSuggestions(){
+  const root = document.getElementById('f-tags-suggestions');
+  if(!root) return;
+  const counts = {};
+  state.trades.forEach(t => {
+    (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(tag => { counts[tag] = (counts[tag]||0) + 1; });
+  });
+  const topTags = Object.keys(counts).sort((a,b) => counts[b]-counts[a]).slice(0, 10);
+  root.innerHTML = topTags.map(tag => `<button type="button" class="btn" data-tag="${escapeHtml(tag)}" style="display:inline-block;width:auto;padding:3px 9px;font-size:.72rem;">+ ${escapeHtml(tag)}</button>`).join('');
+}
+document.getElementById('f-tags-suggestions')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-tag]');
+  if(!btn) return;
+  const input = document.getElementById('f-tags');
+  const existing = input.value.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  if(existing.includes(btn.dataset.tag.toLowerCase())) return;
+  input.value = input.value.trim() ? `${input.value.trim()}, ${btn.dataset.tag}` : btn.dataset.tag;
+  input.focus();
+});
+
 // ---------- Trade log table ----------
 export function renderTradesTable(){
   const tbody = document.getElementById('trades-tbody');
   const emptyEl = document.getElementById('trades-empty');
   refreshStrategyFilterOptions();
+  renderTagSuggestions();
   const list = filteredTrades();
   tbody.innerHTML = '';
   emptyEl.hidden = list.length > 0;
