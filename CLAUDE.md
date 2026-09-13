@@ -212,6 +212,43 @@ bugs, verify every change live) added, on top of everything above:
   comparison against Trade Ideas/Benzinga Pro/TC2000/TradingView/Webull,
   including the informed, reasoned list of what was deliberately *not*
   built and why.
+- **Sorting/filtering has parity across all 3 tabs.** Stocks had it first;
+  Crypto (sort pills + a Filters card) and Futures (sort pills + a
+  categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto,
+  since 14 fixed contracts spanning wildly different price scales don't
+  suit a numeric min/max filter) were a real gap a user flagged and got
+  matching treatment. Each tab's sort bar is scoped to its own `data-scope`
+  values and CSS class (`.sc-sort-bar`, not the stock-only `.sc-sort-row`)
+  — a real bug was caught mid-build where sharing the class would have let
+  `scanner.js`'s generic handler crash on `scannerSortState['crypto-...']`
+  being undefined.
+
+## Journal, Practice, and Lessons
+
+- **Journal had a real stored XSS** (fixed) — free-text Instrument/
+  Strategy/Tags fields were interpolated unescaped into innerHTML in three
+  places. `escapeHtml` now lives in `js/state.js` (shared base module, no
+  circular import between `scanner.js` and `journal.js`). A follow-up sweep
+  of every other file in the app found no other instances.
+- **Practice had a real logic bug** (fixed): `js/app.js`'s app-wide
+  `renderAll()` calls `renderPractice()` unconditionally on every page
+  load, regardless of which tab is active. `renderPractice()` used to call
+  `ensureSession()`, which persisted `newCardsIntroducedToday` (the day's
+  10-new-card spaced-repetition budget) to Supabase just from building an
+  in-memory queue — meaning the budget was silently spent by loading the
+  Dashboard, before the user ever opened Practice. Fixed by moving the
+  budget-spend into `answerCurrent()`, only incrementing when a genuinely
+  new card is actually answered. **If auditing other pages for similar
+  bugs**: the pattern to search for is any function called by the
+  unconditional `renderAll()` that has a side effect (a `persistProgress`/
+  Supabase write) gated on nothing but "was this rendered," rather than on
+  real user interaction.
+- **Lessons redesigned** from "every lesson expanded and stacked, filtered
+  by a flat theme-pill row" into a table-of-contents-by-theme +
+  one-lesson-at-a-time view (`js/lessons.js`: `renderLessonsToc`/
+  `renderLessonsSingle`, with Prev/Next navigation through the flat
+  `LESSONS` array order). Real user feedback: the old view had no way to
+  see the curriculum's shape or focus on one topic.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
