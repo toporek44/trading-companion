@@ -249,6 +249,16 @@ bugs, verify every change live) added, on top of everything above:
   `renderLessonsSingle`, with Prev/Next navigation through the flat
   `LESSONS` array order). Real user feedback: the old view had no way to
   see the curriculum's shape or focus on one topic.
+- **Full app-wide bug sweep completed** for the two bug classes found this
+  session: unescaped user text into innerHTML (XSS), and render-path
+  functions with hidden `persistProgress`/Supabase side effects (the
+  Practice bug's class). Every JS file in the app has now been reviewed —
+  Scanner/Crypto/Futures, Journal/journal-stats, Practice, and the last
+  batch (Calendar, Milestones, Plan, Dashboard, Brief, market-clock,
+  candle-drill, SRS, Glossary) all came back clean on the final pass. If
+  a future change reintroduces either pattern, that's a regression, not
+  an unknown risk — both have concrete historical examples in git log to
+  compare against.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
