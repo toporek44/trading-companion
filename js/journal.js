@@ -89,10 +89,7 @@ export function resetTradeForm(){
 // the same "New entry" form — populate it from the trade, flip the submit
 // handler into update mode, restore on submit/cancel.
 let editingTradeId = null;
-function startEditTrade(id){
-  const t = state.trades.find(tr => tr.id === id);
-  if(!t) return;
-  editingTradeId = id;
+function populateFormFromTrade(t){
   document.getElementById('f-date').value = t.date || '';
   document.getElementById('f-market').value = t.market || 'Stock';
   document.getElementById('f-instrument').value = t.instrument || '';
@@ -134,6 +131,13 @@ function startEditTrade(id){
   document.getElementById('f-tags').value = t.tags || '';
   updateRPreview();
   updateSizeSuggestion();
+}
+
+function startEditTrade(id){
+  const t = state.trades.find(tr => tr.id === id);
+  if(!t) return;
+  editingTradeId = id;
+  populateFormFromTrade(t);
   document.getElementById('trade-form-submit').textContent = 'Update trade';
   document.getElementById('trade-form-cancel-edit').hidden = false;
   document.getElementById('trade-form').scrollIntoView({behavior:'smooth', block:'start'});
@@ -145,6 +149,30 @@ document.getElementById('trade-form-cancel-edit').addEventListener('click', () =
   document.getElementById('trade-form-cancel-edit').hidden = true;
   resetTradeForm();
 });
+
+// Duplicate: same instrument/strategy/setup as an existing trade, but a
+// fresh entry (not an edit of the original) — useful for repeated intraday
+// setups on the same name. Keeps everything populateFormFromTrade fills in
+// EXCEPT the price/size/outcome fields (those are per-fill, not per-setup)
+// and the date (defaults to today, not the original trade's date).
+function duplicateTrade(id){
+  const t = state.trades.find(tr => tr.id === id);
+  if(!t) return;
+  // Clear any in-progress edit first — otherwise the submit button would
+  // still say "Update trade" and overwrite whatever trade was being
+  // edited with this duplicated data instead of creating a new entry.
+  editingTradeId = null;
+  document.getElementById('trade-form-submit').textContent = 'Add trade';
+  document.getElementById('trade-form-cancel-edit').hidden = true;
+  populateFormFromTrade(t);
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  ['f-entry','f-stop','f-exit','f-size','f-risk','f-result'].forEach(fid => { document.getElementById(fid).value = ''; });
+  updateRPreview();
+  updateSizeSuggestion();
+  document.getElementById('trade-form').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('f-entry').focus();
+}
+window.__duplicateTrade = duplicateTrade;
 
 // The 5 Pillars, per the Small Account Toolkit / Trading Plan Worksheet:
 // rel volume >=5x, up >=10% on the day, has a news catalyst, price in range
@@ -463,6 +491,7 @@ export function renderTradesTable(){
       <td>${t.processFollowed ? '<span class="pill good">yes</span>' : '<span class="pill bad">no</span>'}</td>
       <td>${(() => { const pc = t.pillarsCount ?? null; if(!pc) return '<span class="pill">—</span>'; return `<span class="pill ${pc===5?'good':'neutral'}">${pc}/5</span>`; })()}</td>
       <td style="white-space:nowrap;">
+        <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__duplicateTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')" title="Log another trade with the same instrument/strategy/setup">duplicate</button>
         <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__editTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">edit</button>
         <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">delete</button>
       </td>`;
