@@ -4,6 +4,7 @@ import './market-clock.js';
 import { renderCalendar } from './calendar.js';
 import { renderMilestones } from './milestones.js';
 import './journal.js';
+import './journal-shortcuts.js';
 import { renderTradesTable } from './journal.js';
 import { renderJournalStats, renderEquityChart, renderRHistogram, renderStatsByStrategy, renderStatsByTag, renderCoachRules, renderWeeklyReport, renderPnlHeatmap, renderCircuitBreaker } from './journal-stats.js';
 import { renderPlan } from './plan.js';
