@@ -358,19 +358,38 @@ export function renderPnlHeatmap(){
     </div>
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${cells}</div>`;
 }
-document.getElementById('heatmap-prev').addEventListener('click', () => { heatmapMonth.setMonth(heatmapMonth.getMonth()-1); renderPnlHeatmap(); });
-document.getElementById('heatmap-next').addEventListener('click', () => { heatmapMonth.setMonth(heatmapMonth.getMonth()+1); renderPnlHeatmap(); });
+// Tracks whether the trade-log search box currently holds a date dropped
+// in by a heatmap click (vs. something the user typed themselves) — lets
+// month navigation clear a stale heatmap-driven filter without ever
+// clobbering a real manual search.
+let heatmapFilterActive = false;
+document.getElementById('trades-search')?.addEventListener('input', () => { heatmapFilterActive = false; });
+
+function clearHeatmapFilterIfActive(){
+  if(!heatmapFilterActive) return;
+  const search = document.getElementById('trades-search');
+  if(!search) return;
+  search.value = '';
+  search.dispatchEvent(new Event('input', {bubbles: true}));
+  heatmapFilterActive = false;
+}
+document.getElementById('heatmap-prev').addEventListener('click', () => { clearHeatmapFilterIfActive(); heatmapMonth.setMonth(heatmapMonth.getMonth()-1); renderPnlHeatmap(); });
+document.getElementById('heatmap-next').addEventListener('click', () => { clearHeatmapFilterIfActive(); heatmapMonth.setMonth(heatmapMonth.getMonth()+1); renderPnlHeatmap(); });
 
 // Clicking a day with trades filters the trade log below to that date —
 // connects the heatmap to the actual trades behind each number instead of
 // leaving it a dead-end summary. Reuses the trade log's own search box
 // (filteredTrades() in journal.js also matches against t.date) so there's
 // only one filter mechanism to keep in sync, not a second parallel one.
+// Navigating to a different month afterward clears this automatically
+// (see clearHeatmapFilterIfActive above) — otherwise the trade log would
+// silently stay scoped to a date that's no longer even on screen.
 function jumpToHeatmapDay(dateStr){
   const search = document.getElementById('trades-search');
   if(!search) return;
   search.value = dateStr;
   search.dispatchEvent(new Event('input', {bubbles: true}));
+  heatmapFilterActive = true;
   document.getElementById('trades-tbody')?.closest('.card')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 document.getElementById('pnl-heatmap').addEventListener('click', (e) => {
