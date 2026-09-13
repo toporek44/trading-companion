@@ -544,6 +544,19 @@ bugs, verify every change live) added, on top of everything above:
   description could otherwise read as calendar days. Made this explicit
   in the hint copy rather than leaving it for a user to discover the
   hard way after a long dormant gap.
+- **Bulk select + delete on the trade log**: a checkbox column, tri-state
+  "select all" (checked/indeterminate/unchecked, recomputed against
+  whatever the current search/filter view actually shows), and a "Delete
+  selected (N)" button using a single Supabase `.delete().in('id', ids)`
+  batch call instead of N individual requests. Real friction point once
+  duplicate imports, edit-in-place, and duplicate-trade had all made the
+  log easy to grow quickly — cleaning up a bad import used to mean
+  deleting one at a time. Selection deliberately resets on every render
+  (not persisted) so a stale selection can never silently carry over to
+  a different filtered view; reuses the same stale-edit-form guard the
+  single-trade delete already has. Verified live: partial selection,
+  indeterminate select-all, and a real 3-trade batch delete via the
+  actual UI.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
