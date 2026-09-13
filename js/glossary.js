@@ -1,6 +1,7 @@
 // ---------- Trading glossary (original definitions, for the Practice deck
 // AND a standalone browsable reference page — see renderGlossaryPage) ----------
 import { escapeHtml } from './state.js';
+import { CANDLE_PATTERNS, renderCandleSVG } from './candle-drill.js';
 
 export const CATEGORY_LABELS = {
   'order-types': 'Order Types',
@@ -88,7 +89,10 @@ export function getGlossaryCards(){
 // spaced-repetition state, so it needs none of Practice's session/queue
 // machinery. Category filter state is per-browser only (a display
 // preference), same tier as Practice's own category filter.
-let glossaryCategoryFilter = ''; // '' = all categories
+const CANDLE_CATEGORY_LABELS = { bullish: 'Bullish', bearish: 'Bearish', neutral: 'Neutral' };
+
+let glossaryTab = 'terms'; // 'terms' | 'candles'
+let glossaryCategoryFilter = ''; // '' = all categories, scoped to the active tab
 let glossarySearchQuery = '';
 
 function glossaryFilteredTerms(){
@@ -100,20 +104,46 @@ function glossaryFilteredTerms(){
   });
 }
 
+function glossaryFilteredCandles(){
+  const q = glossarySearchQuery.trim().toLowerCase();
+  return CANDLE_PATTERNS.filter(p => {
+    if(glossaryCategoryFilter && p.cls !== glossaryCategoryFilter) return false;
+    if(!q) return true;
+    return p.name.toLowerCase().includes(q);
+  });
+}
+
 function renderGlossaryPills(){
   const root = document.getElementById('glossary-category-pills');
   if(!root) return;
-  const categories = Object.keys(CATEGORY_LABELS);
+  const labels = glossaryTab === 'terms' ? CATEGORY_LABELS : CANDLE_CATEGORY_LABELS;
+  const categories = Object.keys(labels);
   root.innerHTML = [
     `<button type="button" class="btn" data-category="" style="display:inline-block;width:auto;padding:5px 12px;font-size:.8rem;${glossaryCategoryFilter===''?'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);':''}">All</button>`,
-    ...categories.map(cat => `<button type="button" class="btn" data-category="${cat}" style="display:inline-block;width:auto;padding:5px 12px;font-size:.8rem;${glossaryCategoryFilter===cat?'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);':''}">${escapeHtml(CATEGORY_LABELS[cat])}</button>`),
+    ...categories.map(cat => `<button type="button" class="btn" data-category="${cat}" style="display:inline-block;width:auto;padding:5px 12px;font-size:.8rem;${glossaryCategoryFilter===cat?'border-color:var(--accent);background:var(--accent-soft);color:var(--accent);':''}">${escapeHtml(labels[cat])}</button>`),
   ].join('');
 }
 
 function renderGlossaryList(){
   const root = document.getElementById('glossary-list');
   if(!root) return;
+  if(glossaryTab === 'candles'){
+    const patterns = glossaryFilteredCandles();
+    root.className = 'grid cols-4';
+    if(patterns.length === 0){
+      root.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div>No patterns match your search/filter.</div></div>`;
+      return;
+    }
+    root.innerHTML = patterns.map(p => `
+      <div class="card" style="text-align:center;">
+        ${renderCandleSVG(p.candles)}
+        <strong style="display:block;margin-top:6px;">${escapeHtml(p.name)}</strong>
+        <span class="pill ${p.cls === 'bullish' ? 'good' : p.cls === 'bearish' ? 'bad' : 'neutral'}" style="margin-top:4px;">${escapeHtml(CANDLE_CATEGORY_LABELS[p.cls])}</span>
+      </div>`).join('');
+    return;
+  }
   const terms = glossaryFilteredTerms();
+  root.className = '';
   if(terms.length === 0){
     root.innerHTML = `<div class="empty-state"><div>No terms match your search/filter.</div></div>`;
     return;
@@ -141,5 +171,18 @@ document.getElementById('glossary-category-pills')?.addEventListener('click', (e
   const btn = e.target.closest('button[data-category]');
   if(!btn) return;
   glossaryCategoryFilter = btn.dataset.category;
+  renderGlossaryPage();
+});
+document.getElementById('glossary-tabs')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg-btn');
+  if(!btn) return;
+  const group = document.getElementById('glossary-tabs');
+  group.dataset.value = btn.dataset.value;
+  group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+  glossaryTab = btn.dataset.value;
+  glossaryCategoryFilter = '';
+  glossarySearchQuery = '';
+  document.getElementById('glossary-search').value = '';
+  document.getElementById('glossary-search').placeholder = glossaryTab === 'terms' ? 'Search terms or definitions…' : 'Search pattern names…';
   renderGlossaryPage();
 });
