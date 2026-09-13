@@ -73,6 +73,7 @@ function setSegmentedValue(id, value){
 
 export function resetTradeForm(){
   document.getElementById('trade-form').reset();
+  document.getElementById('f-strategy').querySelectorAll('option[data-injected]').forEach(o => o.remove());
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-tags').value = '';
   setSegmentedValue('f-direction', 'Long');
@@ -95,7 +96,24 @@ function startEditTrade(id){
   document.getElementById('f-date').value = t.date || '';
   document.getElementById('f-market').value = t.market || 'Stock';
   document.getElementById('f-instrument').value = t.instrument || '';
-  document.getElementById('f-strategy').value = t.strategy || '';
+  // TradingView-imported trades get their strategy from a free-text
+  // window.prompt(), so it can be any string — not one of this <select>'s
+  // fixed options. Setting .value to a non-matching string is a silent
+  // DOM no-op that leaves the dropdown on its default ("Trend following"),
+  // which then gets written back as the trade's strategy on submit unless
+  // the user happens to notice and manually reselects it. Inject a
+  // temporary option so the actual value round-trips correctly.
+  const strategySelect = document.getElementById('f-strategy');
+  strategySelect.querySelectorAll('option[data-injected]').forEach(o => o.remove());
+  strategySelect.value = t.strategy || '';
+  if(t.strategy && strategySelect.value !== t.strategy){
+    const opt = document.createElement('option');
+    opt.value = t.strategy;
+    opt.textContent = t.strategy;
+    opt.dataset.injected = 'true';
+    strategySelect.insertBefore(opt, strategySelect.firstChild);
+    strategySelect.value = t.strategy;
+  }
   setSegmentedValue('f-direction', t.direction || 'Long');
   document.getElementById('f-entry').value = t.entryPrice ?? '';
   document.getElementById('f-stop').value = t.stopPrice ?? '';
