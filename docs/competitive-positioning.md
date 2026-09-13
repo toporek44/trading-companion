@@ -31,6 +31,10 @@ what's worth building next and what's a real, informed gap to accept.
 | Clickable P&L calendar | Most journal calendars are read-only heatmaps | Clicking a day jumps to and filters the trade log to that date, instead of leaving the number a dead end |
 | Crypto watchlist | TC2000/Trade Ideas watchlists | Star + "Watchlist only" filter (Crypto had notes but never the star itself) |
 | Tag suggestion pills | Tradervue's tag autocomplete | Up to 10 most-used tags as one-click pills, avoiding the exact-string-match fragmentation a retyped/misspelled tag causes in By-Tag stats |
+| Week-over-week delta | Most journals show absolute numbers only | Weekly report shows accuracy/P&L change vs. the prior 7-day window |
+| Crypto saved filter presets | TC2000 EasyScan, TradingView | Same named-combo pattern as the Stocks tab, own Supabase key |
+| Printable Trading Plan + Weekly Report | Most tools are screen-only | Both mirror this app's own reference PDFs (sample-trading-plan.pdf, weekly-reporting-template.pdf); the Weekly Report prints itself in isolation, not the whole page |
+| Overtrading/revenge-trading detection | None seen in any researched paid tool | Trade Coach flags a day with 2x+ typical trade count that also finished negative — the Lessons deck defines the concept, this connects it to real Journal data |
 
 ## Real, informed gaps — deliberately not built, and why
 

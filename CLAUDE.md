@@ -351,6 +351,30 @@ bugs, verify every change live) added, on top of everything above:
   A second audit fork covering the crypto-watchlist + heatmap-click
   surface came back clean (two non-bug design trade-offs noted, one of
   which — the month-nav filter staleness — was addressed above anyway).
+- **Weekly delta, presets, print, and one more Trade Coach insight** (a
+  still-later `/loop` pass, same session): the Weekly Performance report
+  gained a "▲/▼ X vs prior 7d" line on Total accuracy/P&L (only shown
+  once a prior 7-day window actually has trades, to avoid a misleading
+  "vs 0 trades" comparison) — a third audit fork verified the date-range
+  math has no off-by-one at the window boundary. Crypto gained saved
+  filter presets (Supabase-synced under its own `crypto-scanner-presets`
+  key, separate from the Stocks tab's `scanner-presets` since the field
+  sets differ) — deliberately not added to Futures, which has only one
+  categorical filter, not a multi-field combo worth naming. The `w`
+  keyboard shortcut, which still said "no watchlist feature" on Crypto
+  after the watchlist star shipped, now actually toggles it there; the
+  message is now scoped correctly to Futures only. Added meta
+  description + Open Graph/Twitter tags (no `og:image` — the only asset
+  is an SVG icon, unreliable as a social-preview image across
+  platforms). Two Print buttons: the Trading Plan Worksheet prints the
+  whole page (it mirrors a single-page PDF), and the Weekly Performance
+  report prints ONLY itself via a `print-scope-active` body class
+  toggled around `window.print()`/cleared on `afterprint` — a fourth
+  audit fork verified `afterprint` reliability and the CSS selector
+  scoping. Trade Coach gained an overtrading/revenge-trading insight:
+  flags a day with 2x+ the trader's own typical trades/day (min 5 active
+  days logged) that also finished net negative, without diagnosing
+  intent — just surfaces it for the trader to judge.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
