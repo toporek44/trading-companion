@@ -7,8 +7,13 @@
 // macro-news feed in each card's detail (futures move on Fed/CPI/jobs/OPEC
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote } from './scanner.js';
 import { initSegmented } from './journal.js';
+
+// Prefixed key so a futures symbol never collides with a stock ticker in
+// the shared 'tc-scanner-notes' object.
+function getFuturesNote(symbol){ return getScannerNote(`futures:${symbol}`); }
+function setFuturesNote(symbol, text){ setScannerNote(`futures:${symbol}`, text); }
 
 const FUTURES_AUTO_REFRESH_MS = 60000;
 const FUTURES_CACHE_KEY = 'tc-futures-cache';
@@ -37,7 +42,7 @@ function futuresCardHtml(c, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${c.symbol.replace('=F','')}</span>${freshnessIconHtml}
+          <span class="sc-card-ticker-sym">${c.symbol.replace('=F','')}</span>${freshnessIconHtml}${getFuturesNote(c.symbol) ? '<span title="You have a note on this contract">&#128221;</span>' : ''}
           <span style="color:var(--muted);font-weight:400;font-size:12px;">${escapeHtml(c.label)}</span>
         </div>
         ${pctHtml}
@@ -67,6 +72,10 @@ function futuresCardHtml(c, rank){
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
             <a class="btn" href="https://finance.yahoo.com/quote/${encodeURIComponent(c.symbol)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">Yahoo Finance &#8599;</a>
           </div>
+        </div>
+        <div class="sc-detail-col">
+          <h4>Your notes</h4>
+          <textarea class="sc-note-textarea" data-symbol="${c.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getFuturesNote(c.symbol))}</textarea>
         </div>
       </div>
     </div>
@@ -138,6 +147,13 @@ function renderFuturesList(){
   updateFuturesSortIndicators();
 }
 
+document.getElementById('futures-list').addEventListener('change', (e) => {
+  if(!e.target.matches('.sc-note-textarea')) return;
+  // 'change' (not 'input') so this only fires on blur — see crypto-scanner.js's
+  // matching handler for why.
+  setFuturesNote(e.target.dataset.symbol, e.target.value.trim());
+  renderFuturesList();
+});
 document.getElementById('futures-list').addEventListener('click', (e) => {
   const zone = e.target.closest('.sc-card-clickzone');
   if(zone){

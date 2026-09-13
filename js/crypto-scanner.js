@@ -7,7 +7,7 @@
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
 import { lsGet, lsSet } from './state.js';
 import { initSegmented } from './journal.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote } from './scanner.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
 const CRYPTO_AUTO_REFRESH_MS = 60000;
@@ -21,6 +21,10 @@ function cryptoStatus(msg){
   if(el) el.textContent = msg;
 }
 function cryptoTodayStr(){ return new Date().toISOString().slice(0,10); }
+// Prefixed key so a crypto symbol never collides with a stock ticker in the
+// shared 'tc-scanner-notes' object (e.g. a hypothetical stock ticker "BTC").
+function getCryptoNote(symbol){ return getScannerNote(`crypto:${symbol}`); }
+function setCryptoNote(symbol, text){ setScannerNote(`crypto:${symbol}`, text); }
 function cryptoSlug(name){ return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
 
 function getCryptoNewsCache(){ return lsGet(CRYPTO_NEWS_CACHE_KEY, {}); }
@@ -89,7 +93,7 @@ function cryptoCardHtml(coin, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${coin.symbol}</span>${freshnessIconHtml}
+          <span class="sc-card-ticker-sym">${coin.symbol}</span>${freshnessIconHtml}${getCryptoNote(coin.symbol) ? '<span title="You have a note on this coin">&#128221;</span>' : ''}
           <span style="color:var(--muted);font-weight:400;font-size:12px;">${escapeHtml(coin.name||'')}</span>
         </div>
         ${pctHtml}
@@ -124,6 +128,10 @@ function cryptoCardHtml(coin, rank){
             <a class="btn" href="https://www.coingecko.com/en/coins/${cryptoSlug(coin.name)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">CoinGecko &#8599;</a>
             <a class="btn" href="https://www.tradingview.com/symbols/${encodeURIComponent(coin.symbol)}USD/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;padding:8px 12px;font-size:12px;text-decoration:none;">TradingView &#8599;</a>
           </div>
+        </div>
+        <div class="sc-detail-col">
+          <h4>Your notes</h4>
+          <textarea class="sc-note-textarea" data-symbol="${coin.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getCryptoNote(coin.symbol))}</textarea>
         </div>
       </div>
     </div>
@@ -222,6 +230,14 @@ function renderCryptoLists(){
 
 ['crypto-gainers-list','crypto-active-list'].forEach(id => {
   const container = document.getElementById(id);
+  container.addEventListener('change', (e) => {
+    if(!e.target.matches('.sc-note-textarea')) return;
+    // 'change' (not 'input') so this only fires on blur — matches the
+    // Stocks tab's note textarea, and avoids re-rendering mid-keystroke
+    // (which would replace the textarea's innerHTML and steal focus).
+    setCryptoNote(e.target.dataset.symbol, e.target.value.trim());
+    renderCryptoLists();
+  });
   container.addEventListener('click', (e) => {
     const checkBtn = e.target.closest('.crypto-check-news');
     if(checkBtn){

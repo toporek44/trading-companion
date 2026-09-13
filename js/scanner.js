@@ -545,8 +545,8 @@ function toggleScannerWatch(ticker){
 // Supabase — matches the watchlist's own persistence tier rather than
 // introducing an inconsistent "notes sync but watchlist doesn't" split.
 const SCANNER_NOTES_KEY = 'tc-scanner-notes';
-function getScannerNote(ticker){ return lsGet(SCANNER_NOTES_KEY, {})[ticker] || ''; }
-function setScannerNote(ticker, text){
+export function getScannerNote(ticker){ return lsGet(SCANNER_NOTES_KEY, {})[ticker] || ''; }
+export function setScannerNote(ticker, text){
   const notes = lsGet(SCANNER_NOTES_KEY, {});
   if(text) notes[ticker] = text; else delete notes[ticker];
   lsSet(SCANNER_NOTES_KEY, notes);

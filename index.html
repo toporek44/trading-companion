@@ -108,7 +108,7 @@
       <section id="page-journal" class="page" hidden>
         <p class="lede">Log every trade &mdash; and every no-trade decision worth remembering. The stats below only mean something once this has real entries in it.</p>
 
-        <div id="circuit-breaker-banner"></div>
+        <div id="circuit-breaker-banner" role="alert" aria-live="assertive"></div>
 
         <div class="card" style="margin-bottom:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
@@ -266,8 +266,8 @@
             <button type="button" class="btn" id="journal-export-csv">Export CSV</button>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-            <div class="field" style="flex:1;min-width:180px;"><input type="text" id="trades-search" placeholder="Search instrument, tags, notes…"></div>
-            <div class="field" style="max-width:220px;"><select id="trades-strategy-filter">
+            <div class="field" style="flex:1;min-width:180px;"><input type="text" id="trades-search" placeholder="Search instrument, tags, notes…" aria-label="Search trade log"></div>
+            <div class="field" style="max-width:220px;"><select id="trades-strategy-filter" aria-label="Filter trade log by strategy">
               <option value="">All strategies</option>
             </select></div>
           </div>
