@@ -24,6 +24,10 @@ what's worth building next and what's a real, informed gap to accept.
 | 24/7 coverage (crypto + futures tabs) | Most paid scanners are single-market | 3 markets in one app, unified card UI |
 | PWA installable (home-screen icon) | Webull/TC2000 mobile apps | Implemented this session (manifest + icon + no-op service worker) |
 | Sortable/filterable columns on every market tab | Every paid scanner (table sort is table-stakes) | Was Stocks-only for a while (a real gap a user flagged) — Crypto and Futures now have matching sort pills + filters (Futures uses a categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto — instead of numeric fields, since 14 fixed contracts spanning wildly different price scales don't suit a min/max price filter) |
+| Trade log edit/duplicate | Tradervue, Edgewonk | Edit-in-place and a "duplicate" button for repeated intraday setups (was add/delete only) |
+| Keyboard shortcuts on the Journal | TC2000, Thinkorswim | n/`/`/e/? — mirrors the Scanner's own shortcut file |
+| Browsable glossary + candlestick reference | thinkorswim's glossary, Investopedia | Both existed only as Practice flashcard data before — now a standalone searchable page, no spaced-repetition flow required |
+| Futures session status (open/halted/weekend) | Most retail tools just show "market hours" for stocks | Third clock-bar segment for CME Globex's own nearly-24/5 schedule, since this app's Futures tab needed it and nothing surfaced it live |
 
 ## Real, informed gaps — deliberately not built, and why
 

@@ -278,6 +278,56 @@ bugs, verify every change live) added, on top of everything above:
   `tc-scanner-notes` object so a crypto symbol can never collide with a
   stock ticker — the Stocks tab's own unprefixed keys were left
   untouched to avoid a data migration.
+- **Trade log gained edit/duplicate, filters, shortcuts, and Coach
+  integration** (a still-later `/loop` pass, same session): edit-in-place
+  (`startEditTrade`/`editingTradeId`, reusing the "New entry" form —
+  fixed a real bug an audit fork caught where a TradingView-imported
+  trade's free-text strategy would silently reset to "Trend following"
+  on save, since setting a `<select>.value` to a non-matching string is a
+  silent DOM no-op; now injects a temporary `<option>`), a "duplicate"
+  button for repeated intraday setups (`duplicateTrade`, refactored via a
+  shared `populateFormFromTrade` — also resets any in-progress edit
+  first, since duplicating while mid-edit would otherwise overwrite the
+  wrong trade), search+strategy-dropdown filtering on the trade log, and
+  keyboard shortcuts (`js/journal-shortcuts.js`: n/`/`/e/?, mirroring
+  `scanner-shortcuts.js`'s guard pattern). Trade Coach now also surfaces
+  negative-expectancy-despite-decent-win-rate and 3+ win-streak insights
+  from the same `computeStats()` fields the stat tiles already used.
+  Two independent audit forks over this surface (one stalled/failed and
+  was retried) came back clean apart from the strategy-select bug above.
+- **New standalone Glossary reference page** (`#glossary`, `js/glossary.js`
+  `renderGlossaryPage`): the 67-term glossary and 21-pattern candlestick
+  set both used to exist ONLY as Practice flashcard data, with no way to
+  just look something up without going through spaced repetition. Now a
+  browsable page with search + category pills, and a Terms/Candlestick
+  Patterns segmented toggle (reusing `renderCandleSVG` from
+  `candle-drill.js`) — switching tabs resets the search/filter so a
+  stale term-category filter can't silently apply to candlestick
+  bullish/bearish/neutral categories. Inserted into `nav.js`'s `pages`/
+  `titles` arrays between `practice` and `milestones`; verified nothing
+  else in the codebase indexes into that array by position.
+- **Smaller fixes/additions from the same pass**: Calendar's week-expand
+  state was hardcoded to always auto-open week 0 regardless of actual
+  progress (`js/calendar.js` `openWeeks`/`autoOpened`) — now opens
+  whatever week contains the next unchecked day, once per page load, so
+  it doesn't fight manual expand/collapse on later re-renders. The
+  Pre-Trading Checklist's own copy said "meant to be re-filled each
+  morning" but nothing enforced or showed that — added a `date` field
+  and a status pill (saved today / stale-with-date / not saved) rather
+  than silently showing a week-old answer as if it were current. Two
+  Milestones ("20 stock paper trades logged", "40+ ... expectancy
+  checked") gained a live `hint(trades)` computed from `state.trades`
+  instead of being pure self-report with zero connection to the Journal
+  data that would justify checking them. The clock bar gained a third
+  segment for CME Globex futures-session status (`market-clock.js`
+  `futuresStatusFromEt`/`futuresSessionStatus` — open / daily-maintenance
+  halt 17:00-18:00 ET / weekend-closed Fri≥17:00 through Sun<18:00),
+  verified against 14 boundary cases in a standalone script before
+  wiring it in; the next-transition countdown is found by stepping
+  forward minute-by-minute rather than symbolic date math, to avoid
+  day/hour-boundary arithmetic bugs. All "nudge, not lock" additions
+  above deliberately don't auto-clear/auto-check anything — self-report
+  and manual review stay the source of truth throughout this app.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
