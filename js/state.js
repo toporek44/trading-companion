@@ -35,6 +35,27 @@ export function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
+export function csvEscape(v){
+  const s = v == null ? '' : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+// Shared by every CSV export in the app (Scanner's 3 tabs, and Journal's
+// trade-log export) — moved here (not scanner.js) so journal.js can import
+// it without creating a circular dependency (scanner.js already imports
+// initSegmented from journal.js).
+export function downloadCsv(filenamePrefix, header, rows){
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filenamePrefix}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // Same 'scanner-price-range' Supabase row the Scanner tab's Min/Max price
 // fields write to (js/scanner.js persistProgress) — shared here so any
 // client-side code that needs the current price range (Scanner's own

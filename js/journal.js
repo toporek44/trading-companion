@@ -1,4 +1,4 @@
-import { state, lsSet, refetchTrades, escapeHtml, getScannerPriceRange } from './state.js';
+import { state, lsSet, refetchTrades, escapeHtml, getScannerPriceRange, downloadCsv } from './state.js';
 import { renderAll } from './app.js';
 
 // ---------- Journal ----------
@@ -273,6 +273,23 @@ document.getElementById('tv-import-input').addEventListener('change', async (e) 
     e.target.value = '';
   }
 });
+
+// ---------- Trade log CSV export (mirrors Scanner's export-what-you-see) ----------
+function exportTradesCsv(){
+  if(state.trades.length === 0) return;
+  const header = [
+    'Date','Market','Instrument','Strategy','Direction','EntryPrice','StopPrice','ExitPrice','Size',
+    'RiskAmount','ResultAmount','RMultiple','ProcessFollowed','PctGainOnDay','RelVolume','FloatM',
+    'NewsCatalyst','Timeframe','Pattern','HoldTime','HoldUnit','MeetsPillars','PillarsCount','Notes','Tags','Source',
+  ];
+  const rows = state.trades.map(t => [
+    t.date, t.market, t.instrument, t.strategy, t.direction, t.entryPrice, t.stopPrice, t.exitPrice, t.size,
+    t.riskAmount, t.resultAmount, t.rMultiple, t.processFollowed, t.pctGainOnDay, t.relVolume, t.float,
+    t.newsCatalyst, t.timeframe, t.pattern, t.holdTime, t.holdUnit, t.meetsPillars, t.pillarsCount, t.notes, t.tags, t.source,
+  ]);
+  downloadCsv('journal-trades', header, rows);
+}
+document.getElementById('journal-export-csv').addEventListener('click', exportTradesCsv);
 
 // ---------- Trade log table ----------
 export function renderTradesTable(){

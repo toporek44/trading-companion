@@ -1,5 +1,5 @@
-import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY, escapeHtml, getScannerPriceRange } from './state.js';
-export { escapeHtml };
+import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY, escapeHtml, getScannerPriceRange, csvEscape, downloadCsv } from './state.js';
+export { escapeHtml, csvEscape, downloadCsv };
 import { initSegmented } from './journal.js';
 import { showPage } from './nav.js';
 
@@ -851,10 +851,6 @@ function renderScannerTables(){
 }
 
 // ---------- Scanner: CSV export (what you see is what you export) ----------
-export function csvEscape(v){
-  const s = v == null ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
-}
 function scannerRowToCsvFields(d, list, rank){
   return [
     list, rank, d.ticker, d.price.toFixed(2), d.pct.toFixed(2), d.vol,
@@ -885,21 +881,6 @@ export function startVisibilityAwareRefresh(refreshFn, intervalMs){
   });
 }
 
-// Shared by all three scanner tabs' CSV exports (js/scanner.js,
-// crypto-scanner.js, futures-scanner.js each had this exact "Blob → <a
-// download> → click → remove → revokeObjectURL" sequence copy-pasted).
-export function downloadCsv(filenamePrefix, header, rows){
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filenamePrefix}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 function exportScannerCsv(){
   const { gainers, active } = scannerVisibleRows();
   if(gainers.length === 0 && active.length === 0){ scannerStatus('Nothing to export yet — refresh the scanner first.'); return; }
