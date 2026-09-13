@@ -18,7 +18,7 @@ export function renderDashboard(){
   const expectancyCls = s.expectancy>0?'good':(s.expectancy<0?'bad':'');
   const streakCls = s.currentStreak>0?'good':(s.currentStreak<0?'bad':'');
   document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-tile"><div class="k">Day</div><div class="v">${Math.min(totalDoneDays+1, TOTAL_DAYS)}<span style="font-size:.9rem;color:var(--muted);">/${TOTAL_DAYS}</span></div></div>
+    <div class="stat-tile"><div class="k">Day</div><div class="v serif-num">${Math.min(totalDoneDays+1, TOTAL_DAYS)}<span style="font-size:.9rem;color:var(--muted);">/${TOTAL_DAYS}</span></div></div>
     <div class="stat-tile"><div class="k">Trades logged</div><div class="v">${s.total}</div></div>
     <div class="stat-tile ${statTileCls(winRateCls)}"><div class="k">Win rate</div><div class="v ${winRateCls}">${fmtPct(s.winRate)}</div></div>
     <div class="stat-tile ${statTileCls(avgRCls)}"><div class="k">Avg R</div><div class="v ${avgRCls}">${fmtR(s.avgR)}</div></div>
