@@ -431,3 +431,16 @@
     .card:hover, .stat-tile:hover, .week-block:hover{ box-shadow:var(--shadow-card-hover); }
   }
 
+/* ============ Print (Trading Plan Worksheet's own "Print" button) ============
+   The SPA already only shows one .page at a time (others carry the
+   `hidden` attribute), so printing just needs to strip the app chrome
+   around whatever page is currently visible — no page-specific print
+   layout needed beyond that. */
+@media print{
+  .market-clock, .sidebar, .form-actions, #ck-status, .btn{ display:none !important; }
+  body{ background:#fff; color:#000; }
+  main{ padding:0; }
+  .card{ box-shadow:none; border:1px solid #ccc; break-inside:avoid; }
+  input, select, textarea{ border:1px solid #999 !important; color:#000 !important; background:#fff !important; }
+}
+

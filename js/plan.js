@@ -19,6 +19,12 @@ document.getElementById('tp-save-btn').addEventListener('click', () => {
   state.planState = plan;
   persistProgress('tradingplan', plan);
 });
+// The original sample-trading-plan.pdf this worksheet mirrors was meant to
+// be printed and kept at the desk — the app never offered a print path.
+// The @media print rules in styles.css strip the sidebar/clock bar/save
+// buttons; the SPA already shows only one .page at a time, so nothing
+// page-specific is needed here beyond triggering the browser print dialog.
+document.getElementById('tp-print-btn').addEventListener('click', () => window.print());
 document.getElementById('ck-save-btn').addEventListener('click', () => {
   const checklist = {
     marketStrength: document.getElementById('ck-marketstrength').value.trim(),
