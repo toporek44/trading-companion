@@ -328,6 +328,29 @@ bugs, verify every change live) added, on top of everything above:
   day/hour-boundary arithmetic bugs. All "nudge, not lock" additions
   above deliberately don't auto-clear/auto-check anything — self-report
   and manual review stay the source of truth throughout this app.
+- **Heatmap, Crypto watchlist, and stats-table consistency pass** (a
+  still-later `/loop` pass, same session): the Monthly P&L calendar's
+  day cells are now clickable (keyboard-accessible too) to drop that
+  date into the trade log's own search box (`filteredTrades()` in
+  journal.js now also matches against `t.date`) — connects what used to
+  be a dead-end summary number to the actual trades behind it. Navigating
+  to a different month via prev/next now clears that heatmap-driven
+  filter (tracked via a `heatmapFilterActive` flag so a real manual
+  search is never touched) — a real UX gap an audit fork caught. Crypto
+  gained the watchlist star + a "Watchlist only" filter it never had
+  (only notes existed before) — same `crypto:SYMBOL`-prefixed-key
+  pattern as the notes fix, via new exports `getScannerWatchlist`/
+  `isScannerWatched`/`toggleScannerWatch` from scanner.js. Deliberately
+  NOT added to Futures — that tab is already a fixed 14-contract
+  watchlist by design. Dashboard gained an Expectancy tile (previously
+  Journal-only), the By-Strategy/By-Tag tables gained an Expectancy
+  column (`statsTableHtml` already computed it, just never displayed
+  it), and the trade-entry Tags field gained up-to-10 "+ tag" suggestion
+  pills ranked by usage frequency — a native `<datalist>` wasn't a good
+  fit since it can't sensibly autocomplete one comma-separated segment.
+  A second audit fork covering the crypto-watchlist + heatmap-click
+  surface came back clean (two non-bug design trade-offs noted, one of
+  which — the month-nav filter staleness — was addressed above anyway).
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than

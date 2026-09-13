@@ -28,6 +28,9 @@ what's worth building next and what's a real, informed gap to accept.
 | Keyboard shortcuts on the Journal | TC2000, Thinkorswim | n/`/`/e/? — mirrors the Scanner's own shortcut file |
 | Browsable glossary + candlestick reference | thinkorswim's glossary, Investopedia | Both existed only as Practice flashcard data before — now a standalone searchable page, no spaced-repetition flow required |
 | Futures session status (open/halted/weekend) | Most retail tools just show "market hours" for stocks | Third clock-bar segment for CME Globex's own nearly-24/5 schedule, since this app's Futures tab needed it and nothing surfaced it live |
+| Clickable P&L calendar | Most journal calendars are read-only heatmaps | Clicking a day jumps to and filters the trade log to that date, instead of leaving the number a dead end |
+| Crypto watchlist | TC2000/Trade Ideas watchlists | Star + "Watchlist only" filter (Crypto had notes but never the star itself) |
+| Tag suggestion pills | Tradervue's tag autocomplete | Up to 10 most-used tags as one-click pills, avoiding the exact-string-match fragmentation a retyped/misspelled tag causes in By-Tag stats |
 
 ## Real, informed gaps — deliberately not built, and why
 
