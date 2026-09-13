@@ -259,6 +259,25 @@ bugs, verify every change live) added, on top of everything above:
   a future change reintroduces either pattern, that's a regression, not
   an unknown risk — both have concrete historical examples in git log to
   compare against.
+- **Journal analytics expanded** (a later `/loop` pass, same session):
+  CSV export of the trade log (`csvEscape`/`downloadCsv` moved from
+  `scanner.js` into `state.js` so `journal.js` can import them without a
+  circular dependency — `scanner.js` re-exports both for backward
+  compatibility with `crypto-scanner.js`/`futures-scanner.js`), Expectancy
+  and Max Drawdown stat tiles, an R-multiple distribution histogram
+  (`renderRHistogram`), a current win/loss streak tile (shown on both
+  Journal and Dashboard via the shared `streakLabel()` export), a daily
+  circuit-breaker banner (`computeCircuitBreaker`/`renderCircuitBreaker`
+  — fires on the SAC rule's -$100/day-or-3-consecutive-losers condition,
+  scaled to the Plan tab's `tc-account-size`), and a search+strategy
+  filter on the trade log table (CSV export now exports the filtered
+  view, matching the Scanner's "what you see is what you export" rule).
+  Per-ticker notes (previously Stocks-only, same gap class as the sort/
+  filter parity issue above) were also added to Crypto/Futures, using
+  market-prefixed keys (`crypto:SYMBOL`, `futures:SYMBOL`) in the shared
+  `tc-scanner-notes` object so a crypto symbol can never collide with a
+  stock ticker — the Stocks tab's own unprefixed keys were left
+  untouched to avoid a data migration.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
