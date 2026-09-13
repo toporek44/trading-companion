@@ -65,19 +65,68 @@ document.getElementById('f-size-suggest').addEventListener('click', (e) => {
   }
 });
 
+function setSegmentedValue(id, value){
+  const group = document.getElementById(id);
+  group.dataset.value = value;
+  group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === value));
+}
+
 export function resetTradeForm(){
   document.getElementById('trade-form').reset();
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-tags').value = '';
-  ['f-direction','f-process','f-news'].forEach(id => {
-    const group = document.getElementById(id);
-    const defaultVal = id === 'f-direction' ? 'Long' : (id === 'f-process' ? 'true' : 'false');
-    group.dataset.value = defaultVal;
-    group.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === defaultVal));
-  });
+  setSegmentedValue('f-direction', 'Long');
+  setSegmentedValue('f-process', 'true');
+  setSegmentedValue('f-news', 'false');
   updateRPreview();
   updateSizeSuggestion();
 }
+
+// ---------- Edit an existing trade in place ----------
+// Every professional journal tool (Tradervue, Edgewonk) lets you fix a
+// typo'd trade without deleting and re-entering it from scratch. Reuses
+// the same "New entry" form — populate it from the trade, flip the submit
+// handler into update mode, restore on submit/cancel.
+let editingTradeId = null;
+function startEditTrade(id){
+  const t = state.trades.find(tr => tr.id === id);
+  if(!t) return;
+  editingTradeId = id;
+  document.getElementById('f-date').value = t.date || '';
+  document.getElementById('f-market').value = t.market || 'Stock';
+  document.getElementById('f-instrument').value = t.instrument || '';
+  document.getElementById('f-strategy').value = t.strategy || '';
+  setSegmentedValue('f-direction', t.direction || 'Long');
+  document.getElementById('f-entry').value = t.entryPrice ?? '';
+  document.getElementById('f-stop').value = t.stopPrice ?? '';
+  document.getElementById('f-exit').value = t.exitPrice ?? '';
+  document.getElementById('f-size').value = t.size ?? '';
+  document.getElementById('f-risk').value = t.riskAmount ?? '';
+  document.getElementById('f-result').value = t.resultAmount ?? '';
+  setSegmentedValue('f-process', t.processFollowed ? 'true' : 'false');
+  document.getElementById('f-pctgain').value = t.pctGainOnDay ?? '';
+  document.getElementById('f-relvol').value = t.relVolume ?? '';
+  document.getElementById('f-float').value = t.float ?? '';
+  setSegmentedValue('f-news', t.newsCatalyst ? 'true' : 'false');
+  document.getElementById('f-timeframe').value = t.timeframe || '';
+  document.getElementById('f-pattern').value = t.pattern || '';
+  document.getElementById('f-holdtime').value = t.holdTime ?? '';
+  document.getElementById('f-holdunit').value = t.holdUnit || 'sec';
+  document.getElementById('f-notes').value = t.notes || '';
+  document.getElementById('f-tags').value = t.tags || '';
+  updateRPreview();
+  updateSizeSuggestion();
+  document.getElementById('trade-form-submit').textContent = 'Update trade';
+  document.getElementById('trade-form-cancel-edit').hidden = false;
+  document.getElementById('trade-form').scrollIntoView({behavior:'smooth', block:'start'});
+}
+window.__editTrade = startEditTrade;
+document.getElementById('trade-form-cancel-edit').addEventListener('click', () => {
+  editingTradeId = null;
+  document.getElementById('trade-form-submit').textContent = 'Add trade';
+  document.getElementById('trade-form-cancel-edit').hidden = true;
+  resetTradeForm();
+});
 
 // The 5 Pillars, per the Small Account Toolkit / Trading Plan Worksheet:
 // rel volume >=5x, up >=10% on the day, has a news catalyst, price in range
@@ -145,6 +194,7 @@ document.getElementById('trade-form').addEventListener('submit', async (e) => {
     source: 'manual',
     createdAt: Date.now(),
   };
+  const editId = editingTradeId;
   if(state.sb){
     const row = {
       date: entry.date, market: entry.market, instrument: entry.instrument, strategy: entry.strategy,
@@ -157,20 +207,37 @@ document.getElementById('trade-form').addEventListener('submit', async (e) => {
       hold_time: entry.holdTime, hold_unit: entry.holdUnit,
       meets_pillars: entry.meetsPillars, pillars_count: entry.pillarsCount,
     };
-    const {error} = await state.sb.from('trades').insert(row);
+    const {error} = editId
+      ? await state.sb.from('trades').update(row).eq('id', editId)
+      : await state.sb.from('trades').insert(row);
     if(error){ alert('Could not save — try again.'); return; }
     await refetchTrades();
+  } else if(editId){
+    const idx = state.trades.findIndex(t => t.id === editId);
+    if(idx !== -1) state.trades[idx] = { ...entry, id: editId, createdAt: state.trades[idx].createdAt };
+    lsSet('tc-trades', state.trades);
   } else {
     entry.id = 'local-'+Date.now();
     state.trades.unshift(entry);
     lsSet('tc-trades', state.trades);
   }
+  editingTradeId = null;
+  document.getElementById('trade-form-submit').textContent = 'Add trade';
+  document.getElementById('trade-form-cancel-edit').hidden = true;
   resetTradeForm();
   renderAll();
 });
 
 async function deleteTrade(id){
   if(!confirm('Delete this trade entry?')) return;
+  // Deleting the trade currently loaded into the edit form would otherwise
+  // leave "Update trade" pointed at an id that no longer exists.
+  if(id === editingTradeId){
+    editingTradeId = null;
+    document.getElementById('trade-form-submit').textContent = 'Add trade';
+    document.getElementById('trade-form-cancel-edit').hidden = true;
+    resetTradeForm();
+  }
   if(state.sb){
     try{ await state.sb.from('trades').delete().eq('id', id); }catch(e){}
     await refetchTrades();
@@ -377,7 +444,10 @@ export function renderTradesTable(){
       <td class="num">${typeof t.rMultiple==='number' ? t.rMultiple.toFixed(2)+'R' : '—'}</td>
       <td>${t.processFollowed ? '<span class="pill good">yes</span>' : '<span class="pill bad">no</span>'}</td>
       <td>${(() => { const pc = t.pillarsCount ?? null; if(!pc) return '<span class="pill">—</span>'; return `<span class="pill ${pc===5?'good':'neutral'}">${pc}/5</span>`; })()}</td>
-      <td><button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">delete</button></td>`;
+      <td style="white-space:nowrap;">
+        <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__editTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">edit</button>
+        <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__deleteTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">delete</button>
+      </td>`;
     tbody.appendChild(tr);
   });
 }
