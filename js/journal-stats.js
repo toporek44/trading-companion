@@ -40,6 +40,41 @@ export function renderJournalStats(){
     <div class="stat-tile"><div class="k">Max drawdown</div><div class="v ${s.maxDrawdown<0?'bad':''}">${s.maxDrawdown==null?'—':'-$'+Math.abs(s.maxDrawdown).toFixed(2)}</div></div>`;
 }
 
+// ---------- R-multiple distribution (Edgewonk-style outcome-clustering histogram) ----------
+const R_BUCKETS = [
+  { label: '< -2R', test: r => r < -2 },
+  { label: '-2R to -1R', test: r => r >= -2 && r < -1 },
+  { label: '-1R to 0R', test: r => r >= -1 && r < 0 },
+  { label: '0R to 1R', test: r => r >= 0 && r < 1 },
+  { label: '1R to 2R', test: r => r >= 1 && r < 2 },
+  { label: '2R to 3R', test: r => r >= 2 && r < 3 },
+  { label: '> 3R', test: r => r >= 3 },
+];
+export function renderRHistogram(){
+  const root = document.getElementById('r-histogram');
+  if(!root) return;
+  const withR = state.trades.filter(t => typeof t.rMultiple === 'number' && !isNaN(t.rMultiple));
+  if(withR.length === 0){
+    root.innerHTML = `<div class="empty-state" style="padding:16px;"><div>Log trades with an R-multiple to see how your outcomes cluster.</div></div>`;
+    return;
+  }
+  const counts = R_BUCKETS.map(b => withR.filter(t => b.test(t.rMultiple)).length);
+  const maxCount = Math.max(...counts, 1);
+  root.innerHTML = `<div style="display:flex;align-items:flex-end;gap:8px;height:120px;">
+    ${R_BUCKETS.map((b, i) => {
+      const isLoss = b.label.trim().startsWith('-') || b.label.trim().startsWith('<');
+      const heightPct = counts[i] ? Math.max(6, (counts[i]/maxCount)*100) : 0;
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+        <div class="mono" style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">${counts[i]||''}</div>
+        <div style="width:100%;height:${heightPct}%;border-radius:4px 4px 0 0;background:${isLoss?'var(--bad)':'var(--good)'};opacity:${counts[i]?0.85:0};"></div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div style="display:flex;gap:8px;margin-top:6px;">
+    ${R_BUCKETS.map(b => `<div style="flex:1;text-align:center;font-size:.68rem;color:var(--muted);">${b.label}</div>`).join('')}
+  </div>`;
+}
+
 // ---------- Trade Coach (rule-based insights from real journal/plan data) ----------
 export function parsePercent(str){
   if(!str) return null;

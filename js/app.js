@@ -5,7 +5,7 @@ import { renderCalendar } from './calendar.js';
 import { renderMilestones } from './milestones.js';
 import './journal.js';
 import { renderTradesTable } from './journal.js';
-import { renderJournalStats, renderEquityChart, renderStatsByStrategy, renderStatsByTag, renderCoachRules, renderWeeklyReport, renderPnlHeatmap } from './journal-stats.js';
+import { renderJournalStats, renderEquityChart, renderRHistogram, renderStatsByStrategy, renderStatsByTag, renderCoachRules, renderWeeklyReport, renderPnlHeatmap } from './journal-stats.js';
 import { renderPlan } from './plan.js';
 import { renderLessons } from './lessons.js';
 import { renderPractice } from './practice.js';
@@ -22,6 +22,7 @@ export function renderAll(){
   renderMilestones();
   renderJournalStats();
   renderEquityChart();
+  renderRHistogram();
   renderStatsByStrategy();
   renderStatsByTag();
   renderCoachRules();
