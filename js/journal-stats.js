@@ -293,12 +293,13 @@ export function statsTableHtml(groups){
   const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
   const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
   const fmtUsd = v => (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
-  return `<table style="min-width:0;"><thead><tr><th>Name</th><th>#</th><th>Win%</th><th>Avg R</th><th>Total P&amp;L</th></tr></thead><tbody>
+  return `<table style="min-width:0;"><thead><tr><th>Name</th><th>#</th><th>Win%</th><th>Avg R</th><th>Expectancy</th><th>Total P&amp;L</th></tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td>${escapeHtml(r.key)}</td>
       <td class="num">${r.s.total}</td>
       <td class="num">${fmtPct(r.s.winRate)}</td>
       <td class="num">${fmtR(r.s.avgR)}</td>
+      <td class="num ${r.s.expectancy>0?'good':(r.s.expectancy<0?'bad':'')}">${r.s.expectancy==null?'—':fmtUsd(r.s.expectancy)}</td>
       <td class="num ${r.s.totalPnl>0?'good':(r.s.totalPnl<0?'bad':'')}">${fmtUsd(r.s.totalPnl)}</td>
     </tr>`).join('')}
   </tbody></table>`;
