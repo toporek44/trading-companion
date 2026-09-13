@@ -183,6 +183,14 @@
   .stat-tile .v{ font-family:"IBM Plex Mono",monospace; font-size:1.5rem; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
   .stat-tile .v.good{ color:var(--good); }
   .stat-tile .v.bad{ color:var(--bad); }
+  /* .stat-tile .v (above) and .serif-num are both single-descendant/single-
+     class selectors of equal specificity, so source order alone decided
+     the winner — .serif-num lost simply by being defined earlier in this
+     file. This explicit .v.serif-num rule (two classes, unambiguously
+     more specific) is what actually makes the Dashboard's Day-X/60 tile
+     render in Fraunces; without it the class was applied in the markup
+     but silently had no visual effect at all. */
+  .stat-tile .v.serif-num{ font-family:"Fraunces",serif; }
 
   .progress-bar{ height:7px; border-radius:100px; background:var(--surface-2); overflow:hidden; margin:8px 0; border:1px solid var(--line); }
   .progress-bar > div{ height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); transition:width .3s ease; }
