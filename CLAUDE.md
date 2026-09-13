@@ -530,6 +530,20 @@ bugs, verify every change live) added, on top of everything above:
   both already handled correctly with zero further changes needed.
   Verified live: a Crypto trade now shows "—", a Stock trade still shows
   a real score.
+- **Print pass finished; Beta streak semantics clarified**: added a
+  Print button to the Daily Brief page (rounds out the earlier Trading
+  Plan Worksheet/Weekly Report print buttons — same "once-a-day text
+  content worth keeping at the desk" use case; the generic `@media
+  print` rules already apply, no scoped print-active class needed since
+  the whole page is already one focused list). A sixth audit fork on the
+  Pillars per-market fix and Beta streak came back clean on the former
+  and flagged a real semantic ambiguity on the latter: the streak counts
+  consecutive qualifying TRADING days, not calendar days (matches
+  computeStats()'s own currentStreak elsewhere — consistent precedent,
+  not a new bug), but "10 straight trading days" in the milestone's own
+  description could otherwise read as calendar days. Made this explicit
+  in the hint copy rather than leaving it for a user to discover the
+  hard way after a long dormant gap.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than

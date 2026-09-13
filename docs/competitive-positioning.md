@@ -44,6 +44,7 @@ what's worth building next and what's a real, informed gap to accept.
 | TradingView re-import dedup | Most journal importers don't guard against this | TradingView's Strategy Tester export is always the full history, not incremental — re-importing after new trades (a normal workflow) used to duplicate everything already imported |
 | Beta-phase streak tracking | None seen in any researched tool | The curriculum's own copy promised this in two places; now actually computed from real Journal data instead of just being an instruction to track it manually |
 | Pillars scoring stays honest per-market | — | Fixed a bug where Options/Futures/Crypto trades got scored against stock-only Pillars criteria and unfairly dinged Trade Coach's discipline insight |
+| Print on every text-heavy page | Most tools are screen-only | Trading Plan Worksheet, Weekly Report, and Daily Brief all get a real print path now |
 
 ## Real, informed gaps — deliberately not built, and why
 
