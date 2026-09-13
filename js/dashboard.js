@@ -1,5 +1,5 @@
-import { state, statTileCls } from './state.js';
-import { computeStats, streakLabel } from './journal-stats.js';
+import { state, statTileCls, escapeHtml } from './state.js';
+import { computeStats, streakLabel, buildCoachInsights, coachInsightMeta } from './journal-stats.js';
 import { WEEKS, TOTAL_DAYS, findTodayKey, toggleCalDay } from './calendar.js';
 import { MILESTONES } from './milestones.js';
 import { renderBrief } from './brief.js';
@@ -46,6 +46,27 @@ export function renderDashboard(){
   document.getElementById('dash-cal-fill').style.width = (totalDoneDays/TOTAL_DAYS*100)+'%';
   document.getElementById('dash-ms-label').textContent = `Milestones: ${doneMs} / ${MILESTONES.length}`;
   document.getElementById('dash-ms-fill').style.width = (doneMs/MILESTONES.length*100)+'%';
+
+  const coachCard = document.getElementById('dash-coach-card');
+  // Same 5-trade minimum buildCoachInsights itself uses before it has
+  // anything real to say (below that it just returns a single "log more
+  // trades" placeholder) — showing that placeholder on the Dashboard
+  // would be noise, not insight, so the card stays hidden until there's
+  // an actual watchout/strength/tip to surface.
+  if(state.trades.length >= 5){
+    const insights = buildCoachInsights(state.trades, state.planState);
+    const top = insights[0];
+    const meta = coachInsightMeta(top.type);
+    coachCard.hidden = false;
+    document.getElementById('dash-coach').innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span class="pill ${meta.cls}" style="flex-shrink:0;white-space:nowrap;">${meta.label}</span>
+        <span style="font-size:.9rem;line-height:1.4;">${escapeHtml(top.text)}</span>
+      </div>
+      <button class="btn" style="margin-top:12px;" onclick="document.querySelector('[data-page=journal]').click()">See all insights</button>`;
+  } else {
+    coachCard.hidden = true;
+  }
 
   renderBrief();
 }
