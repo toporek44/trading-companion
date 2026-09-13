@@ -426,7 +426,7 @@ function filteredTrades(){
   return state.trades.filter(t => {
     if(tradesStrategyFilter && t.strategy !== tradesStrategyFilter) return false;
     if(!q) return true;
-    const haystack = [t.instrument, t.tags, t.notes].filter(Boolean).join(' ').toLowerCase();
+    const haystack = [t.instrument, t.tags, t.notes, t.date].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(q);
   });
 }

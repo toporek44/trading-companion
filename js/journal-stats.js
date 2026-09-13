@@ -346,7 +346,8 @@ export function renderPnlHeatmap(){
       if(pnl > 0){ bg = `color-mix(in srgb, var(--good) ${20+intensity*60}%, var(--surface-2))`; color = 'var(--ink)'; }
       else { bg = `color-mix(in srgb, var(--bad) ${20+intensity*60}%, var(--surface-2))`; color = 'var(--ink)'; }
     }
-    cells += `<div style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;border:1px solid var(--line);">
+    const clickable = pnl != null;
+    cells += `<div ${clickable ? `data-date="${dateStr}" role="button" tabindex="0" aria-label="Show ${dateStr}'s trades in the log below"` : ''} style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;border:1px solid var(--line);${clickable ? 'cursor:pointer;' : ''}">
       <span class="mono" style="font-size:.65rem;opacity:.7;">${day}</span>
       ${pnl!=null ? `<span class="mono" style="font-weight:600;">${(pnl>=0?'+':'')}${Math.round(pnl)}</span>` : ''}
     </div>`;
@@ -359,6 +360,30 @@ export function renderPnlHeatmap(){
 }
 document.getElementById('heatmap-prev').addEventListener('click', () => { heatmapMonth.setMonth(heatmapMonth.getMonth()-1); renderPnlHeatmap(); });
 document.getElementById('heatmap-next').addEventListener('click', () => { heatmapMonth.setMonth(heatmapMonth.getMonth()+1); renderPnlHeatmap(); });
+
+// Clicking a day with trades filters the trade log below to that date —
+// connects the heatmap to the actual trades behind each number instead of
+// leaving it a dead-end summary. Reuses the trade log's own search box
+// (filteredTrades() in journal.js also matches against t.date) so there's
+// only one filter mechanism to keep in sync, not a second parallel one.
+function jumpToHeatmapDay(dateStr){
+  const search = document.getElementById('trades-search');
+  if(!search) return;
+  search.value = dateStr;
+  search.dispatchEvent(new Event('input', {bubbles: true}));
+  document.getElementById('trades-tbody')?.closest('.card')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.getElementById('pnl-heatmap').addEventListener('click', (e) => {
+  const cell = e.target.closest('[data-date]');
+  if(cell) jumpToHeatmapDay(cell.dataset.date);
+});
+document.getElementById('pnl-heatmap').addEventListener('keydown', (e) => {
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const cell = e.target.closest('[data-date]');
+  if(!cell) return;
+  e.preventDefault();
+  jumpToHeatmapDay(cell.dataset.date);
+});
 
 export function renderEquityChart(){
   const root = document.getElementById('equity-chart');
