@@ -438,6 +438,20 @@ bugs, verify every change live) added, on top of everything above:
   Stocks-only, but correctly scoped those out — extending either needs
   new trigger logic or server infra, not just wiring an existing feature
   through, unlike the true "parity fix" gaps closed above.
+- **Heatmap reaches all 3 markets + a clean audit checkpoint**: a
+  dedicated audit fork on the Crypto heatmap and both `__logCryptoTrade`/
+  `__logFuturesTrade` handlers came back fully clean (correct null-
+  guarding via `cryptoFilterRow`, correct single-quote escaping in the
+  generated `onclick` attributes, no stale-state issues from switching
+  views or navigating away mid-refresh). A manual sweep across all 10
+  pages plus all 3 Scanner sub-tabs also showed zero console errors.
+  Then added Heatmap to Futures too (`futuresHeatmapTileHtml`, `fut-view`
+  toggle) — rated only medium-confidence by the earlier parity-audit
+  fork since a fixed 14-contract list has less to gain from a heatmap
+  than a large scannable universe, but "which contracts moved today at a
+  glance" is the same real use case regardless of list size. Intensity
+  clamps at a 5% move for full color (vs. Crypto's 20%, Stocks' 50%),
+  since futures move far less day-to-day than either.
 
 ## Local dev with Vite (dev-tooling only, does not affect deploy)
 Vite was added purely to make local iteration nicer than
