@@ -55,6 +55,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Cross-market alert manager panel | thinkorswim, TC2000 | One list above the market tabs showing every armed price alert across all 3 markets at once, with Jump/Remove per row, instead of hunting for a 🔔 badge on each tab |
 | Position size calculator | thinkorswim, TC2000, Trade Ideas | Risk % + entry + stop → $ at risk, risk/share, shares/contracts (floored), position value, with 0-shares and over-account-size warnings — the existing risk calculator only showed flat % of account amounts, never tied to a real stop distance |
 | Cross-market watchlist manager panel | TC2000, Trade Ideas, Webull | One list above the market tabs showing every starred Stocks/Crypto symbol with a live price at a glance, Jump/Remove per row — the ★ was previously only a per-tab filter toggle with no consolidated view |
+| Sector performance / relative strength | Finviz Elite's own "Groups" tab, TC2000 | All 11 sectors' today's % change as sorted color pills (own endpoint, `grp_export.ashx?g=sector`), plus each stock card's detail shows whether it's outperforming/underperforming its own sector today — real per-sector data, not a guess |
 
 ## Real, informed gaps — deliberately not built, and why
 
@@ -62,15 +63,14 @@ These aren't oversights — each was investigated and the decision to skip
 is recorded so a future session doesn't re-litigate it without new
 information:
 
-- **Sector relative-strength ranking** (TC2000 staple) — blocked on an
-  unverified Finviz export column ID for Sector. Two research passes
-  could not find a documented ID; guessing one risks the exact class of
-  silent bug that hit this session's price-filter feature (`sh_price_oN`
-  looked valid, was actually a no-op). Only safe path: add a candidate ID
-  to `DEFAULT_COLUMNS`, deploy, and inspect the live response header name
-  before trusting it — not done yet because it needs a deliberate,
-  supervised iteration, not an autonomous guess.
-- **Finviz earnings/IPO-date column** — same block, same reasoning.
+- ~~**Sector relative-strength ranking**~~ — **shipped.** Ran the
+  supervised, verified iteration this gap was waiting on: curled the
+  real production Finviz export with candidate columns 3/4 and
+  confirmed live they're genuinely Sector/Industry. See "What this app
+  already matches or beats" below and CLAUDE.md's fuller writeup.
+- **Finviz earnings/IPO-date column** — same original block (unverified
+  column ID), same reasoning, still unresolved — the Sector fix above
+  didn't happen to also verify this one.
 - **Multi-timeframe momentum (5-min/15-min bars) and true VWAP** — Finviz
   Elite, CoinGecko, and Yahoo Finance's free tiers only expose daily
   bars/current price, not intraday OHLC series. Would need a new paid

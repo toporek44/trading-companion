@@ -310,6 +310,39 @@ bugs, verify every change live) added, on top of everything above:
   `scanner.js`'s generic handler crash on `scannerSortState['crypto-...']`
   being undefined.
 
+- **Sector performance unblocked and shipped** (a still-later `/loop`
+  pass, same session; two audit forks this cycle — practice.js/srs.js
+  came back clean, no bugs found): the "real, informed gaps" list above
+  named Sector relative-strength as blocked on an unverified Finviz
+  column ID, deliberately left unguessed pending a supervised, verified
+  iteration. Ran exactly that iteration: curled the real production
+  Finviz Elite export with candidate columns 3/4 and confirmed live —
+  they're genuinely "Sector"/"Industry", not a guess. Added both to
+  `DEFAULT_COLUMNS` (`api/_lib/finviz.js`) and `shapeRow`'s output,
+  parsed by header name (not position) like every other column here, so
+  existing callers (`scanner-gainers.js`, `check-alerts.js`) pick them up
+  with zero changes needed elsewhere. Also discovered and verified a
+  second, genuinely different Finviz Elite endpoint while investigating
+  — `grp_export.ashx?g=sector` (Finviz Elite's own "Groups" tab, a
+  feature this app's own competitive doc named as something a free
+  scanner couldn't show) returns full per-sector aggregate performance
+  (today/week/month/rel-vol) in one call, one row per sector rather than
+  per stock. New `api/scanner-sectors.js` proxies it; new
+  `#sc-sectors-card` (`js/scanner.js`) shows all 11 sectors' today %
+  change as sorted color pills, refreshed every 5min (sector aggregates
+  move slowly — no need for the gainers loop's 60s cadence, spares
+  Finviz Elite's per-request quota). Each stock card's detail panel also
+  gained a "Sector: X · Industry: Y — sector is up/down N% today, this
+  stock is outperforming/underperforming it" line
+  (`scannerSectorPerf`) — the actual relative-strength cue the gap was
+  originally about, now grounded in real per-sector data instead of only
+  comparing against the ~30 other tickers already in the gainers fetch.
+  Verified live via `vercel dev` + Playwright + direct curl of both new
+  endpoints: real Sector/Industry values came back on gainer rows, the
+  sectors card rendered all 11 sectors sorted correctly, and a card's
+  detail panel correctly computed "outperforming" for a +100% mover
+  against a -1.42% sector.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/

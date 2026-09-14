@@ -6,7 +6,14 @@
 // bug found earlier this session is exactly this kind of thing) now only
 // needs to happen once instead of twice.
 
-export const DEFAULT_COLUMNS = '1,65,66,67,63,64,25,30,31'; // Ticker, Price, Change, Volume, Avg Volume, Rel Volume, Shares Float, Short Float, Short Ratio
+// Ticker, Sector, Industry, Price, Change, Volume, Avg Volume, Rel Volume,
+// Shares Float, Short Float, Short Ratio. Columns 3/4 (Sector/Industry)
+// verified live 2026-09-14 against a real Finviz Elite export — this was
+// previously blocked (see docs/competitive-positioning.md's "real,
+// informed gaps" list) on not having a verified column ID; confirmed now
+// via the same "add a candidate ID, deploy, curl production" pattern used
+// for every other Finviz quirk this session, not a guess.
+export const DEFAULT_COLUMNS = '1,3,4,65,66,67,63,64,25,30,31';
 
 export function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
@@ -55,6 +62,8 @@ export function shapeRow(row){
     : (relVolFromFinviz && vol ? (vol / relVolFromFinviz) / 1e6 : null);
   return {
     ticker: findCol(row, 'Ticker'),
+    sector: findCol(row, 'Sector') || null,
+    industry: findCol(row, 'Industry') || null,
     price: toNumber(findCol(row, 'Price')),
     pct: toNumber(findCol(row, 'Change')),
     vol,

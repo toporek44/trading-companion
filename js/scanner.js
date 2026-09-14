@@ -167,6 +167,55 @@ async function refreshScanner(){
   }
 }
 document.getElementById('scanner-refresh').addEventListener('click', refreshScanner);
+
+// ---------- Scanner: sector performance (Finviz "Groups" export) ----------
+// Sector aggregates move slowly over a trading day — a 5min cadence is
+// plenty and spares Finviz Elite's per-request quota compared to the
+// gainers/most-active 60s loop. Previously blocked (see
+// docs/competitive-positioning.md's "real, informed gaps" — no verified
+// Sector column ID); unblocked this session via the same "add a candidate,
+// deploy, curl production" empirical pattern used for every other Finviz
+// quirk here, not a guess.
+const SECTOR_CACHE_KEY = 'tc-sector-cache';
+const SECTOR_REFRESH_MS = 5 * 60 * 1000;
+let sectorRefreshInFlight = false;
+async function refreshSectors(){
+  if(sectorRefreshInFlight) return;
+  sectorRefreshInFlight = true;
+  try{
+    const res = await fetch('/api/scanner-sectors');
+    const data = await res.json();
+    if(data.configured === false || data.error || !Array.isArray(data.sectors)) return;
+    lsSet(SECTOR_CACHE_KEY, { fetchedAt: data.fetchedAt, sectors: data.sectors });
+    renderSectorPerformance();
+    renderScannerTables(); // picks up each card's "how's its sector doing" line
+  }catch(err){ /* best-effort — sector context is a bonus, not core scanner function */ }
+  finally{ sectorRefreshInFlight = false; }
+}
+// Looked up per-card (by row.sector) to show "this stock vs. its own
+// sector today" — a lightweight relative-strength cue without needing a
+// full-market fetch to rank every sector against every other one.
+function scannerSectorPerf(sectorName){
+  if(!sectorName) return null;
+  const cache = lsGet(SECTOR_CACHE_KEY, null);
+  if(!cache) return null;
+  return cache.sectors.find(s => s.name === sectorName) || null;
+}
+function renderSectorPerformance(){
+  const card = document.getElementById('sc-sectors-card');
+  const list = document.getElementById('sc-sectors-list');
+  if(!card || !list) return;
+  const cache = lsGet(SECTOR_CACHE_KEY, null);
+  if(!cache || cache.sectors.length === 0){ card.hidden = true; return; }
+  card.hidden = false;
+  const sorted = cache.sectors.slice().sort((a,b) => (b.changeToday||0) - (a.changeToday||0));
+  list.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` + sorted.map(s => `
+    <span class="pill ${s.changeToday>=0?'good':'bad'}" style="display:inline-flex;gap:6px;align-items:center;" title="Rel Vol: ${s.relVol!=null?s.relVol.toFixed(2)+'x':'—'}">
+      ${escapeHtml(s.name)} <strong>${s.changeToday>=0?'+':''}${s.changeToday.toFixed(2)}%</strong>
+    </span>`).join('') + `</div>`;
+}
+refreshSectors();
+startVisibilityAwareRefresh(refreshSectors, SECTOR_REFRESH_MS);
 refreshScanner(); // fetch immediately on load, don't wait for a click or the first interval tick
 startVisibilityAwareRefresh(refreshScanner, AUTO_REFRESH_MS);
 
@@ -931,7 +980,8 @@ const scannerExpandedTickers = new Set();
 // opens on click. Keeps the default view uncluttered while keeping every
 // control reachable and clearly labeled once expanded.
 function scannerRowHtml(data, rank){
-  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, setupGrade, shortFloatPct, shortRatio, watched } = data;
+  const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, setupGrade, shortFloatPct, shortRatio, watched, row } = data;
+  const sectorPerf = scannerSectorPerf(row.sector);
   const expanded = scannerExpandedTickers.has(ticker);
   const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
   const freshnessIconHtml = newsEntry && newsEntry.hoursOld != null
@@ -983,6 +1033,7 @@ function scannerRowHtml(data, rank){
           <h4>Why ${pillarCount}/5 pillars</h4>
           <ul style="margin:0;padding:0;list-style:none;">${pillarBreakdownHtml}</ul>
           <p class="sc-detail-hint" style="margin-top:10px;">Setup grade <strong>${setupGrade.grade}</strong> (${setupGrade.label}) is a mechanical score from pillar count + how far rel. volume clears 5x + news freshness. It is <strong>not</strong> a buy/sell recommendation — no fundamentals or price target behind it.</p>
+          ${row.sector ? `<p class="sc-detail-hint" style="margin-top:8px;">Sector: <strong>${escapeHtml(row.sector)}</strong>${row.industry ? ` &middot; ${escapeHtml(row.industry)}` : ''}${sectorPerf ? ` &mdash; sector is ${sectorPerf.changeToday>=0?'up':'down'} <strong style="color:${sectorPerf.changeToday>=0?'var(--good)':'var(--bad)'};">${sectorPerf.changeToday>=0?'+':''}${sectorPerf.changeToday.toFixed(2)}%</strong> today, this stock is ${Math.abs(pct - sectorPerf.changeToday) < 0.01 ? 'in line with it' : (pct > sectorPerf.changeToday ? 'outperforming it' : 'underperforming it')}` : ''}</p>` : ''}
         </div>
         <div class="sc-detail-col">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
