@@ -134,7 +134,14 @@ a Telegram message on a new 5/5-Pillars stock or fresh (<2h) news, and
 optionally also posts to a Discord/Slack webhook (`DISCORD_WEBHOOK_URL` env
 var, entirely additive — Telegram remains the only required channel).
 Dedup state lives in the same Supabase `progress` table as everything else
-(key `telegram-alerts-fired`).
+(key `telegram-alerts-fired`). **Real bug fixed** (found via a direct code
+review of `api/*.js`, not an audit fork): if `sendAlert()` threw partway
+through a multi-alert batch (a single Telegram rate-limit/network blip),
+`saveFiredState()` was skipped entirely on the way to the outer catch —
+losing the dedup mark even for alerts that had already sent successfully,
+causing them to fire again (duplicate Telegram/Discord messages) on the
+next 2-minute cron tick. Now the send loop always persists fired state for
+whatever was attempted that run before re-throwing the error.
 
 **Shared server-side code**: `api/_lib/supabase.js` (SUPABASE_URL/
 SUPABASE_ANON_KEY/getPriceRange, used by `scanner-gainers.js` and
