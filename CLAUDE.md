@@ -343,6 +343,37 @@ bugs, verify every change live) added, on top of everything above:
   detail panel correctly computed "outperforming" for a +100% mover
   against a -1.42% sector.
 
+- **Multi-timeframe momentum unblocked too — a documented "impossible"
+  gap turned out wrong** (a still-later `/loop` pass, same session):
+  while re-verifying the Sector/Industry columns above, dumped a full
+  1-100 column range from a real Finviz Elite export to look for
+  Earnings Date/IPO Date (the other explicitly-blocked gap) and found
+  columns 90-99 are `Performance (1/2/3/5/10/15/30 Minutes)` and
+  `(1/2/4 Hours)` — genuine intraday momentum percentages computed
+  server-side by Finviz Elite. This directly contradicts what
+  competitive-positioning.md had recorded as the reason this gap was
+  blocked ("Finviz Elite... free tiers only expose daily bars, not
+  intraday" — wrong; no raw OHLC needed, Finviz already computes the
+  momentum numbers). Added Earnings Date (col 68), 5min (93), and 15min
+  (95) momentum to `DEFAULT_COLUMNS`/`shapeRow` (`api/_lib/finviz.js`).
+  Each card now shows an "📋 Earnings in/ago N days" badge when a real
+  earnings date is verified within ±5 days (`scannerEarningsFlag`,
+  js/scanner.js — Finviz's Earnings Date column comes back in a few
+  observed shapes like "7/15/2026" vs "8/12/2026 8:30:00 AM", wrapped in
+  an `isNaN(d.getTime())` guard since JS Date parsing of non-standard
+  formats is notoriously inconsistent), and the detail panel shows
+  "Intraday momentum — last 5min / last 15min" with a same-direction-
+  vs-reversing note (`Math.sign` comparison against the daily %, not a
+  hardcoded assumption about which direction "the move" is in — a stock
+  could be a decliner too). Verified live via `vercel dev` + Playwright
+  + direct curl of the full column dump: a real earnings date 4 days in
+  the past showed "Earnings 4 days ago" correctly, and a card's momentum
+  line showed real, distinct 5min/15min percentages from the daily
+  change. **Lesson for future sessions**: even a documented "verified
+  blocked" gap can be worth re-checking with a full column-range dump
+  rather than trusting an old assumption forever — the Sector fix and
+  this fix both came from the exact same one curl command.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/

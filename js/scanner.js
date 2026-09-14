@@ -979,9 +979,30 @@ const scannerExpandedTickers = new Set();
 // "why" — pillar breakdown, news history, manual overrides, catalyst) that
 // opens on click. Keeps the default view uncluttered while keeping every
 // control reachable and clearly labeled once expanded.
+// Finviz's Earnings Date column comes back in a few observed shapes
+// ("7/15/2026", "09/02/2026", "8/12/2026 8:30:00 AM") — all parse fine via
+// the JS Date constructor's US-format leniency, but wrapped defensively
+// since that constructor is notoriously inconsistent across non-US
+// locales/engines for anything less standard than this. Only flags a
+// *near* date (within 5 days either way) as a real caution — trading
+// through an earnings print is exactly the kind of extra-volatility risk
+// Warrior Trading's own material warns about, but a date months out isn't
+// actionable information worth cluttering every card with.
+function scannerEarningsFlag(earningsDate){
+  if(!earningsDate) return null;
+  const d = new Date(earningsDate);
+  if(isNaN(d.getTime())) return null;
+  const daysUntil = Math.round((d.setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
+  if(Math.abs(daysUntil) > 5) return null;
+  if(daysUntil === 0) return { label: 'today' };
+  if(daysUntil > 0) return { label: `in ${daysUntil} day${daysUntil===1?'':'s'}` };
+  return { label: `${Math.abs(daysUntil)} day${Math.abs(daysUntil)===1?'':'s'} ago` };
+}
+
 function scannerRowHtml(data, rank){
   const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, setupGrade, shortFloatPct, shortRatio, watched, row } = data;
   const sectorPerf = scannerSectorPerf(row.sector);
+  const earningsFlag = scannerEarningsFlag(row.earningsDate);
   const expanded = scannerExpandedTickers.has(ticker);
   const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
   const freshnessIconHtml = newsEntry && newsEntry.hoursOld != null
@@ -1013,7 +1034,7 @@ function scannerRowHtml(data, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getScannerNote(ticker) ? '<span title="You have a note on this ticker">&#128221;</span>' : ''}${scannerPriceAlertBellHtml(priceAlert)}${catalystBadge}
+          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getScannerNote(ticker) ? '<span title="You have a note on this ticker">&#128221;</span>' : ''}${scannerPriceAlertBellHtml(priceAlert)}${catalystBadge}${earningsFlag ? `<span class="pill neutral" title="Earnings ${earningsFlag.label} — extra volatility risk trading through an earnings print">&#128203; Earnings ${earningsFlag.label}</span>` : ''}
         </div>
         <div class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
       </div>
@@ -1034,6 +1055,7 @@ function scannerRowHtml(data, rank){
           <ul style="margin:0;padding:0;list-style:none;">${pillarBreakdownHtml}</ul>
           <p class="sc-detail-hint" style="margin-top:10px;">Setup grade <strong>${setupGrade.grade}</strong> (${setupGrade.label}) is a mechanical score from pillar count + how far rel. volume clears 5x + news freshness. It is <strong>not</strong> a buy/sell recommendation — no fundamentals or price target behind it.</p>
           ${row.sector ? `<p class="sc-detail-hint" style="margin-top:8px;">Sector: <strong>${escapeHtml(row.sector)}</strong>${row.industry ? ` &middot; ${escapeHtml(row.industry)}` : ''}${sectorPerf ? ` &mdash; sector is ${sectorPerf.changeToday>=0?'up':'down'} <strong style="color:${sectorPerf.changeToday>=0?'var(--good)':'var(--bad)'};">${sectorPerf.changeToday>=0?'+':''}${sectorPerf.changeToday.toFixed(2)}%</strong> today, this stock is ${Math.abs(pct - sectorPerf.changeToday) < 0.01 ? 'in line with it' : (pct > sectorPerf.changeToday ? 'outperforming it' : 'underperforming it')}` : ''}</p>` : ''}
+          ${row.momentum5m != null || row.momentum15m != null ? `<p class="sc-detail-hint" style="margin-top:8px;">Intraday momentum &mdash; last 5min: <strong style="color:${(row.momentum5m||0)>=0?'var(--good)':'var(--bad)'};">${row.momentum5m!=null?(row.momentum5m>=0?'+':'')+row.momentum5m.toFixed(2)+'%':'—'}</strong> &middot; last 15min: <strong style="color:${(row.momentum15m||0)>=0?'var(--good)':'var(--bad)'};">${row.momentum15m!=null?(row.momentum15m>=0?'+':'')+row.momentum15m.toFixed(2)+'%':'—'}</strong> &mdash; ${row.momentum5m!=null && Math.sign(row.momentum5m) !== Math.sign(pct) ? 'reversing against the daily move in just the last few minutes' : 'still moving in the same direction as the daily move'}</p>` : ''}
         </div>
         <div class="sc-detail-col">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">

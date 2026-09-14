@@ -7,13 +7,19 @@
 // needs to happen once instead of twice.
 
 // Ticker, Sector, Industry, Price, Change, Volume, Avg Volume, Rel Volume,
-// Shares Float, Short Float, Short Ratio. Columns 3/4 (Sector/Industry)
-// verified live 2026-09-14 against a real Finviz Elite export — this was
-// previously blocked (see docs/competitive-positioning.md's "real,
-// informed gaps" list) on not having a verified column ID; confirmed now
-// via the same "add a candidate ID, deploy, curl production" pattern used
-// for every other Finviz quirk this session, not a guess.
-export const DEFAULT_COLUMNS = '1,3,4,65,66,67,63,64,25,30,31';
+// Shares Float, Short Float, Short Ratio, Earnings Date, Performance
+// (5 Minutes), Performance (15 Minutes). Columns 3/4 (Sector/Industry) and
+// 68/93/95 (Earnings Date, 5min/15min momentum) verified live 2026-09-14
+// against a full 1-100 column dump of a real Finviz Elite export — these
+// were previously blocked/assumed-unavailable (see
+// docs/competitive-positioning.md's "real, informed gaps" list, which
+// specifically assumed Finviz Elite's free tier "only exposes daily bars,
+// not intraday" for multi-timeframe momentum — that assumption was wrong;
+// Finviz Elite computes and exposes these percentages directly, no raw
+// OHLC bars needed). Confirmed via the same "add a candidate ID, deploy,
+// curl production" pattern used for every other Finviz quirk this
+// session, not a guess.
+export const DEFAULT_COLUMNS = '1,3,4,65,66,67,63,64,25,30,31,68,93,95';
 
 export function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
@@ -76,6 +82,17 @@ export function shapeRow(row){
     // carry through — one shapeRow shape for both callers.
     shortFloatPct: toNumber(findCol(row, 'Short Float')),
     shortRatio: toNumber(findCol(row, 'Short Ratio')),
+    // Blank for a ticker with no known upcoming/recent earnings date — a
+    // real, common case (findCol/toNumber both already null-safe upstream
+    // for this), not a parsing failure.
+    earningsDate: findCol(row, 'Earnings Date') || null,
+    // Real intraday momentum straight from Finviz Elite (see the
+    // DEFAULT_COLUMNS comment above for why this was previously assumed
+    // unavailable) — lets a card show whether a mover is still accelerating
+    // or has already stalled out in just the last few minutes, not just its
+    // move since yesterday's close.
+    momentum5m: toNumber(findCol(row, 'Performance (5 Minutes)')),
+    momentum15m: toNumber(findCol(row, 'Performance (15 Minutes)')),
   };
 }
 

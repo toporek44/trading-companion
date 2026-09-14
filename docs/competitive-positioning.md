@@ -56,6 +56,8 @@ what's worth building next and what's a real, informed gap to accept.
 | Position size calculator | thinkorswim, TC2000, Trade Ideas | Risk % + entry + stop → $ at risk, risk/share, shares/contracts (floored), position value, with 0-shares and over-account-size warnings — the existing risk calculator only showed flat % of account amounts, never tied to a real stop distance |
 | Cross-market watchlist manager panel | TC2000, Trade Ideas, Webull | One list above the market tabs showing every starred Stocks/Crypto symbol with a live price at a glance, Jump/Remove per row — the ★ was previously only a per-tab filter toggle with no consolidated view |
 | Sector performance / relative strength | Finviz Elite's own "Groups" tab, TC2000 | All 11 sectors' today's % change as sorted color pills (own endpoint, `grp_export.ashx?g=sector`), plus each stock card's detail shows whether it's outperforming/underperforming its own sector today — real per-sector data, not a guess |
+| Multi-timeframe intraday momentum | Trade Ideas, TC2000, thinkorswim | Real 5min/15min % move per stock, straight from Finviz Elite's own computed columns (no raw OHLC bars needed, contrary to this doc's own earlier "blocked" assumption) — detail panel flags whether the last few minutes agree with or are reversing the daily move |
+| Earnings-date risk flag | thinkorswim, Trade Ideas | "📋 Earnings in/ago N days" badge on any card within ±5 days of a real (Finviz-verified) earnings date — trading through an earnings print is a real, named volatility risk in this app's own reference material |
 
 ## Real, informed gaps — deliberately not built, and why
 
@@ -68,16 +70,22 @@ information:
   real production Finviz export with candidate columns 3/4 and
   confirmed live they're genuinely Sector/Industry. See "What this app
   already matches or beats" below and CLAUDE.md's fuller writeup.
-- **Finviz earnings/IPO-date column** — same original block (unverified
-  column ID), same reasoning, still unresolved — the Sector fix above
-  didn't happen to also verify this one.
-- **Multi-timeframe momentum (5-min/15-min bars) and true VWAP** — Finviz
-  Elite, CoinGecko, and Yahoo Finance's free tiers only expose daily
-  bars/current price, not intraday OHLC series. Would need a new paid
-  data source (e.g., Polygon.io, Alpaca) to do properly.
-  A same-session VWAP *approximation* from daily OHLC would be
-  meaningfully weaker than TradingView's real rolling VWAP and risks
-  looking authoritative when it isn't — not worth the trust cost.
+- ~~**Finviz earnings-date column**~~ — **shipped.** Column 68, verified
+  in the same full 1-100 column dump that unblocked the momentum gap
+  below. (IPO Date, column 70, was also confirmed live but not wired
+  into the UI — lower value than earnings-date risk, left for later.)
+- ~~**Multi-timeframe momentum (5-min/15-min)**~~ — **shipped, and the
+  original blocking assumption was wrong.** This was recorded as
+  needing a new paid OHLC data source since "Finviz Elite... only
+  exposes daily bars." A full column-range dump (columns 1-100) found
+  columns 90-99 are `Performance (1/2/3/5/10/15/30 Minutes)` and
+  `(1/2/4 Hours)` — Finviz Elite computes these percentages itself, no
+  raw intraday bars needed. See CLAUDE.md for the full story. **True
+  VWAP is still out of scope** for the reason originally stated — a
+  same-session approximation from daily OHLC would be meaningfully
+  weaker than TradingView's real rolling VWAP and risks looking
+  authoritative when it isn't; today's fix only unblocked the momentum
+  half of this bullet, not VWAP.
 - **Unusual options activity / dark-pool flow** (Benzinga Pro's paid
   add-on) — needs a dedicated paid feed (Benzinga, Cheddar Flow); no
   free-tier equivalent exists. Genuinely out of budget for a personal
