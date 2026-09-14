@@ -33,7 +33,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Crypto watchlist | TC2000/Trade Ideas watchlists | Star + "Watchlist only" filter (Crypto had notes but never the star itself) |
 | Tag suggestion pills | Tradervue's tag autocomplete | Up to 10 most-used tags as one-click pills, avoiding the exact-string-match fragmentation a retyped/misspelled tag causes in By-Tag stats |
 | Week-over-week delta | Most journals show absolute numbers only | Weekly report shows accuracy/P&L change vs. the prior 7-day window |
-| Crypto saved filter presets | TC2000 EasyScan, TradingView | Same named-combo pattern as the Stocks tab, own Supabase key |
+| Crypto saved filter presets | TC2000 EasyScan, TradingView | Same named-combo pattern as the Stocks tab, own Supabase key; also gained its own "Reset to defaults" button (also resets Watchlist-only back to All) |
 | Printable Trading Plan + Weekly Report | Most tools are screen-only | Both mirror this app's own reference PDFs (sample-trading-plan.pdf, weekly-reporting-template.pdf); the Weekly Report prints itself in isolation, not the whole page |
 | Overtrading/revenge-trading detection | None seen in any researched paid tool | Trade Coach flags a day with 2x+ typical trade count that also finished negative — the Lessons deck defines the concept, this connects it to real Journal data |
 | Hold-time asymmetry detection | None seen in any researched paid tool | Trade Coach flags when losing trades are held 1.5x+ longer than winners on average — "cut winners short, let losers run," using the holdTime/holdUnit fields already captured on every trade |
