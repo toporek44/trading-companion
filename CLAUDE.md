@@ -251,6 +251,19 @@ bugs, verify every change live) added, on top of everything above:
   live via `vercel dev` + Playwright: set/update/clear all persist and
   re-render correctly, bell badge appears/disappears, zero console
   errors from the new code path.
+- **Price alerts extended to Crypto and Futures** (same `/loop` pass):
+  same class of gap as sort/filter/heatmap/watchlist parity earlier this
+  session — a feature shipped Stocks-only, then closed out across all 3
+  markets. Generalized `checkScannerPriceAlerts` (js/scanner.js) to take
+  `keyFn`/`priceFn` params instead of hardcoding `row.ticker`/`row.price`,
+  so Crypto/Futures can reuse the exact same one-shot check loop against
+  their own row shapes (`coin.symbol`, `c.symbol`) and prefixed alert
+  keys (`crypto:SYMBOL`, `futures:SYMBOL` — same collision-avoidance
+  pattern as notes/watchlist). Alert-hit messages use 4-sig-fig precision
+  for sub-$1 prices (crypto) instead of a flat 2dp that would round a
+  small-cap altcoin's target to $0.00. Verified live on all 3 markets via
+  `vercel dev` + Playwright: set/persist/clear each round-tripped through
+  localStorage correctly, zero console errors.
 - **Sorting/filtering has parity across all 3 tabs.** Stocks had it first;
   Crypto (sort pills + a Filters card) and Futures (sort pills + a
   categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto,

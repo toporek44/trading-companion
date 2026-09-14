@@ -592,35 +592,45 @@ export function setScannerNote(ticker, text){
 // Unlike the daily-reset Pillars/news alerts, a price target is a one-shot
 // event: once crossed, it fires once and is removed from the list (a
 // trader doesn't want the same crossing renotifying every 60s refresh).
+// `key` is the ticker for Stocks, and the same "crypto:SYMBOL"/
+// "futures:SYMBOL" prefixed key the notes/watchlist already use for the
+// other two markets — keeps a crypto symbol from ever colliding with a
+// stock ticker of the same letters, no data migration needed.
 const SCANNER_PRICE_ALERTS_KEY = 'tc-scanner-price-alerts';
 export function getScannerPriceAlerts(){ return lsGet(SCANNER_PRICE_ALERTS_KEY, []); }
-function getScannerPriceAlert(ticker){ return getScannerPriceAlerts().find(a => a.ticker === ticker) || null; }
-function setScannerPriceAlert(ticker, direction, target){
-  const alerts = getScannerPriceAlerts().filter(a => a.ticker !== ticker);
-  if(direction && target != null && !Number.isNaN(target)) alerts.push({ ticker, direction, target });
+export function getScannerPriceAlert(key){ return getScannerPriceAlerts().find(a => a.ticker === key) || null; }
+export function setScannerPriceAlert(key, direction, target){
+  const alerts = getScannerPriceAlerts().filter(a => a.ticker !== key);
+  if(direction && target != null && !Number.isNaN(target)) alerts.push({ ticker: key, direction, target });
   lsSet(SCANNER_PRICE_ALERTS_KEY, alerts);
 }
-function removeScannerPriceAlert(ticker){
-  lsSet(SCANNER_PRICE_ALERTS_KEY, getScannerPriceAlerts().filter(a => a.ticker !== ticker));
+export function removeScannerPriceAlert(key){
+  lsSet(SCANNER_PRICE_ALERTS_KEY, getScannerPriceAlerts().filter(a => a.ticker !== key));
 }
 // Checked against whatever raw rows the latest fetch returned (gainers +
-// most active) — a target on a ticker that isn't in either list this cycle
+// most active) — a target on a key that isn't in either list this cycle
 // simply isn't checked yet, same "only what's currently visible" scope the
-// per-ticker notes/watchlist already accept.
-function checkScannerPriceAlerts(allRawRows){
+// per-ticker notes/watchlist already accept. `keyFn`/`priceFn` let Crypto/
+// Futures reuse this against their own row shapes (coin.symbol vs.
+// row.ticker) and prefixed alert keys, rather than duplicating this loop.
+export function checkScannerPriceAlerts(allRawRows, keyFn = (r) => r.ticker, priceFn = (r) => r.price){
   if(!scannerAlertsActive()) return; // don't silently consume a one-shot target while notifications are off
   const alerts = getScannerPriceAlerts();
   if(alerts.length === 0) return;
   allRawRows.forEach(row => {
-    if(row.price == null) return;
-    const alert = alerts.find(a => a.ticker === row.ticker);
+    const price = priceFn(row);
+    if(price == null) return;
+    const key = keyFn(row);
+    const alert = alerts.find(a => a.ticker === key);
     if(!alert) return;
-    const crossed = alert.direction === 'above' ? row.price >= alert.target : row.price <= alert.target;
+    const crossed = alert.direction === 'above' ? price >= alert.target : price <= alert.target;
     if(!crossed) return;
-    removeScannerPriceAlert(row.ticker);
+    removeScannerPriceAlert(key);
+    const label = key.includes(':') ? key.split(':')[1] : key;
+    const fmt = (n) => n < 1 ? n.toPrecision(4) : n.toFixed(2); // sub-$1 crypto needs more precision than 2dp
     fireScannerAlert(
-      `${row.ticker} — price alert`,
-      `${row.ticker} hit $${row.price.toFixed(2)} (target: ${alert.direction} $${alert.target.toFixed(2)})`
+      `${label} — price alert`,
+      `${label} hit $${fmt(price)} (target: ${alert.direction} $${fmt(alert.target)})`
     );
   });
 }

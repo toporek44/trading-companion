@@ -7,7 +7,7 @@
 // news-panel renderer so "last 3 articles" looks and behaves the same way.
 import { lsGet, lsSet, persistProgress, SUPABASE_URL, SUPABASE_ANON_KEY } from './state.js';
 import { initSegmented } from './journal.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, isScannerWatched, toggleScannerWatch } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, isScannerWatched, toggleScannerWatch, getScannerPriceAlert, setScannerPriceAlert, removeScannerPriceAlert, checkScannerPriceAlerts } from './scanner.js';
 import { showPage } from './nav.js';
 import { startFuturesIfNeeded } from './futures-scanner.js';
 
@@ -30,6 +30,9 @@ function setCryptoNote(symbol, text){ setScannerNote(`crypto:${symbol}`, text); 
 // symbol must never collide with a stock ticker in the shared watchlist.
 function isCryptoWatched(symbol){ return isScannerWatched(`crypto:${symbol}`); }
 function toggleCryptoWatch(symbol){ toggleScannerWatch(`crypto:${symbol}`); }
+// Same market-prefix reasoning, same one-shot price-target feature the
+// Stocks tab already has — see js/scanner.js's checkScannerPriceAlerts.
+function getCryptoPriceAlert(symbol){ return getScannerPriceAlert(`crypto:${symbol}`); }
 function cryptoSlug(name){ return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
 
 function getCryptoNewsCache(){ return lsGet(CRYPTO_NEWS_CACHE_KEY, {}); }
@@ -80,6 +83,7 @@ function cryptoMomentum(coin){
 function cryptoCardHtml(coin, rank){
   const expanded = cryptoExpanded.has(coin.symbol);
   const watched = isCryptoWatched(coin.symbol);
+  const priceAlert = getCryptoPriceAlert(coin.symbol);
   const pct = coin.pct;
   const pctHtml = pct != null
     ? `<span class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`
@@ -102,7 +106,7 @@ function cryptoCardHtml(coin, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${coin.symbol}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getCryptoNote(coin.symbol) ? '<span title="You have a note on this coin">&#128221;</span>' : ''}
+          <span class="sc-card-ticker-sym">${coin.symbol}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getCryptoNote(coin.symbol) ? '<span title="You have a note on this coin">&#128221;</span>' : ''}${priceAlert ? `<span title="Price alert: ${priceAlert.direction} $${priceAlert.target}">&#128276;</span>` : ''}
           <span style="color:var(--muted);font-weight:400;font-size:12px;">${escapeHtml(coin.name||'')}</span>
         </div>
         ${pctHtml}
@@ -139,7 +143,18 @@ function cryptoCardHtml(coin, rank){
           </div>
         </div>
         <div class="sc-detail-col">
-          <h4>Your notes</h4>
+          <h4>Price alert</h4>
+          <p class="sc-detail-hint">Fires a browser notification once ${coin.symbol} crosses this price (requires alerts enabled on the Stocks tab; checked on the next refresh this coin still appears in Top Movers).</p>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <select class="sc-price-alert-dir" data-symbol="${coin.symbol}" style="width:auto;">
+              <option value="above"${priceAlert?.direction==='above'?' selected':''}>Above</option>
+              <option value="below"${priceAlert?.direction==='below'?' selected':''}>Below</option>
+            </select>
+            <input type="number" step="any" class="sc-price-alert-target" data-symbol="${coin.symbol}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${coin.price < 1 ? coin.price.toPrecision(4) : coin.price.toFixed(2)}" style="width:100px;">
+            <button type="button" class="btn sc-price-alert-set" data-symbol="${coin.symbol}" style="padding:5px 10px;font-size:11px;">${priceAlert?'Update':'Set'}</button>
+            ${priceAlert ? `<button type="button" class="btn sc-price-alert-clear" data-symbol="${coin.symbol}" style="padding:5px 10px;font-size:11px;">Clear</button>` : ''}
+          </div>
+          <h4 style="margin-top:16px;">Your notes</h4>
           <textarea class="sc-note-textarea" data-symbol="${coin.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getCryptoNote(coin.symbol))}</textarea>
           <div style="flex:1;"></div>
           <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:10px;" onclick="__logCryptoTrade('${coin.symbol.replace(/'/g,"\\'")}')">Log this trade &rarr;</button>
@@ -371,6 +386,19 @@ function renderCryptoLists(){
     }
     const watchBtn = e.target.closest('.sc-watch-toggle');
     if(watchBtn){ toggleCryptoWatch(watchBtn.dataset.symbol); renderCryptoLists(); return; }
+    const alertSetBtn = e.target.closest('.sc-price-alert-set');
+    if(alertSetBtn){
+      const symbol = alertSetBtn.dataset.symbol;
+      const card = alertSetBtn.closest('.sc-card-detail');
+      const dir = card.querySelector('.sc-price-alert-dir').value;
+      const target = parseFloat(card.querySelector('.sc-price-alert-target').value);
+      if(Number.isNaN(target)){ cryptoStatus('Enter a target price first.'); return; }
+      setScannerPriceAlert(`crypto:${symbol}`, dir, target);
+      renderCryptoLists();
+      return;
+    }
+    const alertClearBtn = e.target.closest('.sc-price-alert-clear');
+    if(alertClearBtn){ removeScannerPriceAlert(`crypto:${alertClearBtn.dataset.symbol}`); renderCryptoLists(); return; }
     const zone = e.target.closest('.sc-card-clickzone');
     if(zone){
       const symbol = zone.closest('.sc-stock-card').dataset.symbol;
@@ -405,6 +433,7 @@ async function refreshCrypto(){
     if(data.error){ cryptoStatus(`${data.error} Showing last cached data if available.`); return; }
     lsSet(CRYPTO_CACHE_KEY, { top_gainers: data.top_gainers || [], most_active: data.most_active || [] });
     renderCryptoLists();
+    checkScannerPriceAlerts([...(data.top_gainers||[]), ...(data.most_active||[])], (r) => `crypto:${r.symbol}`, (r) => r.price);
     cryptoStatus(`Updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${CRYPTO_AUTO_REFRESH_MS/1000}s.`);
     // Awaited (not fire-and-forget) so cryptoRefreshInFlight — and thus the
     // overlapping-refresh guard above — stays true for the full duration of

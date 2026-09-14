@@ -51,7 +51,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Bulk tag on the trade log | Tradervue, Edgewonk | Same checkbox selection as bulk-delete, adds one tag to every selected trade (dedup, case-insensitive) — no single-call batched update with differing values in Supabase's client, so N individual updates under the hood, still one user interaction |
 | Sortable trade-log columns | Tradervue, TC2000 | Date/Instrument/Result/R headers toggle asc/desc (▲/▼, aria-sort); defaults to date-desc so nothing changes until a user clicks one; search/filter/CSV export all honor the active sort since it lives inside `filteredTrades()` |
 | Expandable thesis/notes in the trade log | Tradervue's row expand | Notes were captured on entry but only ever visible via edit mode; the Instrument cell is now clickable (only when notes exist) and expands an inline detail row |
-| Per-ticker price target alerts | thinkorswim, TC2000, Webull | Above/below target per ticker (Stocks tab), fires a browser notification once via the existing alert chime/Notification infra, then auto-clears (one-shot, unlike the daily-reset Pillars/news alerts) |
+| Per-ticker price target alerts | thinkorswim, TC2000, Webull | Above/below target per ticker/coin/contract on all 3 markets, fires a browser notification once via the existing alert chime/Notification infra, then auto-clears (one-shot, unlike the daily-reset Pillars/news alerts) |
 
 ## Real, informed gaps — deliberately not built, and why
 

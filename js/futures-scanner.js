@@ -7,7 +7,7 @@
 // macro-news feed in each card's detail (futures move on Fed/CPI/jobs/OPEC
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, getScannerPriceAlert, setScannerPriceAlert, removeScannerPriceAlert, checkScannerPriceAlerts } from './scanner.js';
 import { initSegmented } from './journal.js';
 import { showPage } from './nav.js';
 
@@ -15,6 +15,9 @@ import { showPage } from './nav.js';
 // the shared 'tc-scanner-notes' object.
 function getFuturesNote(symbol){ return getScannerNote(`futures:${symbol}`); }
 function setFuturesNote(symbol, text){ setScannerNote(`futures:${symbol}`, text); }
+// Same one-shot price-target feature the Stocks/Crypto tabs already have —
+// see js/scanner.js's checkScannerPriceAlerts.
+function getFuturesPriceAlert(symbol){ return getScannerPriceAlert(`futures:${symbol}`); }
 
 const FUTURES_AUTO_REFRESH_MS = 60000;
 const FUTURES_CACHE_KEY = 'tc-futures-cache';
@@ -28,6 +31,7 @@ function futuresStatus(msg){
 
 function futuresCardHtml(c, rank){
   const expanded = futuresExpanded.has(c.symbol);
+  const priceAlert = getFuturesPriceAlert(c.symbol);
   const pct = c.pct;
   const pctHtml = pct != null
     ? `<span class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`
@@ -43,7 +47,7 @@ function futuresCardHtml(c, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${c.symbol.replace('=F','')}</span>${freshnessIconHtml}${getFuturesNote(c.symbol) ? '<span title="You have a note on this contract">&#128221;</span>' : ''}
+          <span class="sc-card-ticker-sym">${c.symbol.replace('=F','')}</span>${freshnessIconHtml}${getFuturesNote(c.symbol) ? '<span title="You have a note on this contract">&#128221;</span>' : ''}${priceAlert ? `<span title="Price alert: ${priceAlert.direction} ${priceAlert.target}">&#128276;</span>` : ''}
           <span style="color:var(--muted);font-weight:400;font-size:12px;">${escapeHtml(c.label)}</span>
         </div>
         ${pctHtml}
@@ -75,7 +79,18 @@ function futuresCardHtml(c, rank){
           </div>
         </div>
         <div class="sc-detail-col">
-          <h4>Your notes</h4>
+          <h4>Price alert</h4>
+          <p class="sc-detail-hint">Fires a browser notification once this contract crosses this price (requires alerts enabled on the Stocks tab).</p>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <select class="sc-price-alert-dir" data-symbol="${c.symbol}" style="width:auto;">
+              <option value="above"${priceAlert?.direction==='above'?' selected':''}>Above</option>
+              <option value="below"${priceAlert?.direction==='below'?' selected':''}>Below</option>
+            </select>
+            <input type="number" step="any" class="sc-price-alert-target" data-symbol="${c.symbol}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${c.price.toFixed(2)}" style="width:100px;">
+            <button type="button" class="btn sc-price-alert-set" data-symbol="${c.symbol}" style="padding:5px 10px;font-size:11px;">${priceAlert?'Update':'Set'}</button>
+            ${priceAlert ? `<button type="button" class="btn sc-price-alert-clear" data-symbol="${c.symbol}" style="padding:5px 10px;font-size:11px;">Clear</button>` : ''}
+          </div>
+          <h4 style="margin-top:16px;">Your notes</h4>
           <textarea class="sc-note-textarea" data-symbol="${c.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getFuturesNote(c.symbol))}</textarea>
           <div style="flex:1;"></div>
           <button class="btn primary" style="padding:8px 14px;font-size:12px;margin-top:10px;" onclick="__logFuturesTrade('${c.symbol.replace('=F','').replace(/'/g,"\\'")}')">Log this trade &rarr;</button>
@@ -197,6 +212,19 @@ document.getElementById('futures-list').addEventListener('change', (e) => {
   renderFuturesList();
 });
 document.getElementById('futures-list').addEventListener('click', (e) => {
+  const alertSetBtn = e.target.closest('.sc-price-alert-set');
+  if(alertSetBtn){
+    const symbol = alertSetBtn.dataset.symbol;
+    const card = alertSetBtn.closest('.sc-card-detail');
+    const dir = card.querySelector('.sc-price-alert-dir').value;
+    const target = parseFloat(card.querySelector('.sc-price-alert-target').value);
+    if(Number.isNaN(target)){ futuresStatus('Enter a target price first.'); return; }
+    setScannerPriceAlert(`futures:${symbol}`, dir, target);
+    renderFuturesList();
+    return;
+  }
+  const alertClearBtn = e.target.closest('.sc-price-alert-clear');
+  if(alertClearBtn){ removeScannerPriceAlert(`futures:${alertClearBtn.dataset.symbol}`); renderFuturesList(); return; }
   const zone = e.target.closest('.sc-card-clickzone');
   if(zone){
     const symbol = zone.closest('.sc-stock-card').dataset.symbol;
@@ -234,6 +262,7 @@ async function refreshFutures(){
       macroNewsEntry = { checkedAt: Date.now(), items, headline: items[0]?.headline ?? null, hoursOld: items[0]?.hoursOld ?? null };
     }
     renderFuturesList();
+    checkScannerPriceAlerts(data.contracts || [], (r) => `futures:${r.symbol}`, (r) => r.price);
     const newsNote = data.macroNews && !data.macroNews.configured ? ' Macro news needs FINHUB_API_KEY on the server.' : '';
     futuresStatus(`Updated ${new Date(data.fetchedAt).toLocaleTimeString()} — auto-refreshes every ${FUTURES_AUTO_REFRESH_MS/1000}s.${newsNote}`);
   }catch(err){
