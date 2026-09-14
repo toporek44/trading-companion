@@ -599,14 +599,69 @@ export function setScannerNote(ticker, text){
 const SCANNER_PRICE_ALERTS_KEY = 'tc-scanner-price-alerts';
 export function getScannerPriceAlerts(){ return lsGet(SCANNER_PRICE_ALERTS_KEY, []); }
 export function getScannerPriceAlert(key){ return getScannerPriceAlerts().find(a => a.ticker === key) || null; }
+// Dispatched after every mutation so whichever market's card list is
+// currently hidden (not the active tab) still refreshes its own 🔔 badge
+// state next time it's shown — scanner.js can't import crypto-scanner.js/
+// futures-scanner.js's render functions directly without a circular
+// import (they already import from this file), so a DOM event is the
+// simplest way for this base module to reach both without one.
+function notifyScannerPriceAlertsChanged(){
+  renderScannerPriceAlertsManager();
+  document.dispatchEvent(new CustomEvent('sc-price-alerts-changed'));
+}
 export function setScannerPriceAlert(key, direction, target){
   const alerts = getScannerPriceAlerts().filter(a => a.ticker !== key);
   if(direction && target != null && !Number.isNaN(target)) alerts.push({ ticker: key, direction, target });
   lsSet(SCANNER_PRICE_ALERTS_KEY, alerts);
+  notifyScannerPriceAlertsChanged();
 }
 export function removeScannerPriceAlert(key){
   lsSet(SCANNER_PRICE_ALERTS_KEY, getScannerPriceAlerts().filter(a => a.ticker !== key));
+  notifyScannerPriceAlertsChanged();
 }
+// A cross-market "alert manager" panel (thinkorswim/TC2000 both have one) —
+// without this, the only way to see what's armed is opening every card on
+// every tab looking for a 🔔 badge. Lives above the market tabs (not inside
+// any one sc-market-* panel) since it's deliberately not scoped to whichever
+// tab happens to be open; a "Jump" link switches tabs for you.
+function scannerPriceAlertMarketLabel(key){
+  if(key.startsWith('crypto:')) return { market: 'crypto', label: 'Crypto', symbol: key.slice(7) };
+  if(key.startsWith('futures:')) return { market: 'futures', label: 'Futures', symbol: key.slice(8).replace('=F','') };
+  return { market: 'stocks', label: 'Stocks', symbol: key };
+}
+export function renderScannerPriceAlertsManager(){
+  const card = document.getElementById('sc-price-alerts-manager-card');
+  const list = document.getElementById('sc-price-alerts-manager-list');
+  if(!card || !list) return;
+  const alerts = getScannerPriceAlerts();
+  card.hidden = alerts.length === 0;
+  if(alerts.length === 0) return;
+  list.innerHTML = alerts.map(a => {
+    const { market, label, symbol } = scannerPriceAlertMarketLabel(a.ticker);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="pill neutral">${label}</span>
+        <span class="mono" style="font-weight:700;">${escapeHtml(symbol)}</span>
+        <span style="color:var(--muted);font-size:.85rem;">${a.direction} $${a.target}</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn sc-alert-mgr-jump" data-market="${market}" style="padding:4px 10px;font-size:11px;">Jump</button>
+        <button type="button" class="btn sc-alert-mgr-remove" data-key="${escapeHtml(a.ticker)}" style="padding:4px 10px;font-size:11px;">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('sc-price-alerts-manager-list')?.addEventListener('click', (e) => {
+  const jumpBtn = e.target.closest('.sc-alert-mgr-jump');
+  if(jumpBtn){ document.querySelector(`#sc-market-tabs .seg-btn[data-value="${jumpBtn.dataset.market}"]`)?.click(); return; }
+  const removeBtn = e.target.closest('.sc-alert-mgr-remove');
+  if(removeBtn) removeScannerPriceAlert(removeBtn.dataset.key);
+});
+// Keeps the Stocks tab's own 🔔 badges in sync when an alert is removed via
+// the cross-market manager panel above rather than that card's own Clear
+// button (see notifyScannerPriceAlertsChanged for why this is an event
+// instead of a direct call).
+document.addEventListener('sc-price-alerts-changed', () => renderScannerTables());
 // Checked against whatever raw rows the latest fetch returned (gainers +
 // most active) — a target on a key that isn't in either list this cycle
 // simply isn't checked yet, same "only what's currently visible" scope the
@@ -1111,3 +1166,4 @@ window.__logScannerTrade = function(ticker, price, pctGain){
   document.getElementById('f-instrument').scrollIntoView({behavior:'smooth', block:'center'});
 };
 renderScannerTables();
+renderScannerPriceAlertsManager(); // picks up any alerts left armed from a previous session

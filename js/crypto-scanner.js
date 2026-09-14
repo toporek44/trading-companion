@@ -480,3 +480,7 @@ window.__logCryptoTrade = function(symbol){
   document.getElementById('f-tags').value = 'from-scanner';
   document.getElementById('f-instrument').scrollIntoView({behavior:'smooth', block:'center'});
 };
+// Keeps this tab's 🔔 badges in sync when an alert is removed via the
+// cross-market manager panel (js/scanner.js) rather than a card's own
+// Clear button, even while this tab is hidden/inactive.
+document.addEventListener('sc-price-alerts-changed', () => { if(lsGet(CRYPTO_CACHE_KEY, null)) renderCryptoLists(); });

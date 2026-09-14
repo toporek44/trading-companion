@@ -52,6 +52,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Sortable trade-log columns | Tradervue, TC2000 | Date/Instrument/Result/R headers toggle asc/desc (▲/▼, aria-sort); defaults to date-desc so nothing changes until a user clicks one; search/filter/CSV export all honor the active sort since it lives inside `filteredTrades()` |
 | Expandable thesis/notes in the trade log | Tradervue's row expand | Notes were captured on entry but only ever visible via edit mode; the Instrument cell is now clickable (only when notes exist) and expands an inline detail row |
 | Per-ticker price target alerts | thinkorswim, TC2000, Webull | Above/below target per ticker/coin/contract on all 3 markets, fires a browser notification once via the existing alert chime/Notification infra, then auto-clears (one-shot, unlike the daily-reset Pillars/news alerts) |
+| Cross-market alert manager panel | thinkorswim, TC2000 | One list above the market tabs showing every armed price alert across all 3 markets at once, with Jump/Remove per row, instead of hunting for a 🔔 badge on each tab |
 
 ## Real, informed gaps — deliberately not built, and why
 

@@ -279,6 +279,26 @@ bugs, verify every change live) added, on top of everything above:
   Playwright pass as above) before shipping — a refactor of already-
   shipped, working code gets the same live-verification bar as a new
   feature, not less.
+- **Cross-market price-alert manager** (same `/loop` pass): the only way
+  to see what alerts were armed was opening every card on every tab
+  looking for a 🔔 badge — thinkorswim/TC2000 both have a dedicated alert
+  manager list. Added one card above the market tabs (`#sc-price-alerts-
+  manager-card`, `renderScannerPriceAlertsManager` in js/scanner.js) —
+  deliberately market-independent, not scoped inside any one
+  `sc-market-*` panel, since alerts span all 3 markets. Each row shows
+  which market it's from, the symbol, direction/target, a "Jump" button
+  (switches `#sc-market-tabs` to that market) and "Remove". Auto-hides
+  when no alerts are armed. The interesting bug this surfaced: removing
+  an alert for a currently-hidden market (e.g. clearing a crypto alert
+  while on the Stocks tab) left that market's own 🔔 badge stale in the
+  DOM until its next 60s auto-refresh, since scanner.js can't import
+  crypto-scanner.js/futures-scanner.js's render functions without a
+  circular import (they already import from this file). Fixed with a
+  `sc-price-alerts-changed` DOM CustomEvent dispatched on every mutation
+  (set/remove/one-shot-fire) that each market's own file listens for and
+  re-renders on, verified live: removing an alert from the manager while
+  a different tab is open updates that other tab's badge immediately,
+  not just on the next scheduled refresh.
 - **Sorting/filtering has parity across all 3 tabs.** Stocks had it first;
   Crypto (sort pills + a Filters card) and Futures (sort pills + a
   categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto,
