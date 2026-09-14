@@ -230,6 +230,27 @@ bugs, verify every change live) added, on top of everything above:
   `scannerFilterRow`/watchlist-only applied, for "what's actually moving
   the most today" market-wide context distinct from "what matches my
   setup criteria."
+- **Per-ticker price target alerts** (`js/scanner.js`:
+  `getScannerPriceAlerts`/`setScannerPriceAlert`/`checkScannerPriceAlerts`,
+  Stocks tab only): thinkorswim/TC2000/Webull all have this as a core
+  feature; this app only had condition-based alerts (5/5 Pillars, fresh
+  news) before. Set an above/below target price per ticker from the
+  card's detail panel — reuses the existing browser-notification/chime
+  infra (`fireScannerAlert`), localStorage-only like the watchlist/notes
+  (same tier, no server cron support since `check-alerts.js` only scans
+  the Finviz gainers/most-active universe). Unlike the daily-reset
+  Pillars/news alerts, a price target is one-shot: fires once, then is
+  auto-removed, so the same crossing doesn't re-notify every 60s refresh.
+  A collapsed card shows a 🔔 badge (same pattern as the 📝 notes icon)
+  when an alert is armed. Caught and fixed a real bug before shipping:
+  the first draft removed the alert from storage unconditionally before
+  checking whether notifications were actually enabled/granted, which
+  would have silently discarded a one-shot target with no notification
+  ever shown if the user hadn't clicked "Enable alerts" — now gated by
+  `scannerAlertsActive()` before the alert is ever consumed. Verified
+  live via `vercel dev` + Playwright: set/update/clear all persist and
+  re-render correctly, bell badge appears/disappears, zero console
+  errors from the new code path.
 - **Sorting/filtering has parity across all 3 tabs.** Stocks had it first;
   Crypto (sort pills + a Filters card) and Futures (sort pills + a
   categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto,
