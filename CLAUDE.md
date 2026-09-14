@@ -666,6 +666,29 @@ bugs, verify every change live) added, on top of everything above:
   ternary (`tradesSortDir = key === 'date' ? 'desc' : 'desc'` — both
   branches identical) that read like a dropped ascending-default branch
   but wasn't a functional bug.
+- **Cross-market watchlist manager panel** (a still-later `/loop` pass,
+  same session; a code-quality audit fork on calendar.js/milestones.js/
+  dashboard.js this cycle came back clean, no bugs found): same class of
+  gap as the price-alert manager above — the ★ was only ever a per-tab
+  filter toggle, no single place to see every starred symbol across
+  markets with a live price. New `#sc-watchlist-manager-card`
+  (`renderScannerWatchlistManager`, js/scanner.js) lists Stocks + Crypto
+  watch-starred symbols (Futures deliberately excluded — no watchlist by
+  design, a fixed 14-contract list doesn't need one) with live price/%
+  pulled fresh from each market's own localStorage cache, plus Jump/
+  Remove per row. Reads `'tc-crypto-cache'` as a literal string rather
+  than importing crypto-scanner.js's own cache-key constant, since
+  crypto-scanner.js already imports from this file — importing back
+  would be circular; the literal is commented so it's kept in sync if
+  that constant ever changes. Same `sc-watchlist-changed` DOM-event
+  cross-tab-sync pattern as the price-alert manager: removing a crypto
+  watch star from the panel while the Crypto tab is hidden updates that
+  tab's own ★ immediately rather than waiting for its next refresh.
+  Verified live via `vercel dev` + Playwright: starred one stock + one
+  coin, both appeared with correct live prices (crypto's sub-$1
+  precision handled correctly), Jump switched tabs correctly, and
+  removing the crypto entry from the Stocks tab correctly un-starred it
+  on the Crypto tab without needing to switch there first.
 - **Bulk select + delete on the trade log**: a checkbox column, tri-state
   "select all" (checked/indeterminate/unchecked, recomputed against
   whatever the current search/filter view actually shows), and a "Delete

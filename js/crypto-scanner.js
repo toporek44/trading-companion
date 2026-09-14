@@ -484,3 +484,6 @@ window.__logCryptoTrade = function(symbol){
 // cross-market manager panel (js/scanner.js) rather than a card's own
 // Clear button, even while this tab is hidden/inactive.
 document.addEventListener('sc-price-alerts-changed', () => { if(lsGet(CRYPTO_CACHE_KEY, null)) renderCryptoLists(); });
+// Same cross-tab sync as price alerts, for the watchlist manager panel's
+// Remove button.
+document.addEventListener('sc-watchlist-changed', () => { if(lsGet(CRYPTO_CACHE_KEY, null)) renderCryptoLists(); });

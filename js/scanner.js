@@ -567,7 +567,69 @@ export function toggleScannerWatch(ticker){
   const idx = list.indexOf(ticker);
   if(idx >= 0) list.splice(idx, 1); else list.push(ticker);
   lsSet(SCANNER_WATCHLIST_KEY, list);
+  renderScannerWatchlistManager();
+  // Same cross-tab staleness concern as price alerts (see
+  // notifyScannerPriceAlertsChanged) — removing a crypto watch star from
+  // this manager while the Crypto tab is hidden would otherwise leave its
+  // ★ stale until the next 60s auto-refresh.
+  document.dispatchEvent(new CustomEvent('sc-watchlist-changed'));
 }
+// A cross-market "my watchlist" panel (TC2000/Trade Ideas/Webull all have a
+// persistent watchlist view) — until now the star was only a per-tab filter
+// toggle, with no single place to see every starred symbol across markets
+// at a glance. Reads both caches fresh from localStorage on every render
+// rather than importing from crypto-scanner.js (which itself imports from
+// this file — importing back would be circular), so 'tc-crypto-cache' is
+// duplicated here as a literal; keep it in sync with crypto-scanner.js's
+// own CRYPTO_CACHE_KEY if that ever changes. Futures has no watchlist by
+// design (see CLAUDE.md — a fixed 14-contract list doesn't need one).
+function scannerWatchlistRows(){
+  const watched = getScannerWatchlist();
+  if(watched.length === 0) return [];
+  const stockCache = lsGet(SCANNER_CACHE_KEY, null);
+  const cryptoCache = lsGet('tc-crypto-cache', null);
+  const stockRows = stockCache ? [...(stockCache.top_gainers||[]), ...(stockCache.most_actively_traded||[])] : [];
+  const cryptoRows = cryptoCache ? [...(cryptoCache.top_gainers||[]), ...(cryptoCache.most_active||[])] : [];
+  return watched.map(key => {
+    if(key.startsWith('crypto:')){
+      const symbol = key.slice(7);
+      const row = cryptoRows.find(r => r.symbol === symbol);
+      return { key, market: 'crypto', label: 'Crypto', symbol, price: row?.price, pct: row?.pct };
+    }
+    const row = stockRows.find(r => r.ticker === key);
+    return { key, market: 'stocks', label: 'Stocks', symbol: key, price: row?.price, pct: row?.pct };
+  });
+}
+export function renderScannerWatchlistManager(){
+  const card = document.getElementById('sc-watchlist-manager-card');
+  const list = document.getElementById('sc-watchlist-manager-list');
+  if(!card || !list) return;
+  const rows = scannerWatchlistRows();
+  card.hidden = rows.length === 0;
+  if(rows.length === 0) return;
+  list.innerHTML = rows.map(r => {
+    const priceHtml = r.price != null
+      ? `<span class="mono">$${r.price < 1 ? r.price.toPrecision(4) : r.price.toFixed(2)}</span> <span class="num ${r.pct>=0?'good':'bad'}">${r.pct!=null ? (r.pct>=0?'+':'')+r.pct.toFixed(2)+'%' : ''}</span>`
+      : `<span style="color:var(--muted);font-size:.85rem;">not in today's Top Movers/Gainers &mdash; last known price unavailable</span>`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="pill neutral">${r.label}</span>
+        <span class="mono" style="font-weight:700;">${escapeHtml(r.symbol)}</span>
+        ${priceHtml}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn sc-watch-mgr-jump" data-market="${r.market}" style="padding:4px 10px;font-size:11px;">Jump</button>
+        <button type="button" class="btn sc-watch-mgr-remove" data-key="${escapeHtml(r.key)}" style="padding:4px 10px;font-size:11px;">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('sc-watchlist-manager-list')?.addEventListener('click', (e) => {
+  const jumpBtn = e.target.closest('.sc-watch-mgr-jump');
+  if(jumpBtn){ document.querySelector(`#sc-market-tabs .seg-btn[data-value="${jumpBtn.dataset.market}"]`)?.click(); return; }
+  const removeBtn = e.target.closest('.sc-watch-mgr-remove');
+  if(removeBtn) toggleScannerWatch(removeBtn.dataset.key);
+});
 
 // Per-ticker free-text notes — TC2000's watchlist context menu lets you
 // write notes per ticker (entry plan, why you're watching it); this is the
@@ -1048,6 +1110,7 @@ function renderScannerTables(){
   scannerUpdateSortIndicators();
   renderScannerTopPicks();
   renderScannerUnfilteredGainers();
+  renderScannerWatchlistManager(); // keeps watched-item prices fresh on every Stocks auto-refresh, regardless of active tab
 }
 
 // ---------- Scanner: CSV export (what you see is what you export) ----------
@@ -1167,3 +1230,4 @@ window.__logScannerTrade = function(ticker, price, pctGain){
 };
 renderScannerTables();
 renderScannerPriceAlertsManager(); // picks up any alerts left armed from a previous session
+renderScannerWatchlistManager(); // picks up any stars left set from a previous session

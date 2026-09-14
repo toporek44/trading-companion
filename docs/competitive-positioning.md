@@ -54,6 +54,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Per-ticker price target alerts | thinkorswim, TC2000, Webull | Above/below target per ticker/coin/contract on all 3 markets, fires a browser notification once via the existing alert chime/Notification infra, then auto-clears (one-shot, unlike the daily-reset Pillars/news alerts) |
 | Cross-market alert manager panel | thinkorswim, TC2000 | One list above the market tabs showing every armed price alert across all 3 markets at once, with Jump/Remove per row, instead of hunting for a 🔔 badge on each tab |
 | Position size calculator | thinkorswim, TC2000, Trade Ideas | Risk % + entry + stop → $ at risk, risk/share, shares/contracts (floored), position value, with 0-shares and over-account-size warnings — the existing risk calculator only showed flat % of account amounts, never tied to a real stop distance |
+| Cross-market watchlist manager panel | TC2000, Trade Ideas, Webull | One list above the market tabs showing every starred Stocks/Crypto symbol with a live price at a glance, Jump/Remove per row — the ★ was previously only a per-tab filter toggle with no consolidated view |
 
 ## Real, informed gaps — deliberately not built, and why
 
