@@ -11,7 +11,7 @@ what's worth building next and what's a real, informed gap to accept.
 |---|---|---|
 | Momentum scanner (5 Pillars) | Warrior Trading's own paid course + Finviz Elite ($39.50/mo) | Same data source, free-tier logic layered on top |
 | Setup Grade (A+–D mechanical score) | Trade Ideas' "Holly" AI ranking (bundled in $84–$228/mo plans) | Free, transparent formula, explicitly labeled "not advice" |
-| Today's Top Picks digest | Trade Ideas' Holly daily picks | Free, same underlying data already being fetched |
+| Today's Top Picks digest | Trade Ideas' Holly daily picks | Free, same underlying data already being fetched; count is user-configurable (3/5/10) |
 | Heatmap view | TC2000's signature feature | Implemented for Top Gainers |
 | Saved scan presets | TC2000 EasyScan, TradingView, Trade Ideas | Implemented, Supabase-synced across devices |
 | CSV export | Benzinga Pro, TC2000, TradingView | Implemented on all 3 tabs |
