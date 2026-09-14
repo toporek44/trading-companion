@@ -215,12 +215,24 @@ export default async function handler(req, res){
       }
     }
 
+    // fired.fired[key] was already set (above) for every alert about to be
+    // attempted, before any send happens. If a send throws partway through
+    // a multi-alert batch (a single Telegram rate-limit/network blip), the
+    // old code skipped saveFiredState entirely on the way to the outer
+    // catch — losing the dedup mark for alerts that had already sent
+    // successfully, and causing them to fire again (duplicate Telegram/
+    // Discord messages) on the next 2-minute cron tick. Now the fired state
+    // is always persisted for whatever was attempted this run, and the
+    // send error (if any) is re-thrown afterward so it's still surfaced.
+    let sendError = null, sentCount = 0;
     for(const text of alertsToSend){
-      await sendAlert(text, channels);
+      try{ await sendAlert(text, channels); sentCount++; }
+      catch(err){ sendError = err; break; }
     }
     if(alertsToSend.length) await saveFiredState(fired);
+    if(sendError) throw sendError;
 
-    res.status(200).json({ ok: true, checked: candidates.length, alertsSent: alertsToSend.length, discordWebhookConfigured: !!webhookUrl });
+    res.status(200).json({ ok: true, checked: candidates.length, alertsSent: sentCount, discordWebhookConfigured: !!webhookUrl });
   }catch(err){
     res.status(502).json({ ok: false, error: String(err && err.message || err) });
   }
