@@ -18,7 +18,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Keyboard shortcuts | TC2000, Thinkorswim | Implemented (tab switch, refresh, export, watchlist) |
 | Audio + Discord/Slack + Telegram alerts | Trade Ideas (audio), TradingView (webhooks) | All three, plus a "test sound" preview button |
 | Per-ticker notes | TC2000's watchlist context menu | Implemented on all 3 tabs (was Stocks-only for a while — same class of gap as sort/filter below; text-only, no charting surface to attach to) |
-| Trade journal filter/search | Tradervue, Edgewonk | Free-text search (instrument/tags/notes) + strategy dropdown on the trade log; CSV export honors the active filter |
+| Trade journal filter/search | Tradervue, Edgewonk | Free-text search (instrument/tags/notes) + strategy dropdown + market (Stock/Options/Futures/Crypto) dropdown on the trade log; CSV export honors the active filter |
 | Expectancy, Max Drawdown, R-multiple distribution, win/loss streak | Tradervue, Edgewonk | All four computed from the same trade log, no extra data entry |
 | Daily circuit-breaker banner | None seen in any researched paid tool — this is novel | Surfaces the SAC strategy's own "-$100/day or 3 straight losers" rule as an active warning, scaled to account size; a nudge, not a lock |
 | 24/7 coverage (crypto + futures tabs) | Most paid scanners are single-market | 3 markets in one app, unified card UI |
