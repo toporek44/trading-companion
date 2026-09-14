@@ -51,6 +51,21 @@ document.getElementById('scanner-top-picks-count').addEventListener('change', (e
 document.getElementById('sc-minprice').addEventListener('change', savePriceRangeSetting);
 document.getElementById('sc-maxprice').addEventListener('change', savePriceRangeSetting);
 
+// Reset to defaults — a saved preset can leave min%/minvol on values a
+// user forgets are non-default (those two fields aren't persisted, but
+// price range is, via savePriceRangeSetting), and there was previously no
+// one-click way back to the worksheet's own $2-$20/10%/500k baseline
+// without knowing those numbers by heart. Mirrors the Journal's own
+// "Clear filters" button.
+const SCANNER_FILTER_DEFAULTS = { 'sc-minprice': '2', 'sc-maxprice': '20', 'sc-minpct': '10', 'sc-minvol': '500000' };
+document.getElementById('sc-filters-reset').addEventListener('click', () => {
+  Object.entries(SCANNER_FILTER_DEFAULTS).forEach(([id, val]) => { document.getElementById(id).value = val; });
+  document.getElementById('sc-preset-select').value = '';
+  savePriceRangeSetting();
+  renderScannerTables();
+  scannerStatus('Filters reset to defaults.');
+});
+
 // ---------- Scanner: saved filter presets ----------
 // Every pro scanner tool (TC2000's EasyScan, TradingView, Trade Ideas) lets
 // you save a named filter combo and switch instantly instead of re-typing
