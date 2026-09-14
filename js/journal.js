@@ -497,6 +497,15 @@ document.getElementById('trades-strategy-filter').addEventListener('change', (e)
   tradesStrategyFilter = e.target.value;
   renderTradesTable();
 });
+document.getElementById('trades-clear-filters').addEventListener('click', () => {
+  tradesSearchQuery = '';
+  tradesStrategyFilter = '';
+  tradesMarketFilter = '';
+  document.getElementById('trades-search').value = '';
+  document.getElementById('trades-strategy-filter').value = '';
+  document.getElementById('trades-market-filter').value = '';
+  renderTradesTable();
+});
 
 // ---------- Trade log CSV export (mirrors Scanner's export-what-you-see) ----------
 function exportTradesCsv(){
@@ -578,6 +587,8 @@ export function renderTradesTable(){
   const emptyEl = document.getElementById('trades-empty');
   refreshStrategyFilterOptions();
   renderTagSuggestions();
+  const clearBtn = document.getElementById('trades-clear-filters');
+  if(clearBtn) clearBtn.hidden = !(tradesSearchQuery || tradesStrategyFilter || tradesMarketFilter);
   const list = filteredTrades();
   // Drop selections for trades no longer in view (deleted, or filtered out).
   const visibleIds = new Set(list.map(t => t.id));
