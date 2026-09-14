@@ -860,6 +860,23 @@ function renderScannerTopPicks(){
     </div>
   `).join('');
 }
+// Raw top-10 gainers straight off the fetch, ignoring the price/%/vol
+// filters below (and the watchlist-only toggle) — general market info,
+// same "regardless of your filters" framing as Today's Top Picks.
+function scannerUnfilteredGainers(n){
+  const cache = lsGet(SCANNER_CACHE_KEY, null);
+  if(!cache) return [];
+  return (cache.top_gainers||[])
+    .filter(r => r.price != null && r.pct != null && r.vol != null)
+    .map(scannerRowData)
+    .slice(0, n);
+}
+function renderScannerUnfilteredGainers(){
+  const container = document.getElementById('scan-gainers-unfiltered');
+  if(!container) return;
+  const rows = scannerUnfilteredGainers(10);
+  container.innerHTML = rows.map((d,i) => scannerRowHtml(d, i+1)).join('');
+}
 function renderScannerTables(){
   const gainersBody = document.getElementById('scan-gainers-tbody');
   const gainersHeatmap = document.getElementById('scan-gainers-heatmap');
@@ -869,7 +886,7 @@ function renderScannerTables(){
   const heatmapView = document.getElementById('sc-gainers-view').dataset.value === 'heatmap';
   gainersBody.hidden = heatmapView;
   gainersHeatmap.hidden = !heatmapView;
-  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; gainersHeatmap.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); renderScannerTopPicks(); return; }
+  if(!lsGet(SCANNER_CACHE_KEY, null)){ gainersBody.innerHTML=''; gainersHeatmap.innerHTML=''; activeBody.innerHTML=''; gainersEmpty.hidden=false; activeEmpty.hidden=false; scannerUpdateSortIndicators(); renderScannerTopPicks(); renderScannerUnfilteredGainers(); return; }
   const { gainers, active } = scannerVisibleRows();
   if(heatmapView) gainersHeatmap.innerHTML = gainers.map(scannerHeatmapTileHtml).join('');
   else gainersBody.innerHTML = gainers.map((d,i) => scannerRowHtml(d, i+1)).join('');
@@ -878,6 +895,7 @@ function renderScannerTables(){
   activeEmpty.hidden = active.length > 0;
   scannerUpdateSortIndicators();
   renderScannerTopPicks();
+  renderScannerUnfilteredGainers();
 }
 
 // ---------- Scanner: CSV export (what you see is what you export) ----------

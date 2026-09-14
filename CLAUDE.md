@@ -219,6 +219,17 @@ bugs, verify every change live) added, on top of everything above:
   comparison against Trade Ideas/Benzinga Pro/TC2000/TradingView/Webull,
   including the informed, reasoned list of what was deliberately *not*
   built and why.
+- **Unfiltered Top 10 gainers card** (`scan-gainers-unfiltered`,
+  `scannerUnfilteredGainers`/`renderScannerUnfilteredGainers` in
+  `js/scanner.js`): user reported only ~4 cards showing in "Top gainers" —
+  not a bug, the filtered list (`scannerVisibleRows`) was correctly
+  narrowing Finviz's 30-row fetch down to matches under the user's own
+  price/%/vol filters. Added a separate always-10, filter-independent card
+  above it (same framing as Today's Top Picks — "regardless of your
+  filters") sourced straight from `cache.top_gainers` with no
+  `scannerFilterRow`/watchlist-only applied, for "what's actually moving
+  the most today" market-wide context distinct from "what matches my
+  setup criteria."
 - **Sorting/filtering has parity across all 3 tabs.** Stocks had it first;
   Crypto (sort pills + a Filters card) and Futures (sort pills + a
   categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto,
