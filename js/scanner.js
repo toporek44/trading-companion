@@ -18,6 +18,7 @@ const AUTO_REFRESH_MS = 60000; // 60s — frequent enough to catch a fresh mover
 // value — one source of truth instead of separately hardcoded copies.
 // $2-$20 matches Ross Cameron's own stated range in the reference video.
 const PRICE_RANGE_KEY = 'scanner-price-range';
+const TOP_PICKS_COUNT_KEY = 'tc-scanner-top-picks-count';
 async function loadPriceRangeSetting(){
   const { min, max } = await getScannerPriceRange();
   document.getElementById('sc-minprice').value = min;
@@ -37,6 +38,15 @@ loadPriceRangeSetting();
 
 ['sc-minprice','sc-maxprice','sc-minpct','sc-minvol'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderScannerTables);
+});
+
+// Top Picks count — a per-browser display preference (how many, not what
+// data), same tier as the Cards/Heatmap view toggle, so plain localStorage
+// is fine; no Supabase sync needed.
+document.getElementById('scanner-top-picks-count').value = lsGet(TOP_PICKS_COUNT_KEY, '3');
+document.getElementById('scanner-top-picks-count').addEventListener('change', (e) => {
+  lsSet(TOP_PICKS_COUNT_KEY, e.target.value);
+  renderScannerTopPicks();
 });
 document.getElementById('sc-minprice').addEventListener('change', savePriceRangeSetting);
 document.getElementById('sc-maxprice').addEventListener('change', savePriceRangeSetting);
@@ -820,7 +830,7 @@ function scannerTopPicks(n){
 function renderScannerTopPicks(){
   const container = document.getElementById('scanner-top-picks-list');
   if(!container) return;
-  const picks = scannerTopPicks(3);
+  const picks = scannerTopPicks(parseInt(document.getElementById('scanner-top-picks-count')?.value, 10) || 3);
   if(picks.length === 0){
     container.innerHTML = '<p style="color:var(--muted);font-size:.85rem;margin:0;">No data yet — refresh the scanner.</p>';
     return;
