@@ -614,7 +614,7 @@ export function renderTradesTable(){
       <td class="num"><span class="pill ${resultClass||'neutral'}">${t.resultAmount!=null ? ((t.resultAmount>=0?'+$':'-$')+Math.abs(t.resultAmount).toFixed(2)) : '—'}</span></td>
       <td class="num">${typeof t.rMultiple==='number' ? t.rMultiple.toFixed(2)+'R' : '—'}</td>
       <td>${t.processFollowed ? '<span class="pill good">yes</span>' : '<span class="pill bad">no</span>'}</td>
-      <td>${(() => { const pc = t.pillarsCount ?? null; if(!pc) return '<span class="pill">—</span>'; return `<span class="pill ${pc===5?'good':'neutral'}">${pc}/5</span>`; })()}</td>
+      <td>${(() => { const pc = t.pillarsCount ?? null; if(pc == null) return '<span class="pill">—</span>'; return `<span class="pill ${pc===5?'good':'neutral'}">${pc}/5</span>`; })()}</td>
       <td style="white-space:nowrap;">
         <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__duplicateTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')" title="Log another trade with the same instrument/strategy/setup">duplicate</button>
         <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="__editTrade('${escapeHtml(t.id).replace(/'/g,"\\'")}')">edit</button>
@@ -655,7 +655,7 @@ document.querySelector('#trades-tbody')?.closest('table')?.querySelector('thead'
     tradesSortDir = tradesSortDir === 'asc' ? 'desc' : 'asc';
   } else {
     tradesSortKey = key;
-    tradesSortDir = key === 'date' ? 'desc' : 'desc';
+    tradesSortDir = 'desc'; // switching to a new column always starts descending, regardless of which column
   }
   renderTradesTable();
 });

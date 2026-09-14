@@ -46,6 +46,22 @@ document.getElementById('plan-account-size').value = lsGet('tc-account-size', ''
 document.getElementById('plan-account-size').addEventListener('input', (e) => {
   lsSet('tc-account-size', e.target.value);
   renderRiskCalc();
+  renderPositionSizeCalc();
+});
+
+// Position-size inputs — same per-browser-only convenience tier as the
+// account size above (no cross-device need for a scratch calculator).
+const POSSIZE_FIELD_IDS = ['possize-risk-pct', 'possize-entry', 'possize-stop'];
+const possizeSaved = lsGet('tc-possize', {});
+POSSIZE_FIELD_IDS.forEach(id => {
+  const el = document.getElementById(id);
+  if(possizeSaved[id] != null) el.value = possizeSaved[id];
+  el.addEventListener('input', () => {
+    const saved = lsGet('tc-possize', {});
+    POSSIZE_FIELD_IDS.forEach(k => { saved[k] = document.getElementById(k).value; });
+    lsSet('tc-possize', saved);
+    renderPositionSizeCalc();
+  });
 });
 
 let planFormFilled = false, checklistFormFilled = false;
@@ -151,10 +167,48 @@ export function renderRiskCalc(){
     <div class="stat-tile is-bad"><div class="k">Daily max loss (~10%)</div><div class="v bad">-${fmtUsd(size*0.10)}</div></div>`;
 }
 
+// Position size calculator — thinkorswim/TC2000/Trade Ideas all have this;
+// this app's existing risk calculator above only shows flat % of account
+// amounts, never tied to an actual entry/stop distance. Answers "how many
+// shares/coins/contracts can I actually buy" for a real setup, which is
+// the "right share size" leg of the SAC framework's 4-part filter.
+export function renderPositionSizeCalc(){
+  const root = document.getElementById('possize-out');
+  if(!root) return;
+  const accountSize = parseFloat(document.getElementById('plan-account-size').value);
+  const riskPct = parseFloat(document.getElementById('possize-risk-pct').value);
+  const entry = parseFloat(document.getElementById('possize-entry').value);
+  const stop = parseFloat(document.getElementById('possize-stop').value);
+  if(!accountSize || accountSize <= 0){
+    root.innerHTML = `<div class="empty-state" style="padding:16px;grid-column:1/-1;"><div>Enter an account size above to size a position.</div></div>`;
+    return;
+  }
+  if(!riskPct || riskPct <= 0 || !entry || entry <= 0 || !stop || stop <= 0 || entry === stop){
+    root.innerHTML = `<div class="empty-state" style="padding:16px;grid-column:1/-1;"><div>Enter risk %, entry, and stop (must differ) to size a position.</div></div>`;
+    return;
+  }
+  const dollarRisk = accountSize * (riskPct / 100);
+  const riskPerShare = Math.abs(entry - stop);
+  const shares = Math.floor(dollarRisk / riskPerShare);
+  const positionValue = shares * entry;
+  const fmtUsd = v => '$'+v.toFixed(2);
+  root.innerHTML = `
+    <div class="stat-tile"><div class="k">$ at risk</div><div class="v">${fmtUsd(dollarRisk)}</div></div>
+    <div class="stat-tile"><div class="k">Risk/share</div><div class="v">${fmtUsd(riskPerShare)}</div></div>
+    <div class="stat-tile is-good"><div class="k">Shares/coins/contracts</div><div class="v good">${shares.toLocaleString()}</div></div>
+    <div class="stat-tile"><div class="k">Position value</div><div class="v">${fmtUsd(positionValue)}</div></div>`;
+  if(shares === 0){
+    root.innerHTML += `<div class="empty-state" style="padding:10px;grid-column:1/-1;"><div>Your stop is too far from entry for this risk % and account size &mdash; 0 shares clears the risk budget. Tighten the stop, raise the risk %, or skip this setup.</div></div>`;
+  } else if(positionValue > accountSize){
+    root.innerHTML += `<div class="empty-state" style="padding:10px;grid-column:1/-1;"><div>This position (${fmtUsd(positionValue)}) costs more than your whole account (${fmtUsd(accountSize)}) &mdash; only possible with margin/leverage. A cash account can't take this size.</div></div>`;
+  }
+}
+
 export function renderPlan(){
   fillPlanForm();
   fillChecklistForm();
   renderChecklistStatus();
   renderTrifectaCallout();
   renderRiskCalc();
+  renderPositionSizeCalc();
 }

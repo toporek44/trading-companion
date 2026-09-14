@@ -631,6 +631,41 @@ bugs, verify every change live) added, on top of everything above:
   description could otherwise read as calendar days. Made this explicit
   in the hint copy rather than leaving it for a user to discover the
   hard way after a long dormant gap.
+- **Position size calculator added to Plan tab** (a still-later `/loop`
+  pass, same session): thinkorswim/TC2000/Trade Ideas all have this; the
+  existing Risk rules calculator only showed flat % of account $ amounts,
+  never tied to an actual entry/stop distance. New calculator
+  (`renderPositionSizeCalc`, js/plan.js) takes risk % + entry + stop →
+  $ at risk, risk/share, shares/coins/contracts (floored), and position
+  value — the "right share size" leg of the SAC framework's 4-part
+  filter, sized to a real stop distance instead of a flat guess. Flags
+  two real edge cases rather than silently showing 0 or a misleading
+  number: a stop too far from entry for the risk budget (0 shares), and
+  a position that costs more than the whole account (only possible with
+  margin, which the SAC framework's own reference material says a cash
+  account doesn't have). Verified live via `vercel dev` + Playwright:
+  the math checked out exactly (2% of $1,000 / $0.30 risk-per-share =
+  66 shares, not 67 — floored correctly), and both edge-case warnings
+  fired on the inputs designed to trigger them.
+- **Two real bugs fixed from an audit fork on journal.js/journal-stats.js**
+  (same `/loop` pass): (1) the trade-log Pillars column used `if(!pc)`
+  to detect "no pillars data" (`js/journal.js`), which is also true for
+  `pc === 0` — a Stock trade that legitimately scored 0/5 pillars
+  rendered as "—" (same as a Crypto/Futures/Options trade where Pillars
+  correctly doesn't apply), indistinguishable from "not applicable."
+  Fixed to `pc == null`. (2) Trade Coach's "active losing streak" insight
+  (`buildCoachInsights` #4, `js/journal-stats.js`) used a different,
+  disagreeing streak definition than `computeStats.currentStreak` (used
+  by the circuit-breaker banner) — it walked trades in raw Supabase
+  query order (date-only, no secondary sort) and `break`d on a $0
+  breakeven trade instead of skipping it, so a real 3-loss streak with a
+  breakeven mixed in could under-count and never fire the Rule-3 tip
+  even while the circuit breaker was already showing "stop trading."
+  Fixed to sort by date+createdAt and skip (not break on) breakeven
+  trades, matching computeStats exactly. Also cleaned up a dead
+  ternary (`tradesSortDir = key === 'date' ? 'desc' : 'desc'` — both
+  branches identical) that read like a dropped ascending-default branch
+  but wasn't a functional bug.
 - **Bulk select + delete on the trade log**: a checkbox column, tri-state
   "select all" (checked/indeterminate/unchecked, recomputed against
   whatever the current search/filter view actually shows), and a "Delete

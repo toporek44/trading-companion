@@ -164,6 +164,7 @@
   /* ============ Cards / grid ============ */
   .grid{ display:grid; gap:12px; }
   .grid.cols-2{ grid-template-columns:1fr 1fr; }
+  .grid.cols-3{ grid-template-columns:1fr; }
   .grid.cols-4{ grid-template-columns:repeat(2,1fr); }
   .grid.cols-6{ grid-template-columns:repeat(2,1fr); }
 
@@ -451,6 +452,7 @@
     .grid.cols-4{ grid-template-columns:repeat(4,1fr); }
     .grid.cols-6{ grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
     .grid.cols-2{ grid-template-columns:1fr 1fr; }
+    .grid.cols-3{ grid-template-columns:repeat(3,1fr); }
     .day-row .d-body{ grid-template-columns:1fr 1fr; }
     .tbl-scroll{ margin:0; padding:0; }
 

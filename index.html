@@ -438,6 +438,25 @@ try{
             <input type="number" step="any" inputmode="decimal" id="plan-account-size" placeholder="e.g. 1000">
           </div>
           <div id="risk-calc-out" class="grid cols-4" style="margin-top:14px;"></div>
+
+          <h3 style="margin-top:22px;font-size:.9rem;">Position size calculator</h3>
+          <p style="color:var(--muted);font-size:.86rem;margin:4px 0 14px;">Every paid scanner/broker platform (thinkorswim, TC2000, Trade Ideas) has this: given your account size, how much you're willing to risk, and where your stop goes, how many shares/coins/contracts can you actually buy? This is the "right share size" leg of the SAC framework's 4-part filter &mdash; sized to your real stop distance, not a flat guess.</p>
+          <div class="grid cols-3">
+            <div class="field">
+              <label for="possize-risk-pct">Risk this trade (% of account)</label>
+              <input type="number" step="any" inputmode="decimal" id="possize-risk-pct" placeholder="e.g. 1" value="1">
+            </div>
+            <div class="field">
+              <label for="possize-entry">Entry price ($)</label>
+              <input type="number" step="any" inputmode="decimal" id="possize-entry" placeholder="e.g. 5.50">
+            </div>
+            <div class="field">
+              <label for="possize-stop">Stop price ($)</label>
+              <input type="number" step="any" inputmode="decimal" id="possize-stop" placeholder="e.g. 5.20">
+            </div>
+          </div>
+          <div id="possize-out" class="grid cols-4" style="margin-top:14px;"></div>
+
           <h3 style="margin-top:22px;font-size:.9rem;">Breakeven win-rate reference</h3>
           <p style="color:var(--muted);font-size:.86rem;margin:4px 0 10px;">The win rate needed to break even, for a given reward:risk ratio &mdash; look up whatever ratio you're actually trading.</p>
           <div class="tbl-scroll">

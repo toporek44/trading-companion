@@ -222,10 +222,22 @@ export function buildCoachInsights(list, plan){
   }
 
   // 4. Active losing streak where process wasn't consistently followed
+  // Sorted date+createdAt descending and skips (not breaks on) breakeven
+  // trades — same definition of "current streak" as computeStats' own
+  // currentStreak (used by the circuit-breaker banner), so this insight
+  // and that banner never disagree about how long the active streak is.
+  // The naive version here previously walked `trades` in its raw Supabase
+  // query order (date-only, no secondary sort) and `break`d on a $0 trade
+  // instead of skipping it — could under-count a real 3-loss streak and
+  // silently never fire this tip even while the circuit breaker was
+  // already showing "stop trading."
   {
+    const sorted = [...trades].filter(t=>t.date).sort((a,b)=> b.date.localeCompare(a.date) || (b.createdAt||0)-(a.createdAt||0));
     let streak = 0, brokeProcess = false;
-    for(const t of trades){
-      if((t.resultAmount||0) < 0){
+    for(const t of sorted){
+      const r = t.resultAmount || 0;
+      if(r === 0) continue;
+      if(r < 0){
         streak++;
         if(!t.processFollowed) brokeProcess = true;
       } else break;
