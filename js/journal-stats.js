@@ -72,6 +72,25 @@ export function renderCircuitBreaker(rootId = 'circuit-breaker-banner'){
   </div>`;
 }
 
+// Persistent "Today: +$X" badge in the clock bar — always visible from
+// any page, not just Dashboard/Journal, matching thinkorswim/Webull's
+// always-on account P&L ticker. Hidden entirely on a day with zero trades
+// logged (not shown as "$0.00"), so it never reads as a claim that
+// nothing has happened when really nothing's been logged yet.
+export function renderTodayPnlBadge(){
+  const el = document.getElementById('mc-today-pnl');
+  const sep = document.getElementById('mc-today-pnl-sep');
+  if(!el || !sep) return;
+  const today = todayStr();
+  const todayTrades = state.trades.filter(t => t.date === today);
+  if(todayTrades.length === 0){ el.hidden = true; sep.hidden = true; return; }
+  const pnl = todayTrades.reduce((s,t) => s + (t.resultAmount||0), 0);
+  el.hidden = false;
+  sep.hidden = false;
+  el.textContent = `Today: ${pnl>=0?'+':'-'}$${Math.abs(pnl).toFixed(2)}`;
+  el.style.color = pnl > 0 ? 'var(--good)' : pnl < 0 ? 'var(--bad)' : 'var(--muted)';
+}
+
 export function streakLabel(streak){
   if(streak == null || streak === 0) return '—';
   const n = Math.abs(streak);
