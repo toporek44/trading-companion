@@ -167,6 +167,24 @@ function cryptoFilterRow(coin){
 initSegmented('cr-watch-filter');
 document.getElementById('cr-watch-filter').addEventListener('click', () => renderCryptoLists());
 
+// Reset to defaults — parity with the Stocks tab's own reset button. Also
+// clears "Watchlist only" back to "All", since that's the filter most
+// likely to silently leave someone staring at an empty list wondering
+// where every coin went, and clears any loaded preset name.
+document.getElementById('cr-filters-reset').addEventListener('click', () => {
+  document.getElementById('cr-minprice').value = '0';
+  document.getElementById('cr-maxprice').value = '';
+  document.getElementById('cr-minpct').value = '0';
+  document.getElementById('cr-minvol').value = '0';
+  const watchFilter = document.getElementById('cr-watch-filter');
+  watchFilter.dataset.value = 'all';
+  watchFilter.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === 'all'));
+  const presetSelect = document.getElementById('cr-preset-select');
+  if(presetSelect) presetSelect.value = '';
+  renderCryptoLists();
+  cryptoStatus('Filters reset to defaults.');
+});
+
 // ---------- Crypto: saved filter presets (parity with the Stocks tab) ----------
 const CRYPTO_PRESETS_KEY = 'crypto-scanner-presets';
 const CRYPTO_PRESET_FIELD_IDS = { min: 'cr-minprice', max: 'cr-maxprice', minpct: 'cr-minpct', minvol: 'cr-minvol' };
