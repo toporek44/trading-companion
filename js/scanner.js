@@ -634,6 +634,46 @@ export function checkScannerPriceAlerts(allRawRows, keyFn = (r) => r.ticker, pri
     );
   });
 }
+// Shared markup + click handling for the price-alert mini-form, used
+// identically by Stocks (this file), Crypto, and Futures — extracted after
+// the third near-verbatim copy (same "shipped on one tab, then closed the
+// gap on the other two" pattern as sort/filter/heatmap/watchlist earlier
+// this session) rather than letting a 4th market re-copy it again.
+// `alertKey` is the ticker for Stocks, "crypto:SYMBOL"/"futures:SYMBOL" for
+// the other two — see checkScannerPriceAlerts above for why.
+export function scannerPriceAlertBellHtml(priceAlert){
+  return priceAlert ? `<span title="Price alert: ${priceAlert.direction} $${priceAlert.target}">&#128276;</span>` : '';
+}
+export function scannerPriceAlertFormHtml(alertKey, placeholderPrice, priceAlert){
+  return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <select class="sc-price-alert-dir" data-alert-key="${alertKey}" style="width:auto;">
+      <option value="above"${priceAlert?.direction==='above'?' selected':''}>Above</option>
+      <option value="below"${priceAlert?.direction==='below'?' selected':''}>Below</option>
+    </select>
+    <input type="number" step="any" class="sc-price-alert-target" data-alert-key="${alertKey}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${placeholderPrice}" style="width:100px;">
+    <button type="button" class="btn sc-price-alert-set" data-alert-key="${alertKey}" style="padding:5px 10px;font-size:11px;">${priceAlert?'Update':'Set'}</button>
+    ${priceAlert ? `<button type="button" class="btn sc-price-alert-clear" data-alert-key="${alertKey}" style="padding:5px 10px;font-size:11px;">Clear</button>` : ''}
+  </div>`;
+}
+// Call at the top of each market's delegated click listener; returns true
+// if the click was a price-alert Set/Clear (caller should stop handling
+// that event further), false otherwise. `statusFn` reports the "enter a
+// target first" validation message on that market's own status line.
+export function handleScannerPriceAlertClick(e, statusFn, rerenderFn){
+  const setBtn = e.target.closest('.sc-price-alert-set');
+  if(setBtn){
+    const scope = setBtn.closest('.sc-card-detail');
+    const dir = scope.querySelector('.sc-price-alert-dir').value;
+    const target = parseFloat(scope.querySelector('.sc-price-alert-target').value);
+    if(Number.isNaN(target)){ statusFn('Enter a target price first.'); return true; }
+    setScannerPriceAlert(setBtn.dataset.alertKey, dir, target);
+    rerenderFn();
+    return true;
+  }
+  const clearBtn = e.target.closest('.sc-price-alert-clear');
+  if(clearBtn){ removeScannerPriceAlert(clearBtn.dataset.alertKey); rerenderFn(); return true; }
+  return false;
+}
 initSegmented('sc-watch-filter');
 document.getElementById('sc-watch-filter').addEventListener('click', () => renderScannerTables());
 
@@ -806,7 +846,7 @@ function scannerRowHtml(data, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getScannerNote(ticker) ? '<span title="You have a note on this ticker">&#128221;</span>' : ''}${priceAlert ? `<span title="Price alert: ${priceAlert.direction} $${priceAlert.target}">&#128276;</span>` : ''}${catalystBadge}
+          <span class="sc-card-ticker-sym">${ticker}</span>${freshnessIconHtml}${watched ? '<span class="pill neutral">watching</span>' : ''}${getScannerNote(ticker) ? '<span title="You have a note on this ticker">&#128221;</span>' : ''}${scannerPriceAlertBellHtml(priceAlert)}${catalystBadge}
         </div>
         <div class="sc-card-change num ${pct>=0?'good':'bad'}">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
       </div>
@@ -856,15 +896,7 @@ function scannerRowHtml(data, rank){
         <div class="sc-detail-col">
           <h4>Price alert</h4>
           <p class="sc-detail-hint">Fires a browser notification once ${ticker} crosses this price (requires alerts enabled above; checked on the next refresh this ticker still appears in Gainers/Most Active).</p>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="sc-price-alert-dir" data-ticker="${ticker}" style="width:auto;">
-              <option value="above"${priceAlert?.direction==='above'?' selected':''}>Above</option>
-              <option value="below"${priceAlert?.direction==='below'?' selected':''}>Below</option>
-            </select>
-            <input type="number" step="any" class="sc-price-alert-target" data-ticker="${ticker}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${price.toFixed(2)}" style="width:100px;">
-            <button type="button" class="btn sc-price-alert-set" data-ticker="${ticker}" style="padding:5px 10px;font-size:11px;">${priceAlert?'Update':'Set'}</button>
-            ${priceAlert ? `<button type="button" class="btn sc-price-alert-clear" data-ticker="${ticker}" style="padding:5px 10px;font-size:11px;">Clear</button>` : ''}
-          </div>
+          ${scannerPriceAlertFormHtml(ticker, price.toFixed(2), priceAlert)}
           <h4 style="margin-top:16px;">Your notes</h4>
           <textarea class="sc-note-textarea" data-ticker="${ticker}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getScannerNote(ticker))}</textarea>
           <div style="flex:1;"></div>
@@ -1034,19 +1066,7 @@ document.getElementById('scanner-export-csv').addEventListener('click', exportSc
     if(checkBtn){ checkScannerNews(checkBtn.dataset.ticker); return; }
     const watchBtn = e.target.closest('.sc-watch-toggle');
     if(watchBtn){ toggleScannerWatch(watchBtn.dataset.ticker); renderScannerTables(); return; }
-    const alertSetBtn = e.target.closest('.sc-price-alert-set');
-    if(alertSetBtn){
-      const ticker = alertSetBtn.dataset.ticker;
-      const card = alertSetBtn.closest('.sc-card-detail');
-      const dir = card.querySelector('.sc-price-alert-dir').value;
-      const target = parseFloat(card.querySelector('.sc-price-alert-target').value);
-      if(Number.isNaN(target)){ scannerStatus('Enter a target price first.'); return; }
-      setScannerPriceAlert(ticker, dir, target);
-      renderScannerTables();
-      return;
-    }
-    const alertClearBtn = e.target.closest('.sc-price-alert-clear');
-    if(alertClearBtn){ removeScannerPriceAlert(alertClearBtn.dataset.ticker); renderScannerTables(); return; }
+    if(handleScannerPriceAlertClick(e, scannerStatus, renderScannerTables)) return;
     // Clicking anywhere on the card's summary area (excluding the watch
     // star, already handled above, and anything inside the detail panel
     // itself) toggles that one card's expanded detail.

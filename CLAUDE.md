@@ -264,6 +264,21 @@ bugs, verify every change live) added, on top of everything above:
   small-cap altcoin's target to $0.00. Verified live on all 3 markets via
   `vercel dev` + Playwright: set/persist/clear each round-tripped through
   localStorage correctly, zero console errors.
+- **Price-alert code de-duplicated** (same `/loop` pass, immediate
+  follow-up): the mini-form markup, 🔔 bell badge, and Set/Clear click
+  handler had been copy-pasted near-verbatim into all 3 scanner files.
+  Extracted into 3 shared exports from `js/scanner.js` —
+  `scannerPriceAlertFormHtml(alertKey, placeholderPrice, priceAlert)`,
+  `scannerPriceAlertBellHtml(priceAlert)`, and
+  `handleScannerPriceAlertClick(e, statusFn, rerenderFn)` (returns
+  true/false so each market's click listener can `if(handled) return;`
+  before its own zone/watch-toggle logic) — cut ~70 duplicated lines
+  down to one shared implementation each market calls with its own
+  prefixed key, status function, and re-render function. Re-verified all
+  3 markets end-to-end after the refactor (same live `vercel dev` +
+  Playwright pass as above) before shipping — a refactor of already-
+  shipped, working code gets the same live-verification bar as a new
+  feature, not less.
 - **Sorting/filtering has parity across all 3 tabs.** Stocks had it first;
   Crypto (sort pills + a Filters card) and Futures (sort pills + a
   categorical Group filter — Index/Energy/Metals/Rates/Currency/Crypto,

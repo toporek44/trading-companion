@@ -7,7 +7,7 @@
 // macro-news feed in each card's detail (futures move on Fed/CPI/jobs/OPEC
 // headlines, not single-contract news the way a stock has its own filing).
 import { lsGet, lsSet } from './state.js';
-import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, getScannerPriceAlert, setScannerPriceAlert, removeScannerPriceAlert, checkScannerPriceAlerts } from './scanner.js';
+import { scannerFreshnessBucket, escapeHtml, scannerNewsPanelHtml, downloadCsv, startVisibilityAwareRefresh, getScannerNote, setScannerNote, getScannerPriceAlert, checkScannerPriceAlerts, scannerPriceAlertBellHtml, scannerPriceAlertFormHtml, handleScannerPriceAlertClick } from './scanner.js';
 import { initSegmented } from './journal.js';
 import { showPage } from './nav.js';
 
@@ -47,7 +47,7 @@ function futuresCardHtml(c, rank){
       </div>
       <div class="sc-card-main">
         <div class="sc-card-ticker mono">
-          <span class="sc-card-ticker-sym">${c.symbol.replace('=F','')}</span>${freshnessIconHtml}${getFuturesNote(c.symbol) ? '<span title="You have a note on this contract">&#128221;</span>' : ''}${priceAlert ? `<span title="Price alert: ${priceAlert.direction} ${priceAlert.target}">&#128276;</span>` : ''}
+          <span class="sc-card-ticker-sym">${c.symbol.replace('=F','')}</span>${freshnessIconHtml}${getFuturesNote(c.symbol) ? '<span title="You have a note on this contract">&#128221;</span>' : ''}${scannerPriceAlertBellHtml(priceAlert)}
           <span style="color:var(--muted);font-weight:400;font-size:12px;">${escapeHtml(c.label)}</span>
         </div>
         ${pctHtml}
@@ -81,15 +81,7 @@ function futuresCardHtml(c, rank){
         <div class="sc-detail-col">
           <h4>Price alert</h4>
           <p class="sc-detail-hint">Fires a browser notification once this contract crosses this price (requires alerts enabled on the Stocks tab).</p>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="sc-price-alert-dir" data-symbol="${c.symbol}" style="width:auto;">
-              <option value="above"${priceAlert?.direction==='above'?' selected':''}>Above</option>
-              <option value="below"${priceAlert?.direction==='below'?' selected':''}>Below</option>
-            </select>
-            <input type="number" step="any" class="sc-price-alert-target" data-symbol="${c.symbol}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${c.price.toFixed(2)}" style="width:100px;">
-            <button type="button" class="btn sc-price-alert-set" data-symbol="${c.symbol}" style="padding:5px 10px;font-size:11px;">${priceAlert?'Update':'Set'}</button>
-            ${priceAlert ? `<button type="button" class="btn sc-price-alert-clear" data-symbol="${c.symbol}" style="padding:5px 10px;font-size:11px;">Clear</button>` : ''}
-          </div>
+          ${scannerPriceAlertFormHtml(`futures:${c.symbol}`, c.price.toFixed(2), priceAlert)}
           <h4 style="margin-top:16px;">Your notes</h4>
           <textarea class="sc-note-textarea" data-symbol="${c.symbol}" placeholder="Why you're watching this, entry plan, anything to remember later&hellip;" rows="4">${escapeHtml(getFuturesNote(c.symbol))}</textarea>
           <div style="flex:1;"></div>
@@ -212,19 +204,7 @@ document.getElementById('futures-list').addEventListener('change', (e) => {
   renderFuturesList();
 });
 document.getElementById('futures-list').addEventListener('click', (e) => {
-  const alertSetBtn = e.target.closest('.sc-price-alert-set');
-  if(alertSetBtn){
-    const symbol = alertSetBtn.dataset.symbol;
-    const card = alertSetBtn.closest('.sc-card-detail');
-    const dir = card.querySelector('.sc-price-alert-dir').value;
-    const target = parseFloat(card.querySelector('.sc-price-alert-target').value);
-    if(Number.isNaN(target)){ futuresStatus('Enter a target price first.'); return; }
-    setScannerPriceAlert(`futures:${symbol}`, dir, target);
-    renderFuturesList();
-    return;
-  }
-  const alertClearBtn = e.target.closest('.sc-price-alert-clear');
-  if(alertClearBtn){ removeScannerPriceAlert(`futures:${alertClearBtn.dataset.symbol}`); renderFuturesList(); return; }
+  if(handleScannerPriceAlertClick(e, futuresStatus, renderFuturesList)) return;
   const zone = e.target.closest('.sc-card-clickzone');
   if(zone){
     const symbol = zone.closest('.sc-stock-card').dataset.symbol;
