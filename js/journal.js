@@ -443,6 +443,7 @@ document.getElementById('tv-import-input').addEventListener('change', async (e) 
 // ---------- Trade log filter (search + strategy) — per-browser UI state only ----------
 let tradesSearchQuery = '';
 let tradesStrategyFilter = '';
+let tradesMarketFilter = '';
 // Column sort — defaults to date desc (newest first, matching the
 // insertion order the table always showed before sorting existed), so a
 // user who never touches a header sees identical behavior to before.
@@ -453,6 +454,7 @@ function filteredTrades(){
   const q = tradesSearchQuery.trim().toLowerCase();
   const list = state.trades.filter(t => {
     if(tradesStrategyFilter && t.strategy !== tradesStrategyFilter) return false;
+    if(tradesMarketFilter && t.market !== tradesMarketFilter) return false;
     if(!q) return true;
     const haystack = [t.instrument, t.tags, t.notes, t.date].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(q);
@@ -485,6 +487,10 @@ function refreshStrategyFilterOptions(){
 
 document.getElementById('trades-search').addEventListener('input', (e) => {
   tradesSearchQuery = e.target.value;
+  renderTradesTable();
+});
+document.getElementById('trades-market-filter').addEventListener('change', (e) => {
+  tradesMarketFilter = e.target.value;
   renderTradesTable();
 });
 document.getElementById('trades-strategy-filter').addEventListener('change', (e) => {
