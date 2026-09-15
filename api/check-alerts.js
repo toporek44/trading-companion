@@ -45,17 +45,28 @@ async function fetchFinnhubFreshness(ticker, apiKey){
 
 function todayStr(){ return new Date().toISOString().slice(0, 10); }
 
+// Both functions below now throw on a non-OK Supabase response, matching
+// sendTelegram()/sendDiscordWebhook() further down in this file — these
+// were the only two fetch call sites in this file NOT doing that (an
+// audit-fork finding, not a design choice). Silently continuing past a
+// failed read here "fails open" (a transient Supabase hiccup resets to an
+// empty fired-state, re-alerting every condition that already fired
+// earlier today); silently continuing past a failed write "fails
+// invisible" (this run's fired-state is never persisted, so the next
+// 2-minute cron tick re-fires the same alerts it just sent) — both are
+// realistic, not hypothetical, since this runs unattended every 2 minutes.
 async function getFiredState(){
   const res = await fetch(`${SUPABASE_URL}/rest/v1/progress?key=eq.telegram-alerts-fired&select=state`, {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
   });
+  if(!res.ok) throw new Error(`Supabase read failed: ${res.status} ${await res.text()}`);
   const rows = await res.json();
   const state = Array.isArray(rows) && rows[0] && rows[0].state;
   if(!state || state.date !== todayStr()) return { date: todayStr(), fired: {} };
   return state;
 }
 async function saveFiredState(state){
-  await fetch(`${SUPABASE_URL}/rest/v1/progress`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/progress`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -63,6 +74,7 @@ async function saveFiredState(state){
     },
     body: JSON.stringify({ key: 'telegram-alerts-fired', state, updated_at: new Date().toISOString() }),
   });
+  if(!res.ok) throw new Error(`Supabase write failed: ${res.status} ${await res.text()}`);
 }
 
 async function sendTelegram(token, chatId, html){

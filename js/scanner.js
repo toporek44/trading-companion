@@ -214,10 +214,20 @@ function renderSectorPerformance(){
   if(!cache || cache.sectors.length === 0){ card.hidden = true; return; }
   card.hidden = false;
   const sorted = cache.sectors.slice().sort((a,b) => (b.changeToday||0) - (a.changeToday||0));
-  list.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` + sorted.map(s => `
-    <span class="pill ${s.changeToday>=0?'good':'bad'}" style="display:inline-flex;gap:6px;align-items:center;" title="Rel Vol: ${s.relVol!=null?s.relVol.toFixed(2)+'x':'—'}">
+  // Same color-intensity-by-magnitude language as the Top Gainers/Crypto/
+  // Futures heatmaps (scannerHeatmapTileHtml et al.), scaled to how little
+  // a whole-sector aggregate actually moves in a day — clamps at 5% full
+  // intensity, same threshold as the Futures heatmap, since both move far
+  // less day-to-day than an individual stock's 50%-clamp scale.
+  list.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` + sorted.map(s => {
+    const intensity = Math.min(Math.abs(s.changeToday) / 5, 1);
+    const bg = s.changeToday >= 0
+      ? `color-mix(in srgb, var(--good) ${15 + intensity*55}%, var(--surface))`
+      : `color-mix(in srgb, var(--bad) ${15 + intensity*55}%, var(--surface))`;
+    return `<span class="pill" style="display:inline-flex;gap:6px;align-items:center;background:${bg};color:${s.changeToday>=0?'var(--good)':'var(--bad)'};" title="Rel Vol: ${s.relVol!=null?s.relVol.toFixed(2)+'x':'—'}">
       ${escapeHtml(s.name)} <strong>${s.changeToday>=0?'+':''}${s.changeToday.toFixed(2)}%</strong>
-    </span>`).join('') + `</div>`;
+    </span>`;
+  }).join('') + `</div>`;
 }
 refreshSectors();
 startVisibilityAwareRefresh(refreshSectors, SECTOR_REFRESH_MS);

@@ -428,6 +428,41 @@ bugs, verify every change live) added, on top of everything above:
   of the codebase's XSS-prevention pattern — fixed to use `escapeHtml`
   consistently for both date/id and text.
 
+- **Sector performance panel now uses heatmap-style color intensity** (a
+  still-later `/loop` pass, same session): sector pills were flat good/
+  bad colored regardless of magnitude, unlike every other heatmap
+  surface in the app (Top Gainers/Crypto/Futures). Now uses the same
+  `color-mix` intensity-by-magnitude formula, clamped at 5% for full
+  intensity — same threshold as the Futures heatmap, since a whole-
+  sector aggregate moves even less day-to-day than an individual
+  contract. Verified live: a +2.72% sector rendered at the correct
+  ~36% intensity mix.
+- **First-ever server-side audit fork this session, one real bug
+  found and fixed**: every prior audit this session covered client-side
+  js/*.js; this cycle covered the remaining api/*.js serverless
+  functions (scanner-crypto/-futures/-news, check-alerts, _lib/
+  supabase — scanner-gainers.js/_lib/finviz.js were already reasonably
+  reviewed while adding the new Finviz columns). Found `api/check-
+  alerts.js`'s `getFiredState()`/`saveFiredState()` were the only two
+  fetch call sites in the file NOT checking `res.ok`, unlike
+  `sendTelegram()`/`sendDiscordWebhook()` in the same file. Concrete,
+  realistic (not hypothetical) impact since this runs unattended every
+  2 minutes via Supabase pg_cron: a transient Supabase **read** failure
+  made the function "fail open" to an empty fired-state, re-alerting
+  every condition that already fired earlier that day; a transient
+  Supabase **write** failure silently dropped this run's dedup state
+  entirely, so the very next 2-minute tick would re-fire the same
+  alerts it just sent — both "fails invisible," no error surfaced
+  anywhere. Fixed by adding the same `if(!res.ok) throw` guard the
+  file's own send functions already use, so a Supabase hiccup now
+  surfaces as a clear 502 from the handler instead of silently
+  corrupting the dedup state. Not fully live-testable locally (no
+  TELEGRAM_CHAT_ID in the dev `.env`, and the write path shouldn't be
+  exercised against production's real dedup-state row) — verified via
+  syntax check and direct code review; the fix is a narrow, well-
+  understood pattern identical to two other functions already in the
+  same file.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
