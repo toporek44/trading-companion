@@ -395,6 +395,16 @@ bugs, verify every change live) added, on top of everything above:
   any sort call site, but matched to futures' pattern defensively in
   case that filtering ever changes.
 
+- **Earnings-date flag reaches Today's Top Picks too** (a still-later
+  `/loop` pass, same session): the badge shipped last cycle only lived
+  on each card's own expand/collapse row, but Top Picks is the one place
+  in the Scanner explicitly designed to be scannable without opening any
+  card — a top pick with earnings today is exactly the kind of risk that
+  belongs in the shortlist itself, not hidden behind a click. Reuses
+  `scannerEarningsFlag` with zero new logic. Verified live: a real A+
+  top pick with earnings today showed the badge correctly in the
+  shortlist.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/

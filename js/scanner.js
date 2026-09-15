@@ -1143,6 +1143,7 @@ function renderScannerTopPicks(){
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="mono" style="font-weight:700;font-size:15px;">${d.ticker}</span>
         <span class="pill ${d.setupGrade.cls}">${d.setupGrade.grade} &middot; ${d.setupGrade.label}</span>
+        ${(() => { const ef = scannerEarningsFlag(d.row.earningsDate); return ef ? `<span class="pill neutral" title="Earnings ${ef.label} — extra volatility risk">&#128203; Earnings ${ef.label}</span>` : ''; })()}
       </div>
       <div class="num ${d.pct>=0?'good':'bad'}" style="font-weight:700;white-space:nowrap;">${d.pct>=0?'+':''}${d.pct.toFixed(2)}% @ $${d.price.toFixed(2)}</div>
     </div>
