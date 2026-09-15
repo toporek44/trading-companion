@@ -390,6 +390,51 @@ export function renderStatsByStrategy(){
   state.trades.forEach(t => { const k = t.strategy || 'Other'; (groups[k] = groups[k]||[]).push(t); });
   document.getElementById('stats-by-strategy').innerHTML = statsTableHtml(groups);
 }
+// ---------- Performance by day of week (Tradervue/Edgewonk staple) ----------
+// Answers "which days do I actually trade well on" — a real, common
+// journal feature this app didn't have despite already storing everything
+// needed (t.date as ISO YYYY-MM-DD). Parsed with an explicit UTC midnight
+// anchor (`T00:00:00Z`) rather than bare `new Date(t.date)` — same
+// UTC-day-boundary convention already used app-wide (scanner.js's
+// scannerTodayStr, srs.js's todayStr) — so a date string never shifts to
+// the wrong weekday depending on the browser's local timezone offset.
+const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+export function groupsByWeekday(list){
+  const groups = {};
+  WEEKDAY_NAMES.forEach(name => { groups[name] = []; });
+  list.forEach(t => {
+    if(!t.date) return;
+    const d = new Date(`${t.date}T00:00:00Z`);
+    if(isNaN(d.getTime())) return;
+    groups[WEEKDAY_NAMES[d.getUTCDay()]].push(t);
+  });
+  return groups;
+}
+export function renderStatsByWeekday(){
+  const root = document.getElementById('stats-by-weekday');
+  if(!root) return;
+  const groups = groupsByWeekday(state.trades);
+  const fmtPct = v => v==null ? '—' : Math.round(v*100)+'%';
+  const fmtR = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2)+'R';
+  const fmtUsd = v => (v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
+  // Calendar order (Sun-Sat), not sorted by P&L — the whole point is
+  // seeing the week's own shape, not a leaderboard.
+  const rows = WEEKDAY_NAMES.map(name => ({ name, s: computeStats(groups[name]) }));
+  if(rows.every(r => r.s.total === 0)){
+    root.innerHTML = `<div class="empty-state" style="padding:16px;"><div>Not enough trades yet.</div></div>`;
+    return;
+  }
+  root.innerHTML = `<table style="min-width:0;"><thead><tr><th>Day</th><th>#</th><th>Win%</th><th>Avg R</th><th>Expectancy</th><th>Total P&amp;L</th></tr></thead><tbody>
+    ${rows.map(r => `<tr>
+      <td>${r.name}</td>
+      <td class="num">${r.s.total}</td>
+      <td class="num">${fmtPct(r.s.winRate)}</td>
+      <td class="num">${fmtR(r.s.avgR)}</td>
+      <td class="num ${r.s.expectancy>0?'good':(r.s.expectancy<0?'bad':'')}">${r.s.expectancy==null?'—':fmtUsd(r.s.expectancy)}</td>
+      <td class="num ${r.s.totalPnl>0?'good':(r.s.totalPnl<0?'bad':'')}">${r.s.total?fmtUsd(r.s.totalPnl):'—'}</td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
 export function renderStatsByTag(){
   const groups = {};
   state.trades.forEach(t => {

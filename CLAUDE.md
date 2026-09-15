@@ -495,6 +495,28 @@ bugs, verify every change live) added, on top of everything above:
   reversal on the collapsed view immediately explained why its Setup
   Grade had been docked, without needing to expand anything.
 
+- **"By day of week" journal stats table added** (a still-later `/loop`
+  pass, same session — the first Journal-area feature after several
+  cycles focused entirely on the Scanner): a real Tradervue/Edgewonk
+  staple ("which days do I actually trade well on") that this app never
+  had, despite already storing everything needed (`t.date` as ISO
+  `YYYY-MM-DD`). `groupsByWeekday`/`renderStatsByWeekday`
+  (js/journal-stats.js) reuse the existing `computeStats` per-group
+  pattern already established for By-Strategy/By-Tag, but deliberately
+  render in fixed Sun–Sat calendar order rather than sorted by P&L —
+  the point is seeing the week's own shape, not a leaderboard. Parsed
+  with an explicit `T00:00:00Z` UTC-midnight anchor rather than bare
+  `new Date(t.date)`, matching the same UTC-day-boundary convention
+  already used app-wide (scanner.js's `scannerTodayStr`, srs.js's
+  `todayStr`) so a date string never shifts to the wrong weekday
+  depending on the browser's local timezone offset. Verified the
+  weekday math directly in Node against the real current date
+  (2026-09-15 → correctly resolved to Tuesday) since production's
+  Journal currently has zero real trades to visually verify against
+  (consistent with this session's standing caution against fabricating
+  test trades in the live account) — the empty-state path rendered
+  correctly with no crash.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
