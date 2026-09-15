@@ -1083,7 +1083,8 @@ function scannerRowHtml(data, rank){
         <div class="sc-stat"><span class="k">Rel Vol</span><span class="v num" style="${relVol!=null && relVol>=5 ? 'color:var(--good);font-weight:700;' : ''}">${relVol!=null ? relVol.toFixed(1)+'x' : '—'}</span></div>
         <div class="sc-stat"><span class="k">Float</span><span class="v num">${floatM!=null ? floatM.toFixed(1)+'M' : '—'}</span></div>
         <div class="sc-stat"><span class="k">Pillars</span><span class="v"><span class="pill ${pillarCount===5?'good':'neutral'}">${pillarCount}/5</span></span></div>
-        <div class="sc-stat"><span class="k">Setup grade</span><span class="v"><span class="pill ${setupGrade.cls}" title="Mechanical score from Pillars + rel. volume + news freshness — not investment advice.">${setupGrade.grade} &middot; ${setupGrade.label}</span></span></div>
+        <div class="sc-stat"><span class="k">Setup grade</span><span class="v"><span class="pill ${setupGrade.cls}" title="Mechanical score from Pillars + rel. volume + news freshness, docked for imminent earnings/reversing momentum — not investment advice.">${setupGrade.grade} &middot; ${setupGrade.label}</span></span></div>
+        <div class="sc-stat"><span class="k">5min &Delta;</span><span class="v num" style="${row.momentum5m!=null?'color:'+(row.momentum5m>=0?'var(--good)':'var(--bad)')+';':''}" title="Intraday momentum over the last 5 minutes (Finviz Elite)">${row.momentum5m!=null ? (row.momentum5m>=0?'+':'')+row.momentum5m.toFixed(2)+'%' : '—'}</span></div>
       </div>
     </div>
     <div class="sc-card-detail" ${expanded ? '' : 'hidden'}>

@@ -483,6 +483,18 @@ bugs, verify every change live) added, on top of everything above:
   detail panel's explanatory hint renders the updated copy correctly
   with no console errors.
 
+- **5min momentum reaches the collapsed card too** (a still-later `/loop`
+  pass, same session): the momentum data was only visible in the detail
+  panel's paragraph, requiring a click to see the exact signal that now
+  also feeds Setup Grade's score. Added a "5min Δ" stat tile alongside
+  Price/Volume/Rel Vol/Float/Pillars/Setup grade — same at-a-glance
+  tier as everything else already there, matching this session's own
+  precedent (Rel Vol/Float already exist as both a top-level stat and a
+  more detailed pillar-breakdown line; momentum now gets the same
+  treatment). Verified live: a real card showing a real -13.40% 5min
+  reversal on the collapsed view immediately explained why its Setup
+  Grade had been docked, without needing to expand anything.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
