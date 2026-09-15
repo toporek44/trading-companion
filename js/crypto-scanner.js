@@ -267,7 +267,14 @@ function cryptoSortRows(coins, scope){
         case 'price': return c.price;
         case 'volume': return c.volume ?? -Infinity;
         case 'marketCap': return c.marketCap ?? -Infinity;
-        default: return Math.abs(c.pct ?? -Infinity); // "pct" sorts by |change| — matches "Top movers" semantics (a -30% mover is as notable as +30%)
+        // "pct" sorts by |change| — matches "Top movers" semantics (a -30% mover
+        // is as notable as +30%). Null-checked before Math.abs (not
+        // Math.abs(c.pct ?? -Infinity), which would wrongly evaluate to +Infinity
+        // and rank an unknown-move coin as the day's #1 mover) — not currently
+        // reachable since cryptoFilterRow already excludes null-pct rows before
+        // any sort call site, but matches futuresSortRows' safer defensive
+        // pattern in case that filtering ever changes.
+        default: return c.pct == null ? -Infinity : Math.abs(c.pct);
       }
     };
     const av = pick(a), bv = pick(b);

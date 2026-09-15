@@ -374,6 +374,27 @@ bugs, verify every change live) added, on top of everything above:
   rather than trusting an old assumption forever — the Sector fix and
   this fix both came from the exact same one curl command.
 
+- **New Finviz fields wired into sort/CSV export too** (a still-later
+  `/loop` pass, same session; an audit fork on crypto-scanner.js/
+  futures-scanner.js's core sort/filter/heatmap/CSV/refresh-race logic
+  this cycle came back clean): the Sector/Earnings/Momentum fields added
+  last cycle only showed in each card's detail panel — same "built but
+  never wired up" trap this session has caught before (the theme toggle,
+  `.stat-tile.is-good/is-bad`, `.serif-num`). Added Sector, EarningsDate,
+  Momentum5m%, Momentum15m% to the Stocks CSV export
+  (`scannerRowToCsvFields`) and a new "5min Δ" sort button on both the
+  Top Gainers and Most Active sort bars (`momentum5m` case in
+  `scannerSortRows`) — lets a trader actually rank by what's
+  accelerating/stalling right now, not just re-derive it by opening
+  every card. The audit fork also flagged one latent (not currently
+  reachable) inconsistency: crypto's own momentum-agnostic `pct` sort
+  comparator used `Math.abs(c.pct ?? -Infinity)`, which evaluates to
+  `+Infinity` for a null pct — futures' equivalent already used the safer
+  `c.pct == null ? -Infinity : Math.abs(c.pct)` pattern. Not reachable
+  today since `cryptoFilterRow` already excludes null-pct rows before
+  any sort call site, but matched to futures' pattern defensively in
+  case that filtering ever changes.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/

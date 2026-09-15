@@ -931,6 +931,7 @@ function scannerSortRows(rows, scope){
         case 'floatrot': return d.floatRotation != null ? d.floatRotation : -Infinity;
         case 'shortpct': return d.shortFloatPct != null ? d.shortFloatPct : -Infinity;
         case 'news': return d.newsHours != null ? d.newsHours : Infinity; // ascending click = freshest (lowest hours) first, unchecked sorts last
+        case 'momentum5m': return d.row.momentum5m != null ? d.row.momentum5m : -Infinity;
         default: return d.pillarCount;
       }
     };
@@ -1192,6 +1193,9 @@ function scannerRowToCsvFields(d, list, rank){
     list, rank, d.ticker, d.price.toFixed(2), d.pct.toFixed(2), d.vol,
     d.relVol != null ? d.relVol.toFixed(1) : '', d.floatM != null ? d.floatM.toFixed(1) : '',
     d.pillarCount, d.setupGrade.grade, d.newsEntry?.headline || '',
+    d.row.sector || '', d.row.earningsDate || '',
+    d.row.momentum5m != null ? d.row.momentum5m.toFixed(2) : '',
+    d.row.momentum15m != null ? d.row.momentum15m.toFixed(2) : '',
   ];
 }
 // Shared by all three scanner tabs' auto-refresh loops. A plain
@@ -1220,7 +1224,7 @@ export function startVisibilityAwareRefresh(refreshFn, intervalMs){
 function exportScannerCsv(){
   const { gainers, active } = scannerVisibleRows();
   if(gainers.length === 0 && active.length === 0){ scannerStatus('Nothing to export yet — refresh the scanner first.'); return; }
-  const header = ['List','Rank','Ticker','Price','Change%','Volume','RelVol','FloatM','Pillars','SetupGrade','Headline'];
+  const header = ['List','Rank','Ticker','Price','Change%','Volume','RelVol','FloatM','Pillars','SetupGrade','Headline','Sector','EarningsDate','Momentum5m%','Momentum15m%'];
   const rows = [
     ...gainers.map((d,i) => scannerRowToCsvFields(d, 'Top Gainers', i+1)),
     ...active.map((d,i) => scannerRowToCsvFields(d, 'Most Active', i+1)),
