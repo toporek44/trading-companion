@@ -820,14 +820,24 @@ export function checkScannerPriceAlerts(allRawRows, keyFn = (r) => r.ticker, pri
   if(!scannerAlertsActive()) return; // don't silently consume a one-shot target while notifications are off
   const alerts = getScannerPriceAlerts();
   if(alerts.length === 0) return;
+  // A ticker can legitimately appear twice in one call (e.g. a big mover
+  // shows up in both Top Gainers and Most Active) — `alerts` above is
+  // captured once before the loop, so removeScannerPriceAlert(key)
+  // updating localStorage doesn't stop a second occurrence in the same
+  // pass from re-matching the same still-in-memory alert and firing (and
+  // removing) it again. Found live: a real crossing fired the same
+  // notification twice in one refresh. Tracked here instead.
+  const firedThisPass = new Set();
   allRawRows.forEach(row => {
     const price = priceFn(row);
     if(price == null) return;
     const key = keyFn(row);
+    if(firedThisPass.has(key)) return;
     const alert = alerts.find(a => a.ticker === key);
     if(!alert) return;
     const crossed = alert.direction === 'above' ? price >= alert.target : price <= alert.target;
     if(!crossed) return;
+    firedThisPass.add(key);
     removeScannerPriceAlert(key);
     const label = key.includes(':') ? key.split(':')[1] : key;
     const fmt = (n) => n < 1 ? n.toPrecision(4) : n.toFixed(2); // sub-$1 crypto needs more precision than 2dp
