@@ -19,7 +19,13 @@
 // OHLC bars needed). Confirmed via the same "add a candidate ID, deploy,
 // curl production" pattern used for every other Finviz quirk this
 // session, not a guess.
-export const DEFAULT_COLUMNS = '1,3,4,65,66,67,63,64,25,30,31,68,93,95';
+// Column 70 (IPO Date) was verified live in the same column dump as
+// Sector/Earnings/Momentum above but left unwired at the time (lower
+// priority than the others). Wired in now: a recent IPO trades on a much
+// smaller float/trading history than an established name, which the SAC
+// framework's own float-based risk sizing already cares about — this is
+// the plain-English version of that same signal, not a new invented one.
+export const DEFAULT_COLUMNS = '1,3,4,65,66,67,63,64,25,30,31,68,70,93,95';
 
 export function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
@@ -93,6 +99,7 @@ export function shapeRow(row){
     // move since yesterday's close.
     momentum5m: toNumber(findCol(row, 'Performance (5 Minutes)')),
     momentum15m: toNumber(findCol(row, 'Performance (15 Minutes)')),
+    ipoDate: findCol(row, 'IPO Date') || null,
   };
 }
 

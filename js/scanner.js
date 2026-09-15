@@ -1047,10 +1047,26 @@ function scannerEarningsFlag(earningsDate){
   return { label: `${Math.abs(daysUntil)} day${Math.abs(daysUntil)===1?'':'s'} ago`, daysUntil };
 }
 
+// Recent-IPO context — a stock that IPO'd in the last 12 months trades on
+// a much smaller float/trading history than an established name, which
+// the SAC framework's own float-based risk sizing already treats as a
+// bigger-swing setup. Same defensive Date-parsing guard as the earnings
+// flag above (Finviz's date format has been observed inconsistent enough
+// to warrant it).
+function scannerIpoFlag(ipoDate){
+  if(!ipoDate) return null;
+  const d = new Date(ipoDate);
+  if(isNaN(d.getTime())) return null;
+  const monthsAgo = (Date.now() - d.getTime()) / (30.44 * 86400000);
+  if(monthsAgo < 0 || monthsAgo > 12) return null;
+  return { label: monthsAgo < 1 ? 'this month' : `~${Math.round(monthsAgo)}mo ago` };
+}
+
 function scannerRowHtml(data, rank){
   const { ticker, price, pct, vol, manual, newsEntry, catalystType, floatM, avgVolM, relVol, floatRotation, pillarCount, pillarBreakdown, setupGrade, shortFloatPct, shortRatio, watched, row } = data;
   const sectorPerf = scannerSectorPerf(row.sector);
   const earningsFlag = scannerEarningsFlag(row.earningsDate);
+  const ipoFlag = scannerIpoFlag(row.ipoDate);
   const expanded = scannerExpandedTickers.has(ticker);
   const shortTitle = shortRatio != null ? `Short ratio (days to cover): ${shortRatio.toFixed(2)}` : '';
   const freshnessIconHtml = newsEntry && newsEntry.hoursOld != null
@@ -1103,7 +1119,7 @@ function scannerRowHtml(data, rank){
           <h4>Why ${pillarCount}/5 pillars</h4>
           <ul style="margin:0;padding:0;list-style:none;">${pillarBreakdownHtml}</ul>
           <p class="sc-detail-hint" style="margin-top:10px;">Setup grade <strong>${setupGrade.grade}</strong> (${setupGrade.label}) is a mechanical score from pillar count + how far rel. volume clears 5x + news freshness, docked for earnings within 2 days or a 5min move already reversing against the daily trend. It is <strong>not</strong> a buy/sell recommendation — no fundamentals or price target behind it.</p>
-          ${row.sector ? `<p class="sc-detail-hint" style="margin-top:8px;">Sector: <strong>${escapeHtml(row.sector)}</strong>${row.industry ? ` &middot; ${escapeHtml(row.industry)}` : ''}${sectorPerf ? ` &mdash; sector is ${sectorPerf.changeToday>=0?'up':'down'} <strong style="color:${sectorPerf.changeToday>=0?'var(--good)':'var(--bad)'};">${sectorPerf.changeToday>=0?'+':''}${sectorPerf.changeToday.toFixed(2)}%</strong> today, this stock is ${Math.abs(pct - sectorPerf.changeToday) < 0.01 ? 'in line with it' : (pct > sectorPerf.changeToday ? 'outperforming it' : 'underperforming it')}` : ''}</p>` : ''}
+          ${row.sector ? `<p class="sc-detail-hint" style="margin-top:8px;">Sector: <strong>${escapeHtml(row.sector)}</strong>${row.industry ? ` &middot; ${escapeHtml(row.industry)}` : ''}${sectorPerf ? ` &mdash; sector is ${sectorPerf.changeToday>=0?'up':'down'} <strong style="color:${sectorPerf.changeToday>=0?'var(--good)':'var(--bad)'};">${sectorPerf.changeToday>=0?'+':''}${sectorPerf.changeToday.toFixed(2)}%</strong> today, this stock is ${Math.abs(pct - sectorPerf.changeToday) < 0.01 ? 'in line with it' : (pct > sectorPerf.changeToday ? 'outperforming it' : 'underperforming it')}` : ''}${ipoFlag ? ` &mdash; <strong>recent IPO</strong> (${ipoFlag.label}), typically thinner float/trading history than an established name` : ''}</p>` : ''}
           ${row.momentum5m != null || row.momentum15m != null ? `<p class="sc-detail-hint" style="margin-top:8px;">Intraday momentum &mdash; last 5min: <strong style="color:${(row.momentum5m||0)>=0?'var(--good)':'var(--bad)'};">${row.momentum5m!=null?(row.momentum5m>=0?'+':'')+row.momentum5m.toFixed(2)+'%':'—'}</strong> &middot; last 15min: <strong style="color:${(row.momentum15m||0)>=0?'var(--good)':'var(--bad)'};">${row.momentum15m!=null?(row.momentum15m>=0?'+':'')+row.momentum15m.toFixed(2)+'%':'—'}</strong> &mdash; ${row.momentum5m!=null && Math.sign(row.momentum5m) !== Math.sign(pct) ? 'reversing against the daily move in just the last few minutes' : 'still moving in the same direction as the daily move'}</p>` : ''}
         </div>
         <div class="sc-detail-col">

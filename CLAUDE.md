@@ -572,6 +572,28 @@ bugs, verify every change live) added, on top of everything above:
   Verified live: both ARIA labels render correctly and are distinct
   per-row.
 
+- **IPO Date wired in; a real duplicate-notification bug fixed** (final
+  `/loop` passes, same session): column 70 (IPO Date) was verified live
+  in the same 1-100 column dump as Sector/Earnings/Momentum but left
+  unwired at the time. Added to `DEFAULT_COLUMNS`/`shapeRow`
+  (api/_lib/finviz.js, re-verified live via curl) and a `scannerIpoFlag`
+  helper (js/scanner.js) flagging any stock that IPO'd within the last
+  12 months in the same sector-context paragraph — a recent IPO trades
+  on a much thinner float/history than an established name, the same
+  signal the SAC framework's float-based risk sizing already cares
+  about. Verified the month-math directly in Node (19mo-ago correctly
+  suppressed, 3mo-ago and 5-days-ago both correctly flagged) since no
+  ticker in the live scan at test time happened to be inside the recent-
+  IPO window. Also fixed a real, confirmed-live duplicate-notification
+  bug in `checkScannerPriceAlerts`: a ticker can legitimately appear in
+  both Top Gainers and Most Active (confirmed most refreshes have
+  several such overlaps), and since `alerts` is captured once before the
+  loop while `removeScannerPriceAlert` only updates localStorage, a
+  ticker present twice in the combined list could match and fire the
+  same one-shot alert twice in a single pass — reproduced live with a
+  real crossing before the fix, confirmed silent after it. Added a
+  per-call `Set` to skip a key already handled that pass.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
