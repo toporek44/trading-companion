@@ -596,6 +596,22 @@ try{
             <div class="field"><label for="sc-maxprice">Max price</label><input type="number" step="any" id="sc-maxprice" value="20"></div>
             <div class="field"><label for="sc-minpct">Min % change</label><input type="number" step="any" id="sc-minpct" value="10"></div>
             <div class="field"><label for="sc-minvol">Min volume (liquidity proxy)</label><input type="number" step="any" id="sc-minvol" value="500000"></div>
+            <div class="field"><label for="sc-sector-filter">Sector</label>
+              <select id="sc-sector-filter">
+                <option value="all">All sectors</option>
+                <option value="Basic Materials">Basic Materials</option>
+                <option value="Communication Services">Communication Services</option>
+                <option value="Consumer Cyclical">Consumer Cyclical</option>
+                <option value="Consumer Defensive">Consumer Defensive</option>
+                <option value="Energy">Energy</option>
+                <option value="Financial">Financial</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Industrials">Industrials</option>
+                <option value="Real Estate">Real Estate</option>
+                <option value="Technology">Technology</option>
+                <option value="Utilities">Utilities</option>
+              </select>
+            </div>
           </div>
           <button type="button" class="btn" id="sc-filters-reset" style="margin-top:10px;">Reset to defaults</button>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">

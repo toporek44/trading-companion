@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, escapeHtml } from './state.js';
 
 // ---------- Brief ----------
 export function renderBrief(){
@@ -14,13 +14,13 @@ export function renderBrief(){
   listEl.innerHTML = state.briefs.map(b => `
     <div class="card" style="margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-        <strong class="mono" style="font-size:.85rem;color:var(--accent);">${b.date||b.id}</strong>
+        <strong class="mono" style="font-size:.85rem;color:var(--accent);">${escapeHtml(b.date||b.id)}</strong>
       </div>
-      <div style="white-space:pre-wrap;font-size:.9rem;">${(b.text||'').replace(/</g,'&lt;')}</div>
+      <div style="white-space:pre-wrap;font-size:.9rem;">${escapeHtml(b.text||'')}</div>
     </div>`).join('');
   const latest = state.briefs[0];
   const snippet = (latest.text||'').slice(0,220);
-  dashEl.innerHTML = `<div class="mono" style="font-size:.8rem;color:var(--accent);margin-bottom:6px;">${latest.date||latest.id}</div>
-    <p style="margin:0 0 10px;font-size:.88rem;color:var(--muted);white-space:pre-wrap;">${snippet.replace(/</g,'&lt;')}${(latest.text||'').length>220?'…':''}</p>
+  dashEl.innerHTML = `<div class="mono" style="font-size:.8rem;color:var(--accent);margin-bottom:6px;">${escapeHtml(latest.date||latest.id)}</div>
+    <p style="margin:0 0 10px;font-size:.88rem;color:var(--muted);white-space:pre-wrap;">${escapeHtml(snippet)}${(latest.text||'').length>220?'…':''}</p>
     <button class="btn" onclick="document.querySelector('[data-page=brief]').click()">Read full brief</button>`;
 }

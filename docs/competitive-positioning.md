@@ -58,6 +58,7 @@ what's worth building next and what's a real, informed gap to accept.
 | Sector performance / relative strength | Finviz Elite's own "Groups" tab, TC2000 | All 11 sectors' today's % change as sorted color pills (own endpoint, `grp_export.ashx?g=sector`), plus each stock card's detail shows whether it's outperforming/underperforming its own sector today — real per-sector data, not a guess |
 | Multi-timeframe intraday momentum | Trade Ideas, TC2000, thinkorswim | Real 5min/15min % move per stock, straight from Finviz Elite's own computed columns (no raw OHLC bars needed, contrary to this doc's own earlier "blocked" assumption) — detail panel flags whether the last few minutes agree with or are reversing the daily move |
 | Earnings-date risk flag | thinkorswim, Trade Ideas | "📋 Earnings in/ago N days" badge on any card within ±5 days of a real (Finviz-verified) earnings date — trading through an earnings print is a real, named volatility risk in this app's own reference material |
+| Sector filter | Finviz Elite's own Screener | Categorical dropdown (all 11 Finviz sectors) in the Stocks Filters card, wired into saved presets and Reset-to-defaults like every other filter field |
 
 ## Real, informed gaps — deliberately not built, and why
 

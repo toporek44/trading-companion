@@ -39,6 +39,10 @@ loadPriceRangeSetting();
 ['sc-minprice','sc-maxprice','sc-minpct','sc-minvol'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderScannerTables);
 });
+// Sector filter (Finviz Elite's own Screener has this) — a <select>, not a
+// numeric field, so it's wired with 'change' like the preset dropdown
+// rather than joining the 'input'-driven numeric fields above.
+document.getElementById('sc-sector-filter').addEventListener('change', renderScannerTables);
 
 // Top Picks count — a per-browser display preference (how many, not what
 // data), same tier as the Cards/Heatmap view toggle, so plain localStorage
@@ -57,7 +61,7 @@ document.getElementById('sc-maxprice').addEventListener('change', savePriceRange
 // one-click way back to the worksheet's own $2-$20/10%/500k baseline
 // without knowing those numbers by heart. Mirrors the Journal's own
 // "Clear filters" button.
-const SCANNER_FILTER_DEFAULTS = { 'sc-minprice': '2', 'sc-maxprice': '20', 'sc-minpct': '10', 'sc-minvol': '500000' };
+const SCANNER_FILTER_DEFAULTS = { 'sc-minprice': '2', 'sc-maxprice': '20', 'sc-minpct': '10', 'sc-minvol': '500000', 'sc-sector-filter': 'all' };
 document.getElementById('sc-filters-reset').addEventListener('click', () => {
   Object.entries(SCANNER_FILTER_DEFAULTS).forEach(([id, val]) => { document.getElementById(id).value = val; });
   document.getElementById('sc-preset-select').value = '';
@@ -72,7 +76,7 @@ document.getElementById('sc-filters-reset').addEventListener('click', () => {
 // four fields. Synced via the same Supabase 'progress' table/pattern as the
 // price-range setting above — one array of {name,min,max,minpct,minvol}.
 const PRESETS_KEY = 'scanner-presets';
-const PRESET_FIELD_IDS = { min: 'sc-minprice', max: 'sc-maxprice', minpct: 'sc-minpct', minvol: 'sc-minvol' };
+const PRESET_FIELD_IDS = { min: 'sc-minprice', max: 'sc-maxprice', minpct: 'sc-minpct', minvol: 'sc-minvol', sector: 'sc-sector-filter' };
 let scannerPresets = [];
 
 function renderPresetOptions(){
@@ -110,6 +114,7 @@ document.getElementById('sc-preset-save').addEventListener('click', () => {
   if(!name) return;
   const values = {};
   Object.entries(PRESET_FIELD_IDS).forEach(([field, id]) => {
+    if(field === 'sector'){ values[field] = document.getElementById(id).value; return; } // string, not a number field
     const v = parseFloat(document.getElementById(id).value);
     values[field] = isNaN(v) ? null : v;
   });
@@ -230,6 +235,11 @@ function scannerFilterRow(row){
   const maxP = parseFloat(document.getElementById('sc-maxprice').value) || Infinity;
   const minPct = parseFloat(document.getElementById('sc-minpct').value) || 0;
   const minVol = parseFloat(document.getElementById('sc-minvol').value) || 0;
+  const sectorFilter = document.getElementById('sc-sector-filter').value;
+  // A ticker with no Sector data at all (rare, but possible) fails a
+  // specific-sector filter rather than silently passing through under an
+  // "unknown" bucket — matches "All sectors" being the only way to see it.
+  if(sectorFilter !== 'all' && row.sector !== sectorFilter) return false;
   return row.price >= minP && row.price <= maxP && Math.abs(row.pct) >= minPct && row.vol >= minVol;
 }
 // Manual per-ticker News/Float overrides — always available as a correction

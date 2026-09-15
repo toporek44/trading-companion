@@ -405,6 +405,29 @@ bugs, verify every change live) added, on top of everything above:
   top pick with earnings today showed the badge correctly in the
   shortlist.
 
+- **Sector filter added to Stocks Filters** (a still-later `/loop` pass,
+  same session; a 5th audit fork this cycle covering market-clock.js/
+  theme-toggle.js/nav.js/brief.js/strategy-cards.js came back mostly
+  clean — market-clock's DST-sensitive wall-clock math, theme-toggle,
+  nav.js's title lookup, and strategy-cards' static data all held up):
+  a categorical Sector dropdown (the 11 fixed Finviz sector names) in
+  the existing Filters card, wired into `scannerFilterRow`, the saved-
+  presets system (`PRESET_FIELD_IDS`/`SCANNER_FILTER_DEFAULTS` — the
+  preset-save handler needed a small special case since it previously
+  assumed every filter field was numeric via `parseFloat`, which would
+  have silently saved `null` for a sector string), and Reset-to-defaults.
+  Verified live: selecting Technology correctly narrowed 7 gainer cards
+  to 1, Reset correctly restored "All sectors."
+- **Real bug fixed from the audit fork above**: `js/brief.js` interpolated
+  `b.date||b.id` completely unescaped into innerHTML, while the adjacent
+  `.text` field used an ad-hoc partial escape (`.replace(/</g,'&lt;')`)
+  instead of the shared `escapeHtml` helper (js/state.js) every other
+  file uses. Not exploitable through this app's own UI today (no in-app
+  form writes to the `briefs` table, only an external scheduled task
+  does), but a real defense-in-depth gap and inconsistency with the rest
+  of the codebase's XSS-prevention pattern — fixed to use `escapeHtml`
+  consistently for both date/id and text.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
