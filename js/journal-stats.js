@@ -247,13 +247,23 @@ export function buildCoachInsights(list, plan){
     }
   }
 
-  // 5. Worst and best strategy/tag by total P&L (min 3 trades each)
+  // 5. Worst and best strategy/tag/direction/market by total P&L (min 3
+  // trades each). Direction/market were added as candidate pools alongside
+  // the existing strategy/tag ones once By-Direction/By-Market got their
+  // own stats tables — same underlying groupsBy* shape, so this just
+  // widens the same "what's really working/not working" search rather
+  // than needing new logic. 'Unspecified' is excluded the same way 'Other'
+  // already is for strategy — neither is a real, actionable grouping.
   {
     const candidates = [];
     const byStrat = groupsByStrategy(trades);
     Object.keys(byStrat).forEach(k => { if(k !== 'Other') candidates.push({label:k, kind:'strategy', list:byStrat[k]}); });
     const byTag = groupsByTagFlat(trades);
     Object.keys(byTag).forEach(k => candidates.push({label:k, kind:'tag', list:byTag[k]}));
+    const byDirection = groupsByDirection(trades);
+    Object.keys(byDirection).forEach(k => { if(k !== 'Unspecified') candidates.push({label:k, kind:'direction', list:byDirection[k]}); });
+    const byMarket = groupsByMarket(trades);
+    Object.keys(byMarket).forEach(k => { if(k !== 'Unspecified') candidates.push({label:k, kind:'market', list:byMarket[k]}); });
     const scored = candidates.filter(c => c.list.length >= 3).map(c => ({...c, s: computeStats(c.list)}));
 
     const worst = scored.filter(c => c.s.totalPnl < 0).sort((a,b) => a.s.totalPnl - b.s.totalPnl)[0];
@@ -450,17 +460,23 @@ export function renderStatsByTag(){
 // statsTableHtml() (P&L-sorted, like Strategy/Tag) rather than the fixed
 // calendar-order table By-Day-of-Week needed, since direction/market have
 // no natural inherent order the way a week does.
-export function renderStatsByDirection(){
+export function groupsByDirection(list){
   const groups = {};
-  state.trades.forEach(t => { const k = t.direction || 'Unspecified'; (groups[k] = groups[k]||[]).push(t); });
+  list.forEach(t => { const k = t.direction || 'Unspecified'; (groups[k] = groups[k]||[]).push(t); });
+  return groups;
+}
+export function groupsByMarket(list){
+  const groups = {};
+  list.forEach(t => { const k = t.market || 'Unspecified'; (groups[k] = groups[k]||[]).push(t); });
+  return groups;
+}
+export function renderStatsByDirection(){
   const el = document.getElementById('stats-by-direction');
-  if(el) el.innerHTML = statsTableHtml(groups);
+  if(el) el.innerHTML = statsTableHtml(groupsByDirection(state.trades));
 }
 export function renderStatsByMarket(){
-  const groups = {};
-  state.trades.forEach(t => { const k = t.market || 'Unspecified'; (groups[k] = groups[k]||[]).push(t); });
   const el = document.getElementById('stats-by-market');
-  if(el) el.innerHTML = statsTableHtml(groups);
+  if(el) el.innerHTML = statsTableHtml(groupsByMarket(state.trades));
 }
 
 // ---------- Monthly P&L calendar heatmap ----------

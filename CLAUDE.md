@@ -529,6 +529,24 @@ bugs, verify every change live) added, on top of everything above:
   tables render the correct empty state with zero real trades in
   production, no crash.
 
+- **Trade Coach's worst/best insight widened to direction and market**
+  (a still-later `/loop` pass, same session): insight #5 (worst/best
+  strategy or tag by P&L) only searched two candidate pools; now also
+  searches By-Direction and By-Market (excluding 'Unspecified', same
+  exclusion pattern as strategy's 'Other') using the same
+  `groupsByDirection`/`groupsByMarket` just extracted as standalone
+  functions (matching `groupsByStrategy`/`groupsByTagFlat`'s existing
+  shape) so `renderStatsByDirection`/`renderStatsByMarket` and this
+  insight share one implementation instead of two. Caught and fixed a
+  real bug before shipping: the first draft called `groupsByDirection`/
+  `groupsByMarket` from inside `buildCoachInsights` before those
+  functions existed as anything other than inline logic buried inside
+  the two render functions — would have thrown a ReferenceError the
+  moment insight #5 ran. Verified the corrected logic in Node with
+  synthetic trades before trusting it (production's Journal has zero
+  real trades to test against) — worst/best correctly identified a
+  losing Short-direction cluster and a winning Long-direction cluster.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
