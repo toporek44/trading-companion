@@ -7,7 +7,7 @@ import { renderMilestones } from './milestones.js';
 import './journal.js';
 import './journal-shortcuts.js';
 import { renderTradesTable } from './journal.js';
-import { renderJournalStats, renderEquityChart, renderRHistogram, renderStatsByStrategy, renderStatsByTag, renderStatsByWeekday, renderCoachRules, renderWeeklyReport, renderPnlHeatmap, renderCircuitBreaker, renderTodayPnlBadge } from './journal-stats.js';
+import { renderJournalStats, renderEquityChart, renderRHistogram, renderStatsByStrategy, renderStatsByTag, renderStatsByWeekday, renderStatsByDirection, renderStatsByMarket, renderCoachRules, renderWeeklyReport, renderPnlHeatmap, renderCircuitBreaker, renderTodayPnlBadge } from './journal-stats.js';
 import { renderPlan } from './plan.js';
 import { renderLessons } from './lessons.js';
 import { renderPractice } from './practice.js';
@@ -30,6 +30,8 @@ export function renderAll(){
   renderRHistogram();
   renderStatsByStrategy();
   renderStatsByTag();
+  renderStatsByDirection();
+  renderStatsByMarket();
   renderStatsByWeekday();
   renderCoachRules();
   renderWeeklyReport();

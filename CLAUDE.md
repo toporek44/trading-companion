@@ -517,6 +517,18 @@ bugs, verify every change live) added, on top of everything above:
   test trades in the live account) — the empty-state path rendered
   correctly with no crash.
 
+- **By direction and by market stats tables added** (a still-later
+  `/loop` pass, same session): two more real Tradervue/Edgewonk
+  breakdowns ("am I better Long or Short," "which market do I actually
+  make money in") this app never had despite already storing both
+  fields (`t.direction`, `t.market`) on every trade. Reuses the existing
+  P&L-sorted `statsTableHtml()` helper directly — unlike By-Day-of-Week
+  (which needed a fixed calendar order), direction/market have no
+  natural inherent order, so the same leaderboard-style sort already
+  used for By-Strategy/By-Tag fits correctly. Verified live: both
+  tables render the correct empty state with zero real trades in
+  production, no crash.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/

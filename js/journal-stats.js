@@ -444,6 +444,24 @@ export function renderStatsByTag(){
   });
   document.getElementById('stats-by-tag').innerHTML = statsTableHtml(groups);
 }
+// By direction (Long vs Short) and by market (Stock/Options/Futures/
+// Crypto) — two more real Tradervue/Edgewonk breakdowns this app never
+// had despite already storing both fields on every trade. Reuses the same
+// statsTableHtml() (P&L-sorted, like Strategy/Tag) rather than the fixed
+// calendar-order table By-Day-of-Week needed, since direction/market have
+// no natural inherent order the way a week does.
+export function renderStatsByDirection(){
+  const groups = {};
+  state.trades.forEach(t => { const k = t.direction || 'Unspecified'; (groups[k] = groups[k]||[]).push(t); });
+  const el = document.getElementById('stats-by-direction');
+  if(el) el.innerHTML = statsTableHtml(groups);
+}
+export function renderStatsByMarket(){
+  const groups = {};
+  state.trades.forEach(t => { const k = t.market || 'Unspecified'; (groups[k] = groups[k]||[]).push(t); });
+  const el = document.getElementById('stats-by-market');
+  if(el) el.innerHTML = statsTableHtml(groups);
+}
 
 // ---------- Monthly P&L calendar heatmap ----------
 let heatmapMonth = new Date(); heatmapMonth.setDate(1);
