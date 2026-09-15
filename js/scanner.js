@@ -339,15 +339,32 @@ function scannerPillars(price, pct, vol, newsOk, floatM, relVol){
 // price-target model behind it — it's just a compressed read of "how many
 // of Ross Cameron's own criteria does this fully clear, and by how much."
 // Explicitly labeled "setup" (not "buy") to avoid implying investment advice.
-function scannerSetupScore(pillarCount, relVol, newsEntry, catalystType){
+function scannerSetupScore(pillarCount, relVol, newsEntry, catalystType, row){
   let score = pillarCount * 20;
   if(relVol != null) score += Math.min(relVol, 20);
   if(newsEntry && newsEntry.hoursOld != null && newsEntry.hoursOld < 2) score += 10;
   if(catalystType === 'merger') score -= 30; // dead catalyst — never a real setup regardless of score
+  // Two new signals from the Sector/Earnings/Momentum Finviz columns added
+  // this session — both are real, named risks in this app's own reference
+  // material (trading through an earnings print; a move that's already
+  // stalling out), not arbitrary penalties. Tighter ±2-day window than the
+  // ±5-day badge shown elsewhere — this is scoring "is this still a good
+  // setup right now," where only the report itself (and the day around it)
+  // is the acute risk, not a report that's merely coming up sometime soon.
+  if(row){
+    const earningsFlag = scannerEarningsFlag(row.earningsDate);
+    if(earningsFlag && Math.abs(earningsFlag.daysUntil) <= 2) score -= 20;
+    // A move that's already reversing hard against the daily trend in just
+    // the last 5 minutes is a real "this is stalling out" signal, not a
+    // guess — only penalize a meaningful reversal (>1%), not noise.
+    if(row.momentum5m != null && Math.sign(row.momentum5m) !== Math.sign(row.pct) && Math.abs(row.momentum5m) > 1){
+      score -= 15;
+    }
+  }
   return score;
 }
-function scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType){
-  const score = scannerSetupScore(pillarCount, relVol, newsEntry, catalystType);
+function scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType, row){
+  const score = scannerSetupScore(pillarCount, relVol, newsEntry, catalystType, row);
   if(score >= 115) return { grade: 'A+', label: 'Prime setup', cls: 'good', score };
   if(score >= 95) return { grade: 'A', label: 'Strong setup', cls: 'good', score };
   if(score >= 70) return { grade: 'B', label: 'Developing setup', cls: 'neutral', score };
@@ -978,7 +995,7 @@ function scannerRowData(row){
   const relVol = (avgVolM != null && avgVolM > 0) ? (vol / (avgVolM * 1e6)) : null;
   const pillarCount = scannerPillars(price, pct, vol, newsOk, floatM, relVol);
   const pillarBreakdown = scannerPillarBreakdown(price, pct, vol, newsOk, floatM, relVol, newsEntry);
-  const setupGrade = scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType);
+  const setupGrade = scannerSetupGrade(pillarCount, relVol, newsEntry, catalystType, row);
   // Float rotation = today's volume / float. A stock trading multiples of
   // its own float (rotation well above 1x) is the classic sign of a real
   // supply/demand imbalance.
@@ -1015,9 +1032,9 @@ function scannerEarningsFlag(earningsDate){
   if(isNaN(d.getTime())) return null;
   const daysUntil = Math.round((d.setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
   if(Math.abs(daysUntil) > 5) return null;
-  if(daysUntil === 0) return { label: 'today' };
-  if(daysUntil > 0) return { label: `in ${daysUntil} day${daysUntil===1?'':'s'}` };
-  return { label: `${Math.abs(daysUntil)} day${Math.abs(daysUntil)===1?'':'s'} ago` };
+  if(daysUntil === 0) return { label: 'today', daysUntil };
+  if(daysUntil > 0) return { label: `in ${daysUntil} day${daysUntil===1?'':'s'}`, daysUntil };
+  return { label: `${Math.abs(daysUntil)} day${Math.abs(daysUntil)===1?'':'s'} ago`, daysUntil };
 }
 
 function scannerRowHtml(data, rank){
@@ -1074,7 +1091,7 @@ function scannerRowHtml(data, rank){
         <div class="sc-detail-col">
           <h4>Why ${pillarCount}/5 pillars</h4>
           <ul style="margin:0;padding:0;list-style:none;">${pillarBreakdownHtml}</ul>
-          <p class="sc-detail-hint" style="margin-top:10px;">Setup grade <strong>${setupGrade.grade}</strong> (${setupGrade.label}) is a mechanical score from pillar count + how far rel. volume clears 5x + news freshness. It is <strong>not</strong> a buy/sell recommendation — no fundamentals or price target behind it.</p>
+          <p class="sc-detail-hint" style="margin-top:10px;">Setup grade <strong>${setupGrade.grade}</strong> (${setupGrade.label}) is a mechanical score from pillar count + how far rel. volume clears 5x + news freshness, docked for earnings within 2 days or a 5min move already reversing against the daily trend. It is <strong>not</strong> a buy/sell recommendation — no fundamentals or price target behind it.</p>
           ${row.sector ? `<p class="sc-detail-hint" style="margin-top:8px;">Sector: <strong>${escapeHtml(row.sector)}</strong>${row.industry ? ` &middot; ${escapeHtml(row.industry)}` : ''}${sectorPerf ? ` &mdash; sector is ${sectorPerf.changeToday>=0?'up':'down'} <strong style="color:${sectorPerf.changeToday>=0?'var(--good)':'var(--bad)'};">${sectorPerf.changeToday>=0?'+':''}${sectorPerf.changeToday.toFixed(2)}%</strong> today, this stock is ${Math.abs(pct - sectorPerf.changeToday) < 0.01 ? 'in line with it' : (pct > sectorPerf.changeToday ? 'outperforming it' : 'underperforming it')}` : ''}</p>` : ''}
           ${row.momentum5m != null || row.momentum15m != null ? `<p class="sc-detail-hint" style="margin-top:8px;">Intraday momentum &mdash; last 5min: <strong style="color:${(row.momentum5m||0)>=0?'var(--good)':'var(--bad)'};">${row.momentum5m!=null?(row.momentum5m>=0?'+':'')+row.momentum5m.toFixed(2)+'%':'—'}</strong> &middot; last 15min: <strong style="color:${(row.momentum15m||0)>=0?'var(--good)':'var(--bad)'};">${row.momentum15m!=null?(row.momentum15m>=0?'+':'')+row.momentum15m.toFixed(2)+'%':'—'}</strong> &mdash; ${row.momentum5m!=null && Math.sign(row.momentum5m) !== Math.sign(pct) ? 'reversing against the daily move in just the last few minutes' : 'still moving in the same direction as the daily move'}</p>` : ''}
         </div>

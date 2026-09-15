@@ -463,6 +463,26 @@ bugs, verify every change live) added, on top of everything above:
   understood pattern identical to two other functions already in the
   same file.
 
+- **Setup Grade now reflects earnings/momentum risk, not just Pillars**
+  (a still-later `/loop` pass, same session; a dead-code/unused-export
+  audit fork this cycle came back fully clean — no genuinely dead code
+  anywhere in the app after all this session's rapid feature additions):
+  `scannerSetupScore` previously only used pillar count + rel-vol +
+  news freshness. Now also docks 20 points for earnings within ±2
+  trading days (tighter than the ±5-day badge elsewhere — this is
+  scoring "is this still a good setup right now," where only the report
+  itself and the day around it is the acute risk) and 15 points for a
+  5min move already reversing >1% against the daily trend (a real
+  "this is stalling out" signal from the momentum data added earlier
+  this session, not a guess). Both are real, named risks in this app's
+  own reference material — this isn't a new invented rubric, it's the
+  existing mechanical score finally seeing data it already had access
+  to. Flows through automatically to both the per-card badge and Today's
+  Top Picks ranking (both already computed off the same `scannerRowData`
+  → `scannerSetupGrade` call, so one change point). Verified live: the
+  detail panel's explanatory hint renders the updated copy correctly
+  with no console errors.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/
