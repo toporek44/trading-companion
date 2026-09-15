@@ -547,6 +547,31 @@ bugs, verify every change live) added, on top of everything above:
   real trades to test against) — worst/best correctly identified a
   losing Short-direction cluster and a winning Long-direction cluster.
 
+- **Accessibility fixes on this session's newer Scanner UI** (a
+  still-later `/loop` pass, same session): an audit fork specifically
+  scoped to UI added AFTER the original accessibility pass documented
+  above (price alerts, the two manager panels, sector filter, new
+  Journal stats tables, position-size calculator) found two real gaps.
+  (1) The shared price-alert mini-form's direction `<select>` and
+  target `<input>` had zero accessible name — no `<label>`, no
+  `aria-label`, relying only on a `placeholder` (not a reliable
+  accessible-name substitute; most screen readers don't announce it
+  consistently and it disappears once a value is typed). Fixed with
+  `aria-label="Alert direction"`/`"Alert target price"` — since this is
+  one shared `scannerPriceAlertFormHtml()` function, the fix applies to
+  all 3 markets at once. (2) The Watchlist/Alert manager panels' Jump/
+  Remove buttons all rendered with identical literal text across every
+  row — a screen-reader user browsing via an AT "list all buttons" view
+  (a common NVDA/JAWS navigation mode) would hear "Remove, Remove,
+  Remove…" with no way to tell rows apart without reading linearly.
+  Fixed with per-row `aria-label`s using the already-available symbol/
+  market data (e.g. "Remove FTFT from watchlist"). Everything else
+  checked — sector filter's `<label for>`, position-size calculator's
+  3 labeled inputs, the new stats tables' `<thead>/<th>` semantics, no
+  color-only signals, no div-as-button pattern — came back clean.
+  Verified live: both ARIA labels render correctly and are distinct
+  per-row.
+
 ## Journal, Practice, and Lessons
 
 - **Journal had a real stored XSS** (fixed) — free-text Instrument/

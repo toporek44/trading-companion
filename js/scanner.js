@@ -704,8 +704,8 @@ export function renderScannerWatchlistManager(){
         ${priceHtml}
       </div>
       <div style="display:flex;gap:8px;">
-        <button type="button" class="btn sc-watch-mgr-jump" data-market="${r.market}" style="padding:4px 10px;font-size:11px;">Jump</button>
-        <button type="button" class="btn sc-watch-mgr-remove" data-key="${escapeHtml(r.key)}" style="padding:4px 10px;font-size:11px;">Remove</button>
+        <button type="button" class="btn sc-watch-mgr-jump" data-market="${r.market}" style="padding:4px 10px;font-size:11px;" aria-label="Jump to ${escapeHtml(r.symbol)} on ${r.label}">Jump</button>
+        <button type="button" class="btn sc-watch-mgr-remove" data-key="${escapeHtml(r.key)}" style="padding:4px 10px;font-size:11px;" aria-label="Remove ${escapeHtml(r.symbol)} from watchlist">Remove</button>
       </div>
     </div>`;
   }).join('');
@@ -793,8 +793,8 @@ export function renderScannerPriceAlertsManager(){
         <span style="color:var(--muted);font-size:.85rem;">${a.direction} $${a.target}</span>
       </div>
       <div style="display:flex;gap:8px;">
-        <button type="button" class="btn sc-alert-mgr-jump" data-market="${market}" style="padding:4px 10px;font-size:11px;">Jump</button>
-        <button type="button" class="btn sc-alert-mgr-remove" data-key="${escapeHtml(a.ticker)}" style="padding:4px 10px;font-size:11px;">Remove</button>
+        <button type="button" class="btn sc-alert-mgr-jump" data-market="${market}" style="padding:4px 10px;font-size:11px;" aria-label="Jump to ${escapeHtml(symbol)} on ${label}">Jump</button>
+        <button type="button" class="btn sc-alert-mgr-remove" data-key="${escapeHtml(a.ticker)}" style="padding:4px 10px;font-size:11px;" aria-label="Remove ${escapeHtml(symbol)} ${a.direction} ${a.target} price alert">Remove</button>
       </div>
     </div>`;
   }).join('');
@@ -849,11 +849,11 @@ export function scannerPriceAlertBellHtml(priceAlert){
 }
 export function scannerPriceAlertFormHtml(alertKey, placeholderPrice, priceAlert){
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-    <select class="sc-price-alert-dir" data-alert-key="${alertKey}" style="width:auto;">
+    <select class="sc-price-alert-dir" data-alert-key="${alertKey}" style="width:auto;" aria-label="Alert direction">
       <option value="above"${priceAlert?.direction==='above'?' selected':''}>Above</option>
       <option value="below"${priceAlert?.direction==='below'?' selected':''}>Below</option>
     </select>
-    <input type="number" step="any" class="sc-price-alert-target" data-alert-key="${alertKey}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${placeholderPrice}" style="width:100px;">
+    <input type="number" step="any" class="sc-price-alert-target" data-alert-key="${alertKey}" value="${priceAlert?priceAlert.target:''}" placeholder="e.g. ${placeholderPrice}" style="width:100px;" aria-label="Alert target price">
     <button type="button" class="btn sc-price-alert-set" data-alert-key="${alertKey}" style="padding:5px 10px;font-size:11px;">${priceAlert?'Update':'Set'}</button>
     ${priceAlert ? `<button type="button" class="btn sc-price-alert-clear" data-alert-key="${alertKey}" style="padding:5px 10px;font-size:11px;">Clear</button>` : ''}
   </div>`;
